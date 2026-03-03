@@ -2,7 +2,10 @@ import Lake
 open Lake DSL
 
 package «lean4-project» where
-  -- add package configuration options here
+  leanOptions := #[
+    -- Enable well-founded recursion default (useful for dependent types)
+    ⟨`autoImplicit, false⟩
+  ]
 
 lean_lib «Lean4Project» where
   -- add library configuration options here

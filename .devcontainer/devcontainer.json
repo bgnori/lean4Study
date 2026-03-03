@@ -3,8 +3,10 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  
-  // Automatically match container user UID/GID with host user
+  "hostRequirements": {
+    "memory": "8gb",
+    "cpus": 2
+  },
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": false,
@@ -15,7 +17,6 @@
       "userGid": "automatic"
     }
   },
-  
   "customizations": {
     "vscode": {
       "extensions": [
@@ -24,13 +25,11 @@
       "settings": {
         "lean4.serverEnv": {
           "PATH": "${containerEnv:PATH}"
-        }
+        },
+        "editor.unicodeHighlight.ambiguousCharacters": false
       }
     }
   },
-
-  "postCreateCommand": "elan default $(cat lean-toolchain) && lake update",
-  
-  // Use the non-root user created by common-utils feature
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
   "remoteUser": "vscode"
 }
