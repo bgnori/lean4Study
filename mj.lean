@@ -624,9 +624,40 @@ def reducibility : SevenTileWait → SevenTileReducibility
 
 /-- One concrete mpsz example for every seven-tile wait kind. -/
 def examples : List (String × SevenTileWait) :=
-  FourTileWait.examples.map fun entry =>
-    ("123s + " ++ entry.1,
-      .mentsuThen (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) entry.2)
+  [("123s1235m: tanki 5m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityTankiShuntsu
+        (.tanki (.numbered .Manzu 4)) (.shuntsu .Manzu 0))),
+   ("123s1115m: tanki 5m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityTankiKoutsu
+        (.tanki (.numbered .Manzu 4)) (.numbered .Manzu 0))),
+   ("123s34m55p: ryanmen 2m/5m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityToitsuRyanmen
+        (.toitsu (.numbered .Pinzu 4)) .Manzu 1)),
+   ("123s35m55p: kanchan 4m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityToitsuKanchan
+        (.toitsu (.numbered .Pinzu 4)) .Manzu 2)),
+   ("123s12m55p: penchan 3m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityToitsuPenchan
+        (.toitsu (.numbered .Pinzu 4)) .Manzu false)),
+   ("123s11m22p: shanpon 1m/2p", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.noAmbiguityShanpon
+        (.toitsu (.numbered .Manzu 0)) (.toitsu (.numbered .Pinzu 1)))),
+   ("123s1234m: nobetan 1m/4m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.ambiguousNobetan
+        (.tanki (.numbered .Manzu 0)) (.shuntsu .Manzu 1)
+        (.tanki (.numbered .Manzu 3)) (.shuntsu .Manzu 0))),
+   ("123s2223m: kuttsuki ryanmen 1m/3m/4m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.ambiguousKuttsukiRyanmen
+        (.tanki (.numbered .Manzu 2)) (.numbered .Manzu 1)
+        (.toitsu (.numbered .Manzu 1)) .Manzu 0)),
+   ("123s1113m: kuttsuki kanchan 2m/3m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.ambiguousKuttsukiKanchan
+        (.tanki (.numbered .Manzu 2)) (.numbered .Manzu 0)
+        (.toitsu (.numbered .Manzu 0)) .Manzu 0)),
+   ("123s1112m: kuttsuki penchan 2m/3m", .mentsuThen
+      (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) (.ambiguousKuttsukiPenchan
+        (.tanki (.numbered .Manzu 1)) (.numbered .Manzu 0)
+        (.toitsu (.numbered .Manzu 0)) .Manzu false))]
 
 def exampleReducibilities : List SevenTileReducibility :=
   examples.map fun entry => entry.2.reducibility
