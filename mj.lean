@@ -105,6 +105,17 @@ noncomputable def takeTiles (chunk : Chunk) (wanted : List Tile) :
 
 end Chunk
 
+class HasTilePattern (α : Type) where
+  tiles : α → List Tile
+
+namespace HasTilePattern
+
+noncomputable def take {α : Type} [HasTilePattern α] (pattern : α) (chunk : Chunk) :
+    Option (List PhysicalTile × Finset PhysicalTile) :=
+  chunk.takeTiles (HasTilePattern.tiles pattern)
+
+end HasTilePattern
+
 /-!
  # 麻雀牌の表記
  a) unicode で表す
@@ -163,6 +174,22 @@ example : format .mpsz (.honor .White) = "5z" := rfl
 
 end Tile
 
+/-!
+# 牌パターンの共通部品
+-/
+
+def pairTiles (tile : Tile) : List Tile :=
+  [tile, tile]
+
+def koutsuTiles (tile : Tile) : List Tile :=
+  [tile, tile, tile]
+
+def numberedRun (suit : Suit) (start : Fin 7) : List Tile :=
+  [Tile.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
+   Tile.numbered suit ⟨start.val + 1,
+    Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
+   Tile.numbered suit ⟨start.val + 2, by
+     simpa using Nat.add_lt_add_right start.isLt 2⟩]
 
 /-!
 # ターツ・メンツの定義
@@ -194,9 +221,12 @@ def tiles : Taats → List Tile
   | .penchan suit false => [.numbered suit 0, .numbered suit 1]
   | .penchan suit true => [.numbered suit 7, .numbered suit 8]
 
+instance : HasTilePattern Taats where
+  tiles := Taats.tiles
+
 noncomputable def take (taats : Taats) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles taats.tiles
+  HasTilePattern.take taats chunk
 
 end Taats
 
@@ -207,11 +237,14 @@ deriving BEq, DecidableEq, Repr, Fintype
 namespace Toitsu
 
 def tiles : Toitsu → List Tile
-  | .toitsu tile => [tile, tile]
+  | .toitsu tile => pairTiles tile
+
+instance : HasTilePattern Toitsu where
+  tiles := Toitsu.tiles
 
 noncomputable def take (toitsu : Toitsu) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles toitsu.tiles
+  HasTilePattern.take toitsu chunk
 
 end Toitsu
 
@@ -224,6 +257,9 @@ namespace Tanki
 def tiles : Tanki → List Tile
   | .tanki tile => [tile]
 
+instance : HasTilePattern Tanki where
+  tiles := Tanki.tiles
+
 noncomputable def all : List Tanki :=
   (Finset.univ : Finset Tanki).toList
 
@@ -232,7 +268,7 @@ def Matches (tanki : Tanki) (tile : PhysicalTile) : Prop :=
 
 noncomputable def take (tanki : Tanki) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles tanki.tiles
+  HasTilePattern.take tanki chunk
 
 end Tanki
 
@@ -246,16 +282,14 @@ deriving BEq, DecidableEq, Repr, Fintype
 namespace Shuntsu
 
 def tiles : Shuntsu → List Tile
-  | .shuntsu suit start =>
-      [.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
-       .numbered suit ⟨start.val + 1,
-        Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
-       .numbered suit ⟨start.val + 2, by
-         simpa using Nat.add_lt_add_right start.isLt 2⟩]
+  | .shuntsu suit start => numberedRun suit start
+
+instance : HasTilePattern Shuntsu where
+  tiles := Shuntsu.tiles
 
 noncomputable def take (shuntsu : Shuntsu) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles shuntsu.tiles
+  HasTilePattern.take shuntsu chunk
 
 end Shuntsu
 
@@ -274,7 +308,10 @@ noncomputable def all : List MentsuCandidate :=
 
 def tiles : MentsuCandidate → List Tile
   | .shuntsu sequence => sequence.tiles
-  | .koutsu tile => [tile, tile, tile]
+  | .koutsu tile => koutsuTiles tile
+
+instance : HasTilePattern MentsuCandidate where
+  tiles := MentsuCandidate.tiles
 
 def IsShuntsu : MentsuCandidate → Prop
   | .shuntsu _ => True
@@ -286,11 +323,11 @@ theorem honor_not_in_shuntsu (candidate : MentsuCandidate) (honor : Honor)
   | koutsu tile => simp [IsShuntsu]
   | shuntsu sequence =>
       cases sequence
-      simp [tiles, Shuntsu.tiles] at honor_mem
+      simp [tiles, Shuntsu.tiles, numberedRun] at honor_mem
 
 noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles candidate.tiles
+  HasTilePattern.take candidate chunk
 
 end MentsuCandidate
 
@@ -313,15 +350,18 @@ noncomputable def all : List FourTileExtraction :=
 
 def tiles : FourTileExtraction → List Tile
   | .tankiShuntsu tanki shuntsu => tanki.tiles ++ shuntsu.tiles
-  | .tankiKoutsu tanki tile => tanki.tiles ++ [tile, tile, tile]
+  | .tankiKoutsu tanki tile => tanki.tiles ++ koutsuTiles tile
   | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taats.ryanmen suit start).tiles
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taats.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taats.penchan suit high).tiles
   | .shanpon first second => first.tiles ++ second.tiles
 
+instance : HasTilePattern FourTileExtraction where
+  tiles := FourTileExtraction.tiles
+
 noncomputable def take (extraction : FourTileExtraction) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  chunk.takeTiles extraction.tiles
+  HasTilePattern.take extraction chunk
 
 end FourTileExtraction
 
@@ -499,7 +539,8 @@ theorem tiles_length (extraction : SevenTileExtraction) :
   | mk mentsu remaining =>
       cases mentsu <;> cases remaining <;>
         simp [tiles, MentsuCandidate.tiles, Shuntsu.tiles, Tanki.tiles,
-          Toitsu.tiles, FourTileExtraction.tiles, taats_tiles_length]
+          Toitsu.tiles, FourTileExtraction.tiles, pairTiles, koutsuTiles,
+          numberedRun, taats_tiles_length]
 
 end SevenTileExtraction
 
@@ -652,10 +693,8 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
 def meldCandidates : List (List Tile) :=
   (suits.flatMap fun suit =>
     List.ofFn fun start : Fin 7 =>
-      [Tile.numbered suit ⟨start.val, by omega⟩,
-       Tile.numbered suit ⟨start.val + 1, by omega⟩,
-       Tile.numbered suit ⟨start.val + 2, by omega⟩]) ++
-  allTiles.map fun tile => [tile, tile, tile]
+      numberedRun suit start) ++
+  allTiles.map koutsuTiles
 
 def canFormMelds : Nat → List Tile → Bool
   | 0, tiles => tiles.isEmpty
@@ -667,7 +706,7 @@ def canFormMelds : Nat → List Tile → Bool
 
 def isWinning (tiles : List Tile) : Bool :=
   tiles.length % 3 == 2 && allTiles.any fun pair =>
-    match removeTiles tiles [pair, pair] with
+    match removeTiles tiles (pairTiles pair) with
     | some remaining => canFormMelds (remaining.length / 3) remaining
     | none => false
 
@@ -684,12 +723,9 @@ deriving BEq, DecidableEq, Repr
 namespace TileChunk
 
 def tiles : TileChunk → List Tile
-  | .pair tile => [tile, tile]
-  | .shuntsu suit start =>
-      [Tile.numbered suit ⟨start.val, by omega⟩,
-       Tile.numbered suit ⟨start.val + 1, by omega⟩,
-       Tile.numbered suit ⟨start.val + 2, by omega⟩]
-  | .koutsu tile => [tile, tile, tile]
+  | .pair tile => pairTiles tile
+  | .shuntsu suit start => numberedRun suit start
+  | .koutsu tile => koutsuTiles tile
 
 end TileChunk
 
