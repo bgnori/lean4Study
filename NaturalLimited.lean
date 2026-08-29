@@ -139,6 +139,24 @@ Lean では「5枚である」という条件を実行時チェックにせず�
 /-- ちょうど5枚のカードからなる手札。 -/
 def Hand := Fin 5 -> Card
 
+/-- `deck` から重複なく5枚を配った手札。 -/
+def DealtHand := Fin 5 ↪ { card : Card // card ∈ deck }
+
+/-- 配られた手札を役判定に渡せるカード列にする。 -/
+def DealtHand.toHand (hand : DealtHand) : Hand :=
+  fun i => (hand.toFun i).val
+
+/-- 配られた各カードはデッキに含まれる。 -/
+theorem DealtHand.mem_deck (hand : DealtHand) (i : Fin 5) : hand.toHand i ∈ deck :=
+  (hand.toFun i).property
+
+/-- デッキから配った手札には、同じカードが2回現れない。 -/
+theorem DealtHand.toHand_injective (hand : DealtHand) : Function.Injective hand.toHand := by
+  intro i j sameCard
+  apply hand.injective
+  apply Subtype.ext
+  exact sameCard
+
 /-- ポーカーの役。下に行くほど強い役として並べている。 -/
 inductive PokerHand
   | highCard
@@ -180,6 +198,9 @@ def rankGroupCount (hand : Hand) (n : Nat) : Nat :=
 `Rank = Fin 13` の13種類を超えない。また、0番目のカードが必ず存在するため、少なくとも
 1つのランクは必ず手札に含まれる。実装を変更しても、これらの性質を壊す変更は型検査で
 検出される。
+
+さらに `DealtHand` は `deck` の要素への埋め込みなので、デッキから同じカードを2回選べない
+ことも型から得られる。このため、同じランクのカードは4種類のスートに対応して高々4枚である。
 -/
 
 /-- 任意のランクは、5枚の手札の中に高々5枚しか現れない。 -/
@@ -190,6 +211,28 @@ theorem rankCount_le_five (hand : Hand) (rank : Rank) : rankCount hand rank <= 5
         (Finset.univ : Finset (Fin 5)).card :=
       Finset.card_le_card (Finset.filter_subset _ _)
     _ = 5 := by decide
+
+/-- デッキから配った手札では、同じランクは4種類のスートに対応して高々4枚しか現れない。 -/
+theorem rankCount_le_four (hand : DealtHand) (rank : Rank) : rankCount hand.toHand rank <= 4 := by
+  unfold rankCount
+  calc
+    ((Finset.univ : Finset (Fin 5)).filter fun i => (hand.toHand i).rank = rank).card <=
+        (Finset.univ : Finset Suit).card :=
+      Finset.card_le_card_of_injOn (fun i => (hand.toHand i).suit) (by
+        intro i iInRank
+        simp) (by
+        intro i iInRank j jInRank sameSuit
+        apply hand.toHand_injective
+        have iHasRank : (hand.toHand i).rank = rank := by
+          simpa using iInRank
+        have jHasRank : (hand.toHand j).rank = rank := by
+          simpa using jInRank
+        have sameRank : (hand.toHand i).rank = (hand.toHand j).rank :=
+          iHasRank.trans jHasRank.symm
+        cases handI : hand.toHand i
+        cases handJ : hand.toHand j
+        simp_all)
+    _ = 4 := by decide
 
 /-- ちょうど同じ枚数のランクは、全13ランクを超えて存在しない。 -/
 theorem rankGroupCount_le_thirteen (hand : Hand) (n : Nat) : rankGroupCount hand n <= 13 := by
@@ -262,6 +305,10 @@ def classifyHand (hand : Hand) : PokerHand :=
     PokerHand.onePair
   else
     PokerHand.highCard
+
+/-- デッキから重複なく配られた手札の役を判定する。 -/
+def classifyDealtHand (hand : DealtHand) : PokerHand :=
+  classifyHand hand.toHand
 
 /-!
 ## テスト
