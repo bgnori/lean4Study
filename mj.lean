@@ -727,6 +727,32 @@ def tiles : TileChunk → List Tile
   | .shuntsu suit start => numberedRun suit start
   | .koutsu tile => koutsuTiles tile
 
+private def suitKey : Suit → Nat
+  | .Manzu => 0
+  | .Pinzu => 1
+  | .Souzu => 2
+
+private def honorKey : Honor → Nat
+  | .East => 0
+  | .South => 1
+  | .West => 2
+  | .North => 3
+  | .White => 4
+  | .Green => 5
+  | .Red => 6
+
+private def tileKey : Tile → Nat
+  | .numbered suit rank => suitKey suit * 9 + rank.val
+  | .honor honor => 27 + honorKey honor
+
+private def orderKey : TileChunk → Nat
+  | .pair tile => tileKey tile
+  | .shuntsu suit start => 34 + suitKey suit * 7 + start.val
+  | .koutsu tile => 55 + tileKey tile
+
+def canonicalize (chunks : List TileChunk) : List TileChunk :=
+  chunks.mergeSort fun first second => orderKey first ≤ orderKey second
+
 end TileChunk
 
 structure WaitDecomposition where
@@ -764,7 +790,7 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
 def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningDecompositions (wait :: tiles)).map fun chunks =>
-      { wait, chunks }).eraseDups
+      { wait, chunks := TileChunk.canonicalize chunks }).eraseDups
 
 inductive NormalizedTile
 | numbered (suitIndex rank : Nat)
@@ -846,6 +872,24 @@ def testHandA : List Tile := manzu [2, 3, 4, 4, 4] ++ souzu [7, 7]
 def testHandB : List Tile := manzu [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
 def testHandC : List Tile := souzu [2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
 def testHandD : List Tile := manzu [1, 1, 2, 2, 3, 3, 4, 4] ++ souzu [6, 6]
+def testHand3456678 : List Tile := manzu [2, 3, 4, 5, 5, 6, 7]
+def testHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
+def testHand3334556 : List Tile := manzu [2, 2, 2, 3, 4, 4, 5]
+def testHand3335678 : List Tile := manzu [2, 2, 2, 4, 5, 6, 7]
+def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
+def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
+
+private def manzuPair (rank : Rank) : TileChunk :=
+  .pair (.numbered .Manzu rank)
+
+private def manzuShuntsu (start : Fin 7) : TileChunk :=
+  .shuntsu .Manzu start
+
+private def manzuKoutsu (rank : Rank) : TileChunk :=
+  .koutsu (.numbered .Manzu rank)
+
+private def manzuDecomposition (wait : Rank) (chunks : List TileChunk) : WaitDecomposition :=
+  { wait := .numbered .Manzu wait, chunks }
 
 example : waitingTiles testHandA =
   manzu [1, 4] ++ souzu [7] := by native_decide
@@ -859,6 +903,48 @@ example : waitingTiles testHandD = manzu [1, 4] ++ souzu [6] := by native_decide
 example : analyzeWait testHandB = analyzeWait testHandC := by native_decide
 example : analyzeWait testHandB ≠ analyzeWait testHandD := by native_decide
 example : analyzeWait testHandC ≠ analyzeWait testHandD := by native_decide
+
+-- 3456678: 単騎 3・6、両面 6・9
+example : waitDecompositionSet testHand3456678 =
+  [manzuDecomposition 2 [manzuPair 2, manzuShuntsu 3, manzuShuntsu 5],
+   manzuDecomposition 5 [manzuPair 5, manzuShuntsu 2, manzuShuntsu 5],
+   manzuDecomposition 8 [manzuPair 5, manzuShuntsu 2, manzuShuntsu 6]] ∧
+  (waitDecompositionSet testHand3456678).length = 3 := by native_decide
+
+-- 2345678: 単騎 2・5・8
+example : waitDecompositionSet testHand2345678 =
+  [manzuDecomposition 1 [manzuPair 1, manzuShuntsu 2, manzuShuntsu 5],
+   manzuDecomposition 4 [manzuPair 4, manzuShuntsu 1, manzuShuntsu 5],
+   manzuDecomposition 7 [manzuPair 7, manzuShuntsu 1, manzuShuntsu 4]] ∧
+  (waitDecompositionSet testHand2345678).length = 3 := by native_decide
+
+-- 3334556: 単騎 5、嵌張 5、両面 4・7
+example : waitDecompositionSet testHand3334556 =
+  [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 3],
+   manzuDecomposition 4 [manzuPair 4, manzuShuntsu 3, manzuKoutsu 2],
+   manzuDecomposition 6 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 4]] ∧
+  (waitDecompositionSet testHand3334556).length = 3 := by native_decide
+
+-- 3335678: 単騎 5・8、嵌張 4
+example : waitDecompositionSet testHand3335678 =
+  [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 5],
+   manzuDecomposition 4 [manzuPair 4, manzuShuntsu 5, manzuKoutsu 2],
+   manzuDecomposition 7 [manzuPair 7, manzuShuntsu 4, manzuKoutsu 2]] ∧
+  (waitDecompositionSet testHand3335678).length = 3 := by native_decide
+
+-- 3335567: 単騎 5、嵌張 4、両面 5・8
+example : waitDecompositionSet testHand3335567 =
+  [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 4],
+   manzuDecomposition 4 [manzuPair 4, manzuShuntsu 4, manzuKoutsu 2],
+   manzuDecomposition 7 [manzuPair 4, manzuShuntsu 5, manzuKoutsu 2]] ∧
+  (waitDecompositionSet testHand3335567).length = 3 := by native_decide
+
+-- 3335777: 単騎 5、嵌張 4・6
+example : waitDecompositionSet testHand3335777 =
+  [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuKoutsu 6],
+   manzuDecomposition 4 [manzuPair 4, manzuKoutsu 2, manzuKoutsu 6],
+   manzuDecomposition 5 [manzuPair 6, manzuShuntsu 4, manzuKoutsu 2]] ∧
+  (waitDecompositionSet testHand3335777).length = 3 := by native_decide
 
 end StandardWait
 
