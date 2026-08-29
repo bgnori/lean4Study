@@ -604,7 +604,41 @@ inductive SevenTileWait
 | mentsuThen (mentsu : MentsuCandidate) (remaining : FourTileWait)
 deriving Repr
 
+inductive SevenTileReducibility
+| reducible
+| irreducible
+deriving BEq, DecidableEq, Repr, Fintype
+
+namespace SevenTileReducibility
+
+def ofFour : FourTileReducibility → SevenTileReducibility
+  | .reducible => .reducible
+  | .irreducible => .irreducible
+
+end SevenTileReducibility
+
 namespace SevenTileWait
+
+def reducibility : SevenTileWait → SevenTileReducibility
+  | .mentsuThen _ remaining => .ofFour remaining.reducibility
+
+/-- One concrete mpsz example for every seven-tile wait kind. -/
+def examples : List (String × SevenTileWait) :=
+  FourTileWait.examples.map fun entry =>
+    ("123s + " ++ entry.1,
+      .mentsuThen (.shuntsu (Shuntsu.shuntsu Suit.Souzu 0)) entry.2)
+
+def exampleReducibilities : List SevenTileReducibility :=
+  examples.map fun entry => entry.2.reducibility
+
+def classifiedExamples : List (SevenTileReducibility × String) :=
+  examples.map fun entry => (entry.2.reducibility, entry.1)
+
+example : exampleReducibilities =
+    [.reducible, .reducible,
+     .irreducible, .irreducible, .irreducible, .irreducible,
+     .irreducible, .irreducible, .irreducible, .irreducible] := by
+  native_decide
 
 def kind : SevenTileWait → SevenTileWaitKind
   | .mentsuThen _ remaining => .mentsuThen remaining.kind
