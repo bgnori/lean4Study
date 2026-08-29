@@ -7,6 +7,12 @@
     "memory": "8gb",
     "cpus": 2
   },
+  "runArgs": [
+    "--memory=4g",
+    "--memory-swap=6g",
+    "--cpus=2.0",
+    "--cpu-shares=512"
+  ],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": false,
