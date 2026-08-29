@@ -70,6 +70,10 @@ def Rank := Fin 13
 -/
 deriving instance BEq, DecidableEq, Repr, Fintype for Rank
 
+/-- `Rank` は `Fin 13` の別名なので、`0` から `12` までのリテラルを書けるようにする。 -/
+instance (n : Nat) [OfNat (Fin 13) n] : OfNat Rank n where
+  ofNat := (OfNat.ofNat n : Fin 13)
+
 /--
 1枚のカードを表す構造体。
 
@@ -120,3 +124,192 @@ theorem deck_cardinality' : Finset.card deck = 52 := by
 -/
 theorem deck_cardinality : Finset.card deck = 52 := by
   rfl
+
+/-!
+## ポーカーの役判定
+
+以降では、上で定義した `Card` を使って、5枚の手札からポーカーの役を判定する。
+
+Lean では「5枚である」という条件を実行時チェックにせず、`Fin 5 -> Card` という型で
+表している。`Fin 5` は添字 `0, 1, 2, 3, 4` だけを持つので、この関数は必ず5枚ぶんの
+カードを返す。
+-/
+
+/-- ちょうど5枚のカードからなる手札。 -/
+def Hand := Fin 5 -> Card
+
+/-- ポーカーの役。下に行くほど強い役として並べている。 -/
+inductive PokerHand
+  | highCard
+  | onePair
+  | twoPair
+  | threeOfAKind
+  | straight
+  | flush
+  | fullHouse
+  | fourOfAKind
+  | straightFlush
+  deriving BEq, DecidableEq, Repr
+
+/-- テストや例を書くためのカード生成ヘルパー。 -/
+def mkCard (suit : Suit) (rank : Rank) : Card :=
+  { suit := suit, rank := rank }
+
+/-- 5枚のカードから `Hand` を作るヘルパー。 -/
+def mkHand (c0 c1 c2 c3 c4 : Card) : Hand
+  | ⟨0, _⟩ => c0
+  | ⟨1, _⟩ => c1
+  | ⟨2, _⟩ => c2
+  | ⟨3, _⟩ => c3
+  | ⟨4, _⟩ => c4
+
+/-- 手札の中で指定したランクが何枚あるかを数える。 -/
+def rankCount (hand : Hand) (rank : Rank) : Nat :=
+  ((Finset.univ : Finset (Fin 5)).filter fun i => (hand i).rank = rank).card
+
+/-- 「ちょうど `n` 枚あるランク」が何種類あるかを数える。 -/
+def rankGroupCount (hand : Hand) (n : Nat) : Nat :=
+  ((Finset.univ : Finset Rank).filter fun rank => rankCount hand rank = n).card
+
+/-- 指定した自然数値のランクが手札に含まれるかを判定する。 -/
+def hasRankValue (hand : Hand) (rankValue : Nat) : Bool :=
+  decide <| 0 < ((Finset.univ : Finset (Fin 5)).filter fun i => (hand i).rank.val = rankValue).card
+
+/-- Ace を `0` として扱う Broadway ストレートかどうかを判定する。 -/
+def isBroadwayStraight (hand : Hand) : Bool :=
+  hasRankValue hand 0 &&
+  hasRankValue hand 9 &&
+  hasRankValue hand 10 &&
+  hasRankValue hand 11 &&
+  hasRankValue hand 12
+
+/--
+5枚が同じスートなら `true`。
+
+基準には0番目のカードを使う。`Hand` は必ず5枚なので、このカードは常に存在する。
+-/
+def isFlush (hand : Hand) : Bool :=
+  decide <|
+    ((Finset.univ : Finset (Fin 5)).filter fun i =>
+      (hand i).suit = (hand ⟨0, by decide⟩).suit).card = 5
+
+/--
+5枚のランクが連続していれば `true`。
+
+ここでは `Rank` を `Fin 13` の値 `0, 1, ..., 12` として扱う。通常の連続する
+5ランクに加えて、`0` を Ace と見た `0, 9, 10, 11, 12` も Broadway
+ストレートとして扱う。
+-/
+def isStraight (hand : Hand) : Bool :=
+  isBroadwayStraight hand ||
+    (decide <| 0 < ((Finset.range 9).filter fun start =>
+      ((Finset.range 5).filter fun offset => hasRankValue hand (start + offset) = true).card = 5).card)
+
+/-- 5枚の手札からポーカーの役を判定する。 -/
+def classifyHand (hand : Hand) : PokerHand :=
+  if isStraight hand && isFlush hand then
+    PokerHand.straightFlush
+  else if rankGroupCount hand 4 > 0 then
+    PokerHand.fourOfAKind
+  else if rankGroupCount hand 3 > 0 && rankGroupCount hand 2 > 0 then
+    PokerHand.fullHouse
+  else if isFlush hand then
+    PokerHand.flush
+  else if isStraight hand then
+    PokerHand.straight
+  else if rankGroupCount hand 3 > 0 then
+    PokerHand.threeOfAKind
+  else if rankGroupCount hand 2 = 2 then
+    PokerHand.twoPair
+  else if rankGroupCount hand 2 = 1 then
+    PokerHand.onePair
+  else
+    PokerHand.highCard
+
+/-!
+## テスト
+
+Lean では、値を表示するだけの `#eval` よりも、期待する性質を `example` として
+書いて型検査に通す形がよく使われる。下の各 `example` は、役判定の結果が期待値と
+一致することを Lean に証明させている。
+-/
+
+example : classifyHand (mkHand
+    (mkCard .spade 0)
+    (mkCard .spade 1)
+    (mkCard .spade 2)
+    (mkCard .spade 3)
+    (mkCard .spade 4)) = PokerHand.straightFlush := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 7)
+    (mkCard .heart 7)
+    (mkCard .diamond 7)
+    (mkCard .club 7)
+    (mkCard .spade 2)) = PokerHand.fourOfAKind := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 10)
+    (mkCard .heart 10)
+    (mkCard .diamond 10)
+    (mkCard .club 3)
+    (mkCard .spade 3)) = PokerHand.fullHouse := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .heart 0)
+    (mkCard .heart 2)
+    (mkCard .heart 5)
+    (mkCard .heart 9)
+    (mkCard .heart 12)) = PokerHand.flush := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 8)
+    (mkCard .heart 9)
+    (mkCard .diamond 10)
+    (mkCard .club 11)
+    (mkCard .spade 12)) = PokerHand.straight := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 4)
+    (mkCard .heart 4)
+    (mkCard .diamond 4)
+    (mkCard .club 8)
+    (mkCard .spade 12)) = PokerHand.threeOfAKind := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 1)
+    (mkCard .heart 1)
+    (mkCard .diamond 6)
+    (mkCard .club 6)
+    (mkCard .spade 11)) = PokerHand.twoPair := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 5)
+    (mkCard .heart 5)
+    (mkCard .diamond 2)
+    (mkCard .club 9)
+    (mkCard .spade 12)) = PokerHand.onePair := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 0)
+    (mkCard .heart 2)
+    (mkCard .diamond 5)
+    (mkCard .club 9)
+    (mkCard .spade 12)) = PokerHand.highCard := by
+  native_decide
+
+example : classifyHand (mkHand
+    (mkCard .spade 0)
+    (mkCard .spade 9)
+    (mkCard .spade 11)
+    (mkCard .spade 12)
+    (mkCard .spade 10)) = PokerHand.straightFlush := by
+  native_decide
