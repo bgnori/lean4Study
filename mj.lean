@@ -1066,6 +1066,21 @@ structure ConcreteShapeComponent where
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
+structure ConcreteShapeExtraction where
+  wait : Tile
+  components : List ConcreteShapeComponent
+deriving BEq, DecidableEq, Repr
+
+structure AbstractShapeExtraction where
+  wait : Tile
+  components : List ShapeComponent
+deriving BEq, DecidableEq, Repr
+
+structure ShapeCodeEntry where
+  wait : Tile
+  code : Nat
+deriving BEq, DecidableEq, Repr
+
 private def completeComponent (chunk : TileChunk) : ConcreteShapeComponent :=
   { kind := match chunk with
       | .pair _ => .toitsu
@@ -1095,8 +1110,8 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
             result (if start.val == 0 then .penchan else .ryanmen)
           else none
 
-private def componentProduct (components : List ConcreteShapeComponent) : Nat :=
-  components.foldl (fun product component => product * component.kind.prime) 1
+private def componentProduct (components : List ShapeComponent) : Nat :=
+  components.foldl (fun product component => product * component.prime) 1
 
 private def shapeComponentKey : ShapeComponent → Nat
   | .tanki => 0
@@ -1123,8 +1138,16 @@ private def canonicalizeShapeExtraction
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
-private def abstractShapeCodeEntryKey (entry : Nat × Tile) : Nat :=
-  entry.1 * 100 + concreteTileKey entry.2
+private def concreteShapeExtractionKey (extraction : ConcreteShapeExtraction) : Nat :=
+  concreteTileKey extraction.wait * 100000000 +
+    extraction.components.foldl (fun key component => key * 500000 + concreteComponentKey component) 0
+
+private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : Nat :=
+  extraction.components.foldl (fun key component => key * 10 + shapeComponentKey component + 1) 0 * 100 +
+    concreteTileKey extraction.wait
+
+private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
+  entry.code * 100 + concreteTileKey entry.wait
 
 private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
     List (List ConcreteShapeComponent) :=
@@ -1139,18 +1162,41 @@ private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
         | none => later
   selectCompletedChunk decomposition.chunks
 
-def abstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+def concreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction :=
   let entries := (waitDecompositionSet tiles).flatMap fun decomposition =>
       (decompositionShapeExtractions decomposition).map fun extraction =>
-        (componentProduct (canonicalizeShapeExtraction extraction), decomposition.wait)
+        { wait := decomposition.wait
+          components := canonicalizeShapeExtraction extraction }
   entries
     |>.eraseDups
     |>.mergeSort fun first second =>
-      abstractShapeCodeEntryKey first ≤ abstractShapeCodeEntryKey second
+      concreteShapeExtractionKey first ≤ concreteShapeExtractionKey second
+
+def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction :=
+  concreteShapeExtractions tiles
+    |>.map (fun extraction =>
+      { wait := extraction.wait
+        components := extraction.components.map (fun component => component.kind) })
+    |>.eraseDups
+    |>.mergeSort fun first second =>
+      abstractShapeExtractionKey first ≤ abstractShapeExtractionKey second
+
+def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
+  abstractShapeExtractions tiles
+    |>.map (fun extraction =>
+      { wait := extraction.wait
+        code := componentProduct extraction.components })
+    |>.eraseDups
+    |>.mergeSort fun first second =>
+      shapeCodeEntryKey first ≤ shapeCodeEntryKey second
+
+def abstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  shapeCodeEntries tiles
+    |>.map fun entry => (entry.code, entry.wait)
 
 def abstractShapeCode (tiles : List Tile) : List Nat :=
-  abstractShapeCodeWithWait tiles
-    |>.map Prod.fst
+  shapeCodeEntries tiles
+    |>.map (fun entry => entry.code)
     |>.eraseDups
     |>.mergeSort (· ≤ ·)
 
@@ -1173,6 +1219,18 @@ def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
 def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
+
+example : abstractShapeExtractions testHand2345678 =
+  [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },
+   { wait := .numbered .Manzu 4, components := [.tanki, .shuntsu, .shuntsu] },
+   { wait := .numbered .Manzu 7, components := [.tanki, .shuntsu, .shuntsu] }] := by
+  native_decide
+
+example : shapeCodeEntries testHand2345678 =
+  [{ wait := .numbered .Manzu 1, code := 338 },
+   { wait := .numbered .Manzu 4, code := 338 },
+   { wait := .numbered .Manzu 7, code := 338 }] := by
+  native_decide
 
 example : abstractShapeCodeWithWait testHand2345678 =
   [(338, .numbered .Manzu 1),
