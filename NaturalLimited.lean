@@ -172,6 +172,42 @@ def rankCount (hand : Hand) (rank : Rank) : Nat :=
 def rankGroupCount (hand : Hand) (n : Nat) : Nat :=
   ((Finset.univ : Finset Rank).filter fun rank => rankCount hand rank = n).card
 
+/-!
+### 型から得られる不変条件
+
+以下は特定の手札に対するテストではなく、任意の `hand : Hand` について成り立つ定理である。
+`Hand` の添字が `Fin 5` なので、各ランクの枚数は5を超えず、ランクのグループ数は
+`Rank = Fin 13` の13種類を超えない。また、0番目のカードが必ず存在するため、少なくとも
+1つのランクは必ず手札に含まれる。実装を変更しても、これらの性質を壊す変更は型検査で
+検出される。
+-/
+
+/-- 任意のランクは、5枚の手札の中に高々5枚しか現れない。 -/
+theorem rankCount_le_five (hand : Hand) (rank : Rank) : rankCount hand rank <= 5 := by
+  unfold rankCount
+  calc
+    ((Finset.univ : Finset (Fin 5)).filter fun i => (hand i).rank = rank).card <=
+        (Finset.univ : Finset (Fin 5)).card :=
+      Finset.card_le_card (Finset.filter_subset _ _)
+    _ = 5 := by decide
+
+/-- ちょうど同じ枚数のランクは、全13ランクを超えて存在しない。 -/
+theorem rankGroupCount_le_thirteen (hand : Hand) (n : Nat) : rankGroupCount hand n <= 13 := by
+  unfold rankGroupCount
+  calc
+    ((Finset.univ : Finset Rank).filter fun rank => rankCount hand rank = n).card <=
+        (Finset.univ : Finset Rank).card :=
+      Finset.card_le_card (Finset.filter_subset _ _)
+    _ = 13 := by decide
+
+/-- 任意の手札には、少なくとも1回現れるランクがある。 -/
+theorem exists_rank_with_positive_count (hand : Hand) : ∃ rank, 0 < rankCount hand rank := by
+  refine ⟨(hand 0).rank, ?_⟩
+  unfold rankCount
+  apply Finset.card_pos.mpr
+  refine ⟨0, ?_⟩
+  simp
+
 /-- 指定した自然数値のランクが手札に含まれるかを判定する。 -/
 def hasRankValue (hand : Hand) (rankValue : Nat) : Bool :=
   decide <| 0 < ((Finset.univ : Finset (Fin 5)).filter fun i => (hand i).rank.val = rankValue).card
