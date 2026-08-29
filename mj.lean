@@ -926,32 +926,42 @@ def decompositionCount (tiles : List Tile) : Nat :=
 def IsTenpaiTiles (tiles : List Tile) : Prop :=
   waitingTiles tiles ≠ []
 
+instance decidableIsTenpaiTiles (tiles : List Tile) : Decidable (IsTenpaiTiles tiles) := by
+  unfold IsTenpaiTiles
+  infer_instance
+
 def mentsuReductions (tiles : List Tile) : List (List Tile) :=
   meldChunkCandidates.filterMap fun mentsu =>
     removeTiles tiles mentsu.tiles
 
 def CanReduceMentsu (tiles : List Tile) : Prop :=
   1 < tiles.length ∧ IsTenpaiTiles tiles ∧
-    ∃ remaining ∈ mentsuReductions tiles,
-      IsTenpaiTiles remaining ∧
-        decompositionCount remaining = decompositionCount tiles
+    (mentsuReductions tiles).any (fun remaining =>
+      !(waitingTiles remaining).isEmpty &&
+        decompositionCount remaining == decompositionCount tiles) = true
+
+instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMentsu tiles) := by
+  unfold CanReduceMentsu
+  infer_instance
 
 def IsIrreducible (tiles : List Tile) : Prop :=
   tiles.length = 1 ∨
     (IsTenpaiTiles tiles ∧ ¬CanReduceMentsu tiles)
+
+instance decidableIsIrreducible (tiles : List Tile) : Decidable (IsIrreducible tiles) := by
+  unfold IsIrreducible
+  infer_instance
 
 theorem singleton_irreducible (tile : Tile) : IsIrreducible [tile] := by
   simp [IsIrreducible]
 
 theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
     (reducible : CanReduceMentsu tiles) : ¬IsIrreducible tiles := by
-  rcases reducible with
-    ⟨moreThanOne, tenpai, remaining, isReduction, remainingTenpai, sameCount⟩
+  rcases reducible with ⟨moreThanOne, tenpai, reduction⟩
   intro irreducible
   rcases irreducible with singleton | ⟨_, notReducible⟩
   · omega
-  · exact notReducible
-      ⟨moreThanOne, tenpai, remaining, isReduction, remainingTenpai, sameCount⟩
+  · exact notReducible ⟨moreThanOne, tenpai, reduction⟩
 
 inductive NormalizedTile
 | numbered (suitIndex rank : Nat)
@@ -1039,6 +1049,72 @@ def testHand3334556 : List Tile := manzu [2, 2, 2, 3, 4, 4, 5]
 def testHand3335678 : List Tile := manzu [2, 2, 2, 4, 5, 6, 7]
 def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
+
+/--
+The 53 irreducible seven-tile waits using one numbered suit, normalized so the
+lowest rank is 1.  Replacing `m` with `p` or `s`, or translating a pattern
+without leaving ranks 1--9, gives equivalent concrete examples.
+-/
+def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
+  [("1345666m", manzu [0, 2, 3, 4, 5, 5, 5]),
+   ("1234666m", manzu [0, 1, 2, 3, 5, 5, 5]),
+   ("1234567m", manzu [0, 1, 2, 3, 4, 5, 6]),
+   ("1234555m", manzu [0, 1, 2, 3, 4, 4, 4]),
+   ("1234456m", manzu [0, 1, 2, 3, 3, 4, 5]),
+   ("1233334m", manzu [0, 1, 2, 2, 2, 2, 3]),
+   ("1223344m", manzu [0, 1, 1, 2, 2, 3, 3]),
+   ("1222345m", manzu [0, 1, 1, 1, 2, 3, 4]),
+   ("1222333m", manzu [0, 1, 1, 1, 2, 2, 2]),
+   ("1222234m", manzu [0, 1, 1, 1, 1, 2, 3]),
+   ("1178999m", manzu [0, 0, 6, 7, 8, 8, 8]),
+   ("1167888m", manzu [0, 0, 5, 6, 7, 7, 7]),
+   ("1166678m", manzu [0, 0, 5, 5, 5, 6, 7]),
+   ("1156777m", manzu [0, 0, 4, 5, 6, 6, 6]),
+   ("1155567m", manzu [0, 0, 4, 4, 4, 5, 6]),
+   ("1145678m", manzu [0, 0, 3, 4, 5, 6, 7]),
+   ("1145666m", manzu [0, 0, 3, 4, 5, 5, 5]),
+   ("1144456m", manzu [0, 0, 3, 3, 3, 4, 5]),
+   ("1134567m", manzu [0, 0, 2, 3, 4, 5, 6]),
+   ("1134555m", manzu [0, 0, 2, 3, 4, 4, 4]),
+   ("1133345m", manzu [0, 0, 2, 2, 2, 3, 4]),
+   ("1123456m", manzu [0, 0, 1, 2, 3, 4, 5]),
+   ("1123444m", manzu [0, 0, 1, 2, 3, 3, 3]),
+   ("1123344m", manzu [0, 0, 1, 2, 2, 3, 3]),
+   ("1123333m", manzu [0, 0, 1, 2, 2, 2, 2]),
+   ("1122344m", manzu [0, 0, 1, 1, 2, 3, 3]),
+   ("1122334m", manzu [0, 0, 1, 1, 2, 2, 3]),
+   ("1122333m", manzu [0, 0, 1, 1, 2, 2, 2]),
+   ("1122234m", manzu [0, 0, 1, 1, 1, 2, 3]),
+   ("1122233m", manzu [0, 0, 1, 1, 1, 2, 2]),
+   ("1122223m", manzu [0, 0, 1, 1, 1, 1, 2]),
+   ("1113555m", manzu [0, 0, 0, 2, 4, 4, 4]),
+   ("1113456m", manzu [0, 0, 0, 2, 3, 4, 5]),
+   ("1113444m", manzu [0, 0, 0, 2, 3, 3, 3]),
+   ("1113345m", manzu [0, 0, 0, 2, 2, 3, 4]),
+   ("1113333m", manzu [0, 0, 0, 2, 2, 2, 2]),
+   ("1112444m", manzu [0, 0, 0, 1, 3, 3, 3]),
+   ("1112399m", manzu [0, 0, 0, 1, 2, 8, 8]),
+   ("1112388m", manzu [0, 0, 0, 1, 2, 7, 7]),
+   ("1112377m", manzu [0, 0, 0, 1, 2, 6, 6]),
+   ("1112366m", manzu [0, 0, 0, 1, 2, 5, 5]),
+   ("1112355m", manzu [0, 0, 0, 1, 2, 4, 4]),
+   ("1112346m", manzu [0, 0, 0, 1, 2, 3, 5]),
+   ("1112345m", manzu [0, 0, 0, 1, 2, 3, 4]),
+   ("1112344m", manzu [0, 0, 0, 1, 2, 3, 3]),
+   ("1112334m", manzu [0, 0, 0, 1, 2, 2, 3]),
+   ("1112333m", manzu [0, 0, 0, 1, 2, 2, 2]),
+   ("1112234m", manzu [0, 0, 0, 1, 1, 2, 3]),
+   ("1112233m", manzu [0, 0, 0, 1, 1, 2, 2]),
+   ("1112223m", manzu [0, 0, 0, 1, 1, 1, 2]),
+   ("1112222m", manzu [0, 0, 0, 1, 1, 1, 1]),
+   ("1111333m", manzu [0, 0, 0, 0, 2, 2, 2]),
+   ("1111222m", manzu [0, 0, 0, 0, 1, 1, 1])]
+
+example : irreducibleSingleSuitSevenTileExamples.length = 53 := by native_decide
+
+example : irreducibleSingleSuitSevenTileExamples.all
+    (fun entry => decide (IsIrreducible entry.2)) = true := by
+  native_decide
 
 private def manzuPair (rank : Rank) : TileChunk :=
   .pair (.numbered .Manzu rank)
