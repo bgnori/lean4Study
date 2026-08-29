@@ -11,6 +11,7 @@ build/
 
 # DevContainer build cache
 .devcontainer/.cache/
+.devcontainer/devcontainer-lock.json
 
 # OS-specific files
 .DS_Store
