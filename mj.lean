@@ -1123,6 +1123,9 @@ private def canonicalizeShapeExtraction
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
+private def abstractShapeCodeEntryKey (entry : Nat × Tile) : Nat :=
+  entry.1 * 100 + concreteTileKey entry.2
+
 private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
     List (List ConcreteShapeComponent) :=
   let rec selectCompletedChunk : List TileChunk → List (List ConcreteShapeComponent)
@@ -1136,11 +1139,19 @@ private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
         | none => later
   selectCompletedChunk decomposition.chunks
 
-def abstractShapeCode (tiles : List Tile) : List Nat :=
-  (waitDecompositionSet tiles).flatMap decompositionShapeExtractions
-    |>.map canonicalizeShapeExtraction
+def abstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  let entries := (waitDecompositionSet tiles).flatMap fun decomposition =>
+      (decompositionShapeExtractions decomposition).map fun extraction =>
+        (componentProduct (canonicalizeShapeExtraction extraction), decomposition.wait)
+  entries
     |>.eraseDups
-    |>.map componentProduct
+    |>.mergeSort fun first second =>
+      abstractShapeCodeEntryKey first ≤ abstractShapeCodeEntryKey second
+
+def abstractShapeCode (tiles : List Tile) : List Nat :=
+  abstractShapeCodeWithWait tiles
+    |>.map Prod.fst
+    |>.eraseDups
     |>.mergeSort (· ≤ ·)
 
 private def manzu (ranks : List Rank) : List Tile :=
@@ -1163,7 +1174,11 @@ def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
 def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
 
-example : abstractShapeCode testHand2345678 = [338, 338, 338] := by native_decide
+example : abstractShapeCodeWithWait testHand2345678 =
+  [(338, .numbered .Manzu 1),
+   (338, .numbered .Manzu 4),
+   (338, .numbered .Manzu 7)] := by native_decide
+example : abstractShapeCode testHand2345678 = [338] := by native_decide
 example : abstractShapeCode testHand1167888 = [117, 255] := by native_decide
 example : abstractShapeCode testHand1166678 = [117, 255] := by native_decide
 example : abstractShapeCode testHand1167888 = abstractShapeCode testHand1166678 := by
@@ -1236,7 +1251,7 @@ example : irreducibleSingleSuitSevenTileExamples.all
   native_decide
 
 private def insertAbstractShapeClass (entry : String × List Nat) :
-    List (List Nat × List String) → List (List Nat × List String)
+  List (List Nat × List String) → List (List Nat × List String)
   | [] => [(entry.2, [entry.1])]
   | current :: rest =>
       if current.1 == entry.2 then
@@ -1248,7 +1263,7 @@ def irreducibleSevenTileAbstractShapeClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
     insertAbstractShapeClass (entry.1, abstractShapeCode entry.2) classes) []
 
-example : irreducibleSevenTileAbstractShapeClasses.length = 29 := by native_decide
+example : irreducibleSevenTileAbstractShapeClasses.length = 26 := by native_decide
 
 example : irreducibleSevenTileAbstractShapeClasses.find? (fun entry =>
     entry.1 == [117, 255]) = some
