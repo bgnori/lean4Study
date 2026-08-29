@@ -1032,6 +1032,117 @@ def analysisWith {α : Type} [DecidableEq α]
 def analyzeWait (tiles : List Tile) : Analysis :=
   { decompositions := analysisWith normalizeByTranslation tiles }
 
+/-!
+## 部品種別による商
+
+牌の位置を忘れ、待ち牌を除いた各分解を部品種別の多重集合として扱う。
+異なる部品種別に異なる素数を割り当て、その積を代表元とする。
+-/
+inductive ShapeComponent
+| tanki
+| toitsu
+| ryanmen
+| kanchan
+| penchan
+| shuntsu
+| koutsu
+deriving BEq, DecidableEq, Repr
+
+namespace ShapeComponent
+
+def prime : ShapeComponent → Nat
+  | .tanki => 2
+  | .toitsu => 3
+  | .ryanmen => 5
+  | .kanchan => 7
+  | .penchan => 11
+  | .shuntsu => 13
+  | .koutsu => 17
+
+end ShapeComponent
+
+structure ConcreteShapeComponent where
+  kind : ShapeComponent
+  tiles : List Tile
+deriving BEq, DecidableEq, Repr
+
+private def completeComponent (chunk : TileChunk) : ConcreteShapeComponent :=
+  { kind := match chunk with
+      | .pair _ => .toitsu
+      | .shuntsu .. => .shuntsu
+      | .koutsu _ => .koutsu
+    tiles := chunk.tiles }
+
+private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
+    Option ConcreteShapeComponent :=
+  let incompleteTiles := chunk.tiles.erase wait
+  let result kind := some { kind, tiles := incompleteTiles }
+  match chunk with
+  | .pair tile =>
+      if tile == wait then result .tanki else none
+  | .koutsu tile =>
+      if tile == wait then result .toitsu else none
+  | .shuntsu suit start =>
+      match wait with
+      | .honor _ => none
+      | .numbered waitSuit rank =>
+          if waitSuit != suit then none
+          else if rank.val == start.val then
+            result (if start.val == 6 then .penchan else .ryanmen)
+          else if rank.val == start.val + 1 then
+            result .kanchan
+          else if rank.val == start.val + 2 then
+            result (if start.val == 0 then .penchan else .ryanmen)
+          else none
+
+private def componentProduct (components : List ConcreteShapeComponent) : Nat :=
+  components.foldl (fun product component => product * component.kind.prime) 1
+
+private def shapeComponentKey : ShapeComponent → Nat
+  | .tanki => 0
+  | .toitsu => 1
+  | .ryanmen => 2
+  | .kanchan => 3
+  | .penchan => 4
+  | .shuntsu => 5
+  | .koutsu => 6
+
+private def concreteTileKey : Tile → Nat
+  | .numbered suit rank =>
+      (match suit with | .Manzu => 0 | .Pinzu => 1 | .Souzu => 2) * 9 + rank.val
+  | .honor honor => 27 + match honor with
+      | .East => 0 | .South => 1 | .West => 2 | .North => 3
+      | .White => 4 | .Green => 5 | .Red => 6
+
+private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
+  shapeComponentKey component.kind * 50000 +
+    component.tiles.foldl (fun key tile => key * 35 + concreteTileKey tile + 1) 0
+
+private def canonicalizeShapeExtraction
+    (components : List ConcreteShapeComponent) : List ConcreteShapeComponent :=
+  components.mergeSort fun first second =>
+    concreteComponentKey first ≤ concreteComponentKey second
+
+private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
+    List (List ConcreteShapeComponent) :=
+  let rec selectCompletedChunk : List TileChunk → List (List ConcreteShapeComponent)
+    | [] => []
+    | chunk :: rest =>
+        let later := (selectCompletedChunk rest).map fun extraction =>
+          completeComponent chunk :: extraction
+        match componentWithoutWait decomposition.wait chunk with
+        | some incomplete =>
+            (incomplete :: rest.map completeComponent) :: later
+        | none => later
+  selectCompletedChunk decomposition.chunks
+
+def abstractShapeCode (tiles : List Tile) : List Nat :=
+  (waitDecompositionSet tiles).flatMap decompositionShapeExtractions
+    |>.map canonicalizeShapeExtraction
+    |>.eraseDups
+    |>.map componentProduct
+    |>.mergeSort (· ≤ ·)
+
 private def manzu (ranks : List Rank) : List Tile :=
   ranks.map (.numbered .Manzu)
 
@@ -1049,6 +1160,14 @@ def testHand3334556 : List Tile := manzu [2, 2, 2, 3, 4, 4, 5]
 def testHand3335678 : List Tile := manzu [2, 2, 2, 4, 5, 6, 7]
 def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
+def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
+def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
+
+example : abstractShapeCode testHand2345678 = [338, 338, 338] := by native_decide
+example : abstractShapeCode testHand1167888 = [117, 255] := by native_decide
+example : abstractShapeCode testHand1166678 = [117, 255] := by native_decide
+example : abstractShapeCode testHand1167888 = abstractShapeCode testHand1166678 := by
+  native_decide
 
 /--
 The 53 irreducible seven-tile waits using one numbered suit, normalized so the
@@ -1114,6 +1233,29 @@ example : irreducibleSingleSuitSevenTileExamples.length = 53 := by native_decide
 
 example : irreducibleSingleSuitSevenTileExamples.all
     (fun entry => decide (IsIrreducible entry.2)) = true := by
+  native_decide
+
+private def insertAbstractShapeClass (entry : String × List Nat) :
+    List (List Nat × List String) → List (List Nat × List String)
+  | [] => [(entry.2, [entry.1])]
+  | current :: rest =>
+      if current.1 == entry.2 then
+        (current.1, current.2 ++ [entry.1]) :: rest
+      else
+        current :: insertAbstractShapeClass entry rest
+
+def irreducibleSevenTileAbstractShapeClasses : List (List Nat × List String) :=
+  irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
+    insertAbstractShapeClass (entry.1, abstractShapeCode entry.2) classes) []
+
+example : irreducibleSevenTileAbstractShapeClasses.length = 29 := by native_decide
+
+example : irreducibleSevenTileAbstractShapeClasses.find? (fun entry =>
+    entry.1 == [117, 255]) = some
+      ([117, 255],
+       ["1178999m", "1167888m", "1166678m", "1156777m", "1155567m",
+        "1145666m", "1144456m", "1134555m", "1133345m", "1122234m",
+        "1112399m", "1112388m", "1112377m", "1112366m", "1112355m"]) := by
   native_decide
 
 private def manzuPair (rank : Rank) : TileChunk :=
