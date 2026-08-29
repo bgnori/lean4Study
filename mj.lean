@@ -624,8 +624,8 @@ end Hand
 /-!
 ## 通常形の待ち分析
 
-`waitingTiles` は実際の待ち牌を返す。`analyzeWait` はスートと牌番号の
-平行移動を除いた形を返すため、同型の牌姿を直接比較できる。
+`waitingTiles` は実際の待ち牌を返す。`analyzeWait` は、待ち牌を加えた
+和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 -/
 namespace StandardWait
 
@@ -675,9 +675,79 @@ def waitingTiles (tiles : List Tile) : List Tile :=
   allTiles.filter fun candidate =>
     (tiles.count candidate < 4) && isWinning (candidate :: tiles)
 
+inductive TileChunk
+| pair (tile : Tile)
+| shuntsu (suit : Suit) (start : Fin 7)
+| koutsu (tile : Tile)
+deriving BEq, DecidableEq, Repr
+
+namespace TileChunk
+
+def tiles : TileChunk → List Tile
+  | .pair tile => [tile, tile]
+  | .shuntsu suit start =>
+      [Tile.numbered suit ⟨start.val, by omega⟩,
+       Tile.numbered suit ⟨start.val + 1, by omega⟩,
+       Tile.numbered suit ⟨start.val + 2, by omega⟩]
+  | .koutsu tile => [tile, tile, tile]
+
+end TileChunk
+
+structure WaitDecomposition where
+  wait : Tile
+  chunks : List TileChunk
+deriving BEq, DecidableEq, Repr
+
+def pairChunkCandidates : List TileChunk :=
+  allTiles.map .pair
+
+def meldChunkCandidates : List TileChunk :=
+  (suits.flatMap fun suit =>
+    List.ofFn fun start : Fin 7 =>
+      TileChunk.shuntsu suit start) ++
+  allTiles.map .koutsu
+
+def decomposeMelds : Nat → List Tile → List (List TileChunk)
+  | 0, tiles =>
+      if tiles.isEmpty then [[]] else []
+  | fuel + 1, tiles =>
+      List.flatten (meldChunkCandidates.map fun meld =>
+        match removeTiles tiles meld.tiles with
+        | some remaining =>
+            (decomposeMelds fuel remaining).map fun chunks => meld :: chunks
+        | none => [])
+
+def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
+  List.flatten (pairChunkCandidates.map fun pairChunk =>
+    match removeTiles tiles pairChunk.tiles with
+    | some remaining =>
+        (decomposeMelds (remaining.length / 3) remaining).map fun chunks =>
+          pairChunk :: chunks
+    | none => [])
+
+def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
+  ((waitingTiles tiles).flatMap fun wait =>
+    (winningDecompositions (wait :: tiles)).map fun chunks =>
+      { wait, chunks }).eraseDups
+
+inductive NormalizedTile
+| numbered (suitIndex rank : Nat)
+| honor (honor : Honor)
+deriving BEq, DecidableEq, Repr
+
+inductive NormalizedChunk
+| pair (tile : NormalizedTile)
+| shuntsu (suitIndex start : Nat)
+| koutsu (tile : NormalizedTile)
+deriving BEq, DecidableEq, Repr
+
+structure NormalizedDecomposition where
+  wait : NormalizedTile
+  chunks : List NormalizedChunk
+deriving BEq, DecidableEq, Repr
+
 structure Analysis where
-  numberedShapes : List (List Nat)
-  honorCount : Nat
+  decompositions : List NormalizedDecomposition
 deriving BEq, DecidableEq, Repr
 
 private def ranksIn (suit : Suit) (tiles : List Tile) : List Nat :=
@@ -686,22 +756,48 @@ private def ranksIn (suit : Suit) (tiles : List Tile) : List Nat :=
         if tileSuit == suit then some rank.val else none
     | .honor _ => none
 
-private def normalizedRanks (hand waits : List Tile) (suit : Suit) : Option (List Nat) :=
-  let waitRanks := ranksIn suit waits
-  match waitRanks, ranksIn suit (hand ++ waits) with
-  | [], _ => none
-  | _, [] => none
-  | _, first :: rest =>
-      let lowest := rest.foldl Nat.min first
-      some (waitRanks.map fun rank => rank - lowest)
+private def chunkTiles (decomposition : WaitDecomposition) : List Tile :=
+  decomposition.wait :: decomposition.chunks.flatMap TileChunk.tiles
+
+private def suitHasTiles (tiles : List Tile) (suit : Suit) : Bool :=
+  !(ranksIn suit tiles).isEmpty
+
+private def presentSuits (tiles : List Tile) : List Suit :=
+  suits.filter (suitHasTiles tiles)
+
+private def suitIndexFrom : List Suit → Suit → Nat
+  | [], _ => 0
+  | current :: rest, suit =>
+      if current == suit then 0 else suitIndexFrom rest suit + 1
+
+private def lowestRank (tiles : List Tile) (suit : Suit) : Nat :=
+  match ranksIn suit tiles with
+  | [] => 0
+  | first :: rest => rest.foldl Nat.min first
+
+private def normalizeTile (tiles : List Tile) (present : List Suit) : Tile → NormalizedTile
+  | .honor honor => .honor honor
+  | .numbered suit rank =>
+      .numbered (suitIndexFrom present suit) (rank.val - lowestRank tiles suit)
+
+private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk → NormalizedChunk
+  | .pair tile => .pair (normalizeTile tiles present tile)
+  | .shuntsu suit start =>
+      .shuntsu (suitIndexFrom present suit) (start.val - lowestRank tiles suit)
+  | .koutsu tile => .koutsu (normalizeTile tiles present tile)
+
+def normalizeByTranslation (decomposition : WaitDecomposition) : NormalizedDecomposition :=
+  let tiles := chunkTiles decomposition
+  let present := presentSuits tiles
+  { wait := normalizeTile tiles present decomposition.wait
+    chunks := decomposition.chunks.map (normalizeChunk tiles present) }
+
+def analysisWith {α : Type} [DecidableEq α]
+    (normalize : WaitDecomposition → α) (tiles : List Tile) : List α :=
+  (waitDecompositionSet tiles).map normalize |>.eraseDups
 
 def analyzeWait (tiles : List Tile) : Analysis :=
-  let waits := waitingTiles tiles
-  { numberedShapes := suits.filterMap (normalizedRanks tiles waits)
-    honorCount := waits.countP fun tile =>
-      match tile with
-      | .honor _ => true
-      | .numbered _ _ => false }
+  { decompositions := analysisWith normalizeByTranslation tiles }
 
 private def manzu (ranks : List Rank) : List Tile :=
   ranks.map (.numbered .Manzu)
