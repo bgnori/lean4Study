@@ -402,6 +402,11 @@ inductive FourTileAmbiguity
 | ambiguous
 deriving BEq, DecidableEq, Repr, Fintype
 
+inductive FourTileReducibility
+| reducible
+| irreducible
+deriving BEq, DecidableEq, Repr, Fintype
+
 inductive FourTileWait
 | noAmbiguityTankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
 | noAmbiguityTankiKoutsu (tanki : Tanki) (tile : Tile)
@@ -420,6 +425,18 @@ inductive FourTileWait
 deriving BEq, DecidableEq, Repr
 
 namespace FourTileWait
+
+def reducibility : FourTileWait → FourTileReducibility
+  | .noAmbiguityTankiShuntsu .. => .reducible
+  | .noAmbiguityTankiKoutsu .. => .reducible
+  | .noAmbiguityToitsuRyanmen .. => .irreducible
+  | .noAmbiguityToitsuKanchan .. => .irreducible
+  | .noAmbiguityToitsuPenchan .. => .irreducible
+  | .noAmbiguityShanpon .. => .irreducible
+  | .ambiguousNobetan .. => .irreducible
+  | .ambiguousKuttsukiRyanmen .. => .irreducible
+  | .ambiguousKuttsukiKanchan .. => .irreducible
+  | .ambiguousKuttsukiPenchan .. => .irreducible
 
 def kind : FourTileWait → FourTileWaitKind
   | .noAmbiguityTankiShuntsu .. => .tankiShuntsu
