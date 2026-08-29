@@ -792,6 +792,46 @@ def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
     (winningDecompositions (wait :: tiles)).map fun chunks =>
       { wait, chunks := TileChunk.canonicalize chunks }).eraseDups
 
+/-!
+## 分解に関する既約性
+
+`decompositionCount` は待ち牌と和了形の組を数える。メンツを1つ除いた
+聴牌形が同じ個数の分解を持つなら、その手牌はメンツ除去により可約である。
+待ちでない牌列を既約とは扱わない。
+-/
+def decompositionCount (tiles : List Tile) : Nat :=
+  (waitDecompositionSet tiles).length
+
+def IsTenpaiTiles (tiles : List Tile) : Prop :=
+  waitingTiles tiles ≠ []
+
+def mentsuReductions (tiles : List Tile) : List (List Tile) :=
+  meldChunkCandidates.filterMap fun mentsu =>
+    removeTiles tiles mentsu.tiles
+
+def CanReduceMentsu (tiles : List Tile) : Prop :=
+  1 < tiles.length ∧ IsTenpaiTiles tiles ∧
+    ∃ remaining ∈ mentsuReductions tiles,
+      IsTenpaiTiles remaining ∧
+        decompositionCount remaining = decompositionCount tiles
+
+def IsIrreducible (tiles : List Tile) : Prop :=
+  tiles.length = 1 ∨
+    (IsTenpaiTiles tiles ∧ ¬CanReduceMentsu tiles)
+
+theorem singleton_irreducible (tile : Tile) : IsIrreducible [tile] := by
+  simp [IsIrreducible]
+
+theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
+    (reducible : CanReduceMentsu tiles) : ¬IsIrreducible tiles := by
+  rcases reducible with
+    ⟨moreThanOne, tenpai, remaining, isReduction, remainingTenpai, sameCount⟩
+  intro irreducible
+  rcases irreducible with singleton | ⟨_, notReducible⟩
+  · omega
+  · exact notReducible
+      ⟨moreThanOne, tenpai, remaining, isReduction, remainingTenpai, sameCount⟩
+
 inductive NormalizedTile
 | numbered (suitIndex rank : Nat)
 | honor (honor : Honor)
