@@ -1,4 +1,5 @@
 import Mathlib.Data.Real.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 
@@ -30,3 +31,18 @@ example (x : Real): x^2 - 6*x + 9 >= 0 := by
 #check add_comm_example
 #eval main
 #eval 2+4
+
+example (c : Real)
+  (hc : 0 <= c)
+  (h : 3^2 + 4^2 = c^2 ) :
+  c = 5 := by
+  nlinarith
+
+example (n: Nat) :
+  (Finset.range n).sum (fun k => 2*k +1) = n^2 := by
+  induction n with
+  | zero =>
+    simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ih]
+    ring
