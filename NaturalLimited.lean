@@ -3,6 +3,7 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.Fintype.Sigma
 import Mathlib.Data.Finset.Card
+import Mathlib.Data.Finset.NAry
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Tactic.DeriveFintype
 
@@ -533,6 +534,18 @@ def pokerHandCategoryScore : PokerHand -> Nat
   | PokerHand.fourOfAKind => 7
   | PokerHand.straightFlush => 8
 
+/-- 役の強さの数値を `PokerHand` に戻す。範囲外の値は `highCard` として扱う。 -/
+def pokerHandFromCategoryScore : Nat -> PokerHand
+  | 8 => PokerHand.straightFlush
+  | 7 => PokerHand.fourOfAKind
+  | 6 => PokerHand.fullHouse
+  | 5 => PokerHand.flush
+  | 4 => PokerHand.straight
+  | 3 => PokerHand.threeOfAKind
+  | 2 => PokerHand.twoPair
+  | 1 => PokerHand.onePair
+  | _ => PokerHand.highCard
+
 /-- ランク列を辞書式比較できる数値に変換する。 -/
 def encodeRankList : Nat -> List Nat -> Nat
   | 0, _ => 0
@@ -609,6 +622,189 @@ def mkThreePlayerTable (player0 player1 player2 : HoleCards) (board : Board) : H
   board := board
 
 /-!
+## オマハの勝敗判定
+
+オマハでは、各プレイヤーの4枚のホールカードから必ず2枚、5枚の共有カードから
+必ず3枚を使って5枚の役を作る。役の強さと同役内の比較はテキサスホールデムと
+同じ `cardSetScore` を使う。
+-/
+
+/-- オマハの4枚のホールカード。 -/
+def OmahaHoleCards := Fin 4 -> Card
+
+/-- 4枚のオマハ用ホールカードを作るヘルパー。 -/
+def mkOmahaHoleCards (c0 c1 c2 c3 : Card) : OmahaHoleCards
+  | ⟨0, _⟩ => c0
+  | ⟨1, _⟩ => c1
+  | ⟨2, _⟩ => c2
+  | ⟨3, _⟩ => c3
+
+/-- オマハのホールカードをカード集合にする。 -/
+def omahaHoleCardSet (holeCards : OmahaHoleCards) : Finset Card :=
+  ({holeCards 0, holeCards 1, holeCards 2, holeCards 3} : Finset Card)
+
+/-- 共有カードをカード集合にする。 -/
+def boardCardSet (board : Board) : Finset Card :=
+  ({board 0, board 1, board 2, board 3, board 4} : Finset Card)
+
+/-- オマハで作れる5枚カード集合をすべて列挙する。 -/
+def omahaFiveCardSets (holeCards : OmahaHoleCards) (board : Board) : Finset (Finset Card) :=
+  Finset.image₂ (fun holeChoice boardChoice => holeChoice ∪ boardChoice)
+    ((omahaHoleCardSet holeCards).powersetCard 2)
+    ((boardCardSet board).powersetCard 3)
+
+/-- オマハで作れる手札を、ホールカード由来と共有カード由来に分けて列挙する。 -/
+def omahaChoicePairs (holeCards : OmahaHoleCards) (board : Board) : Finset (Finset Card × Finset Card) :=
+  Finset.image₂ (fun holeChoice boardChoice => (holeChoice, boardChoice))
+    ((omahaHoleCardSet holeCards).powersetCard 2)
+    ((boardCardSet board).powersetCard 3)
+
+/-- オマハで、あるプレイヤーが作れる最良の5枚手札のスコア。 -/
+def bestOmahaScore (holeCards : OmahaHoleCards) (board : Board) : Nat :=
+  (omahaFiveCardSets holeCards board).sup cardSetScore
+
+/-- オマハで、あるプレイヤーが作れる最良の役。 -/
+def classifyOmahaHand (holeCards : OmahaHoleCards) (board : Board) : PokerHand :=
+  pokerHandFromCategoryScore <|
+    (omahaFiveCardSets holeCards board).sup fun cards =>
+      pokerHandCategoryScore (classifyCardSet cards)
+
+/-- スートを短い表示名にする。 -/
+def suitString : Suit -> String
+  | Suit.spade => "S"
+  | Suit.heart => "H"
+  | Suit.diamond => "D"
+  | Suit.club => "C"
+
+/-- ランクを短い表示名にする。 -/
+def rankString (rank : Rank) : String :=
+  match rank.val with
+  | 0 => "A"
+  | 1 => "2"
+  | 2 => "3"
+  | 3 => "4"
+  | 4 => "5"
+  | 5 => "6"
+  | 6 => "7"
+  | 7 => "8"
+  | 8 => "9"
+  | 9 => "T"
+  | 10 => "J"
+  | 11 => "Q"
+  | 12 => "K"
+  | _ => "?"
+
+/-- カードを短い表示名にする。 -/
+def cardString (card : Card) : String :=
+  rankString card.rank ++ suitString card.suit
+
+/-- 表示順を安定させるためのスート一覧。 -/
+def suitList : List Suit :=
+  [Suit.spade, Suit.heart, Suit.diamond, Suit.club]
+
+/-- 表示順を安定させるためのランク一覧。 -/
+def rankList : List Rank :=
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+/-- 表示用に固定順で並べたデッキ。 -/
+def deckList : List Card :=
+  (rankList.map fun rank => mkCard Suit.spade rank) ++
+  (rankList.map fun rank => mkCard Suit.heart rank) ++
+  (rankList.map fun rank => mkCard Suit.diamond rank) ++
+  (rankList.map fun rank => mkCard Suit.club rank)
+
+/-- カード集合を表示用の文字列リストにする。 -/
+def cardSetStrings (cards : Finset Card) : List String :=
+  (deckList.filter fun card => decide <| card ∈ cards).map cardString
+
+/-- オマハの候補手札を、どのカードを使ったか比較しやすい形にした表示用データ。 -/
+structure OmahaChoiceReport where
+  fromHand : List String
+  fromBoard : List String
+  madeHand : List String
+  result : PokerHand
+  score : Nat
+  deriving Repr
+
+/-- オマハの候補手札1つを表示用データにする。 -/
+def omahaChoiceReport (choice : Finset Card × Finset Card) : OmahaChoiceReport where
+  fromHand := cardSetStrings choice.1
+  fromBoard := cardSetStrings choice.2
+  madeHand := cardSetStrings (choice.1 ∪ choice.2)
+  result := classifyCardSet (choice.1 ∪ choice.2)
+  score := cardSetScore (choice.1 ∪ choice.2)
+
+/-- オマハのホールカードから2枚選ぶ全候補を、表示用に計算できるリストとして列挙する。 -/
+def omahaHoleChoiceList (holeCards : OmahaHoleCards) : List (Finset Card) :=
+  [ {holeCards 0, holeCards 1},
+    {holeCards 0, holeCards 2},
+    {holeCards 0, holeCards 3},
+    {holeCards 1, holeCards 2},
+    {holeCards 1, holeCards 3},
+    {holeCards 2, holeCards 3} ]
+
+/-- 共有カードから3枚選ぶ全候補を、表示用に計算できるリストとして列挙する。 -/
+def boardChoiceList (board : Board) : List (Finset Card) :=
+  [ {board 0, board 1, board 2},
+    {board 0, board 1, board 3},
+    {board 0, board 1, board 4},
+    {board 0, board 2, board 3},
+    {board 0, board 2, board 4},
+    {board 0, board 3, board 4},
+    {board 1, board 2, board 3},
+    {board 1, board 2, board 4},
+    {board 1, board 3, board 4},
+    {board 2, board 3, board 4} ]
+
+/-- オマハの候補手札を、ホールカード由来と共有カード由来に分けて表示用リストとして列挙する。 -/
+def omahaChoicePairList (holeCards : OmahaHoleCards) (board : Board) : List (Finset Card × Finset Card) :=
+  let boardChoices := boardChoiceList board
+  (boardChoices.map fun boardChoice => ({holeCards 0, holeCards 1}, boardChoice)) ++
+  (boardChoices.map fun boardChoice => ({holeCards 0, holeCards 2}, boardChoice)) ++
+  (boardChoices.map fun boardChoice => ({holeCards 0, holeCards 3}, boardChoice)) ++
+  (boardChoices.map fun boardChoice => ({holeCards 1, holeCards 2}, boardChoice)) ++
+  (boardChoices.map fun boardChoice => ({holeCards 1, holeCards 3}, boardChoice)) ++
+  (boardChoices.map fun boardChoice => ({holeCards 2, holeCards 3}, boardChoice))
+
+/-- オマハで最良スコアになる候補手札を表示用データとして返す。 -/
+def bestOmahaChoiceReports (holeCards : OmahaHoleCards) (board : Board) : List OmahaChoiceReport :=
+  ((omahaChoicePairList holeCards board).filter fun choice =>
+      cardSetScore (choice.1 ∪ choice.2) = bestOmahaScore holeCards board).map
+    omahaChoiceReport
+
+/-- 2人以上10人以下のオマハ卓。 -/
+structure OmahaTable where
+  playerCount : Nat
+  minPlayers : 2 <= playerCount
+  maxPlayers : playerCount <= 10
+  holeCards : Fin playerCount -> OmahaHoleCards
+  board : Board
+
+/-- 卓上での指定プレイヤーのオマハスコア。 -/
+def omahaPlayerScore (table : OmahaTable) (player : Fin table.playerCount) : Nat :=
+  bestOmahaScore (table.holeCards player) table.board
+
+/-- 卓上のオマハ最高スコア。 -/
+def omahaBestScore (table : OmahaTable) : Nat :=
+  (Finset.univ : Finset (Fin table.playerCount)).sup fun player =>
+    omahaPlayerScore table player
+
+/-- オマハの勝者集合。同点の場合は複数プレイヤーを返す。 -/
+def omahaWinners (table : OmahaTable) : Finset (Fin table.playerCount) :=
+  (Finset.univ : Finset (Fin table.playerCount)).filter fun player =>
+    omahaPlayerScore table player = omahaBestScore table
+
+/-- オマハの2人卓を作るヘルパー。 -/
+def mkTwoPlayerOmahaTable (player0 player1 : OmahaHoleCards) (board : Board) : OmahaTable where
+  playerCount := 2
+  minPlayers := by decide
+  maxPlayers := by decide
+  holeCards
+    | ⟨0, _⟩ => player0
+    | ⟨1, _⟩ => player1
+  board := board
+
+/-!
 ## テキサスホールデムのテスト
 -/
 
@@ -656,3 +852,51 @@ example : holdemWinners (mkThreePlayerTable
       (mkCard .club 6)
       (mkCard .diamond 10))) = ({(2 : Fin 3)} : Finset (Fin 3)) := by
   native_decide
+
+/-!
+## オマハのテスト
+-/
+
+def omahaSamplePlayer0 : OmahaHoleCards :=
+  mkOmahaHoleCards
+    (mkCard .club 0)
+    (mkCard .diamond 2)
+    (mkCard .heart 7)
+    (mkCard .club 11)
+
+def omahaSamplePlayer1 : OmahaHoleCards :=
+  mkOmahaHoleCards
+    (mkCard .spade 8)
+    (mkCard .heart 8)
+    (mkCard .diamond 8)
+    (mkCard .club 4)
+
+def omahaSampleBoard : Board :=
+  mkBoard
+    (mkCard .spade 0)
+    (mkCard .spade 9)
+    (mkCard .spade 10)
+    (mkCard .spade 11)
+    (mkCard .spade 12)
+
+def omahaSampleTable : OmahaTable :=
+  mkTwoPlayerOmahaTable omahaSamplePlayer0 omahaSamplePlayer1 omahaSampleBoard
+
+example : (omahaFiveCardSets
+    omahaSamplePlayer0
+    omahaSampleBoard).card = 60 := by
+  native_decide
+
+example : classifyOmahaHand omahaSamplePlayer0 omahaSampleBoard = PokerHand.straight := by
+  native_decide
+
+example : omahaWinners omahaSampleTable = ({(0 : Fin 2)} : Finset (Fin 2)) := by
+  native_decide
+
+#eval classifyOmahaHand omahaSamplePlayer0 omahaSampleBoard
+#eval bestOmahaChoiceReports omahaSamplePlayer0 omahaSampleBoard
+#eval classifyOmahaHand omahaSamplePlayer1 omahaSampleBoard
+#eval bestOmahaChoiceReports omahaSamplePlayer1 omahaSampleBoard
+#eval (
+  omahaPlayerScore omahaSampleTable ⟨0, by decide⟩,
+  omahaPlayerScore omahaSampleTable ⟨1, by decide⟩)

@@ -6,8 +6,6 @@ package «lean4-project» where
     -- Enable well-founded recursion default (useful for dependent types)
     ⟨`autoImplicit, false⟩
   ]
-  -- paramax
-  --buildConfig := {maxJobs := 2}
 
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git" @ "v4.28.0"
