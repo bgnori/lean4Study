@@ -438,6 +438,45 @@ def reducibility : FourTileWait → FourTileReducibility
   | .ambiguousKuttsukiKanchan .. => .irreducible
   | .ambiguousKuttsukiPenchan .. => .irreducible
 
+  /-- One concrete mpsz example for every four-tile wait kind. -/
+  def examples : List (String × FourTileWait) :=
+    [("1235m: tanki 5m", .noAmbiguityTankiShuntsu
+      (.tanki (.numbered .Manzu 4)) (.shuntsu .Manzu 0)),
+    ("1115m: tanki 5m", .noAmbiguityTankiKoutsu
+      (.tanki (.numbered .Manzu 4)) (.numbered .Manzu 0)),
+    ("34m55p: ryanmen 2m/5m", .noAmbiguityToitsuRyanmen
+      (.toitsu (.numbered .Pinzu 4)) .Manzu 1),
+    ("35m55p: kanchan 4m", .noAmbiguityToitsuKanchan
+      (.toitsu (.numbered .Pinzu 4)) .Manzu 2),
+    ("12m55p: penchan 3m", .noAmbiguityToitsuPenchan
+      (.toitsu (.numbered .Pinzu 4)) .Manzu false),
+    ("11m22p: shanpon 1m/2p", .noAmbiguityShanpon
+      (.toitsu (.numbered .Manzu 0)) (.toitsu (.numbered .Pinzu 1))),
+    ("1234m: nobetan 1m/4m", .ambiguousNobetan
+      (.tanki (.numbered .Manzu 0)) (.shuntsu .Manzu 1)
+      (.tanki (.numbered .Manzu 3)) (.shuntsu .Manzu 0)),
+    ("2223m: kuttsuki ryanmen 1m/3m/4m", .ambiguousKuttsukiRyanmen
+      (.tanki (.numbered .Manzu 2)) (.numbered .Manzu 1)
+      (.toitsu (.numbered .Manzu 1)) .Manzu 0),
+    ("1113m: kuttsuki kanchan 2m/3m", .ambiguousKuttsukiKanchan
+      (.tanki (.numbered .Manzu 2)) (.numbered .Manzu 0)
+      (.toitsu (.numbered .Manzu 0)) .Manzu 0),
+    ("1112m: kuttsuki penchan 2m/3m", .ambiguousKuttsukiPenchan
+      (.tanki (.numbered .Manzu 1)) (.numbered .Manzu 0)
+      (.toitsu (.numbered .Manzu 0)) .Manzu false)]
+
+  def exampleReducibilities : List FourTileReducibility :=
+    examples.map fun entry => entry.2.reducibility
+
+  def classifiedExamples : List (FourTileReducibility × String) :=
+    examples.map fun entry => (entry.2.reducibility, entry.1)
+
+  example : exampleReducibilities =
+     [.reducible, .reducible,
+      .irreducible, .irreducible, .irreducible, .irreducible,
+      .irreducible, .irreducible, .irreducible, .irreducible] := by
+    native_decide
+
 def kind : FourTileWait → FourTileWaitKind
   | .noAmbiguityTankiShuntsu .. => .tankiShuntsu
   | .noAmbiguityTankiKoutsu .. => .tankiKoutsu
