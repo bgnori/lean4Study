@@ -9,23 +9,38 @@ import Mahjong.FourTileWait
 通常形では、聴牌時の手牌枚数は `3n + 1` になる。ここでは学習対象として
 1枚、4枚、7枚、10枚、13枚の手牌だけを扱う。
 -/
+/-- 通常形聴牌として扱う最大手牌サイズ。 -/
+abbrev thirteenTileHandSize : Nat := 13
+
+/-- 3面子を除去できる手牌サイズ。 -/
+abbrev tenTileHandSize : Nat := 10
+
+/-- 2面子を除去できる手牌サイズ。 -/
+abbrev sevenTileHandSize : Nat := 7
+
+/-- 4枚待ち分類の対象サイズ。 -/
+abbrev fourTileHandSize : Nat := 4
+
+/-- 単騎だけの最小手牌サイズ。 -/
+abbrev oneTileHandSize : Nat := 1
+
 /-- 解析対象にする手牌サイズ。各手牌は `deck` から重複なく取られた物理牌で表す。 -/
 inductive Hand where
-  | thirteen (tiles : Fin 13 ↪ { pt : PhysicalTile // pt ∈ deck })
-  | ten (tiles : Fin 10 ↪ { pt : PhysicalTile // pt ∈ deck })
-  | seven (tiles : Fin 7 ↪ { pt : PhysicalTile // pt ∈ deck })
-  | four (tiles : Fin 4 ↪ { pt : PhysicalTile // pt ∈ deck })
-  | one (tiles : Fin 1 ↪ { pt : PhysicalTile // pt ∈ deck })
+  | thirteen (tiles : Fin thirteenTileHandSize ↪ { pt : PhysicalTile // pt ∈ deck })
+  | ten (tiles : Fin tenTileHandSize ↪ { pt : PhysicalTile // pt ∈ deck })
+  | seven (tiles : Fin sevenTileHandSize ↪ { pt : PhysicalTile // pt ∈ deck })
+  | four (tiles : Fin fourTileHandSize ↪ { pt : PhysicalTile // pt ∈ deck })
+  | one (tiles : Fin oneTileHandSize ↪ { pt : PhysicalTile // pt ∈ deck })
 
 namespace Hand
 
 /-- 手牌を物理牌の有限集合に変換する。 -/
 noncomputable def toFinset : Hand → Finset PhysicalTile
-  | .thirteen tiles => (Finset.univ : Finset (Fin 13)).image fun i => (tiles i).1
-  | .ten tiles => (Finset.univ : Finset (Fin 10)).image fun i => (tiles i).1
-  | .seven tiles => (Finset.univ : Finset (Fin 7)).image fun i => (tiles i).1
-  | .four tiles => (Finset.univ : Finset (Fin 4)).image fun i => (tiles i).1
-  | .one tiles => (Finset.univ : Finset (Fin 1)).image fun i => (tiles i).1
+  | .thirteen tiles => (Finset.univ : Finset (Fin thirteenTileHandSize)).image fun i => (tiles i).1
+  | .ten tiles => (Finset.univ : Finset (Fin tenTileHandSize)).image fun i => (tiles i).1
+  | .seven tiles => (Finset.univ : Finset (Fin sevenTileHandSize)).image fun i => (tiles i).1
+  | .four tiles => (Finset.univ : Finset (Fin fourTileHandSize)).image fun i => (tiles i).1
+  | .one tiles => (Finset.univ : Finset (Fin oneTileHandSize)).image fun i => (tiles i).1
 
 /-- 手牌を通常形の意味論が扱う牌種列へ変換する。 -/
 noncomputable def tileTypes (hand : Hand) : List Tile :=
@@ -91,8 +106,11 @@ end HandExtraction
 
 namespace Hand
 
+/-- 13枚手牌から単騎・4枚待ちまで降りるために取り除ける最大面子数。 -/
+def maxMentsuRemovalCount : Nat := 4
+
 /-- 手牌から得られる抽出候補を列挙する。 -/
 noncomputable def extractions (hand : Hand) : List HandExtraction :=
-  HandExtraction.fromTiles 4 hand.toFinset
+  HandExtraction.fromTiles maxMentsuRemovalCount hand.toFinset
 
 end Hand

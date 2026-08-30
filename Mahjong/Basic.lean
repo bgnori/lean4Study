@@ -21,12 +21,31 @@ import Mathlib.Tactic.DeriveFintype
 /-!
  ## 数牌の定義
  -/
+/-- 数牌のランク数。 -/
+abbrev numberedRankCount : Nat := 9
+
 /-- 数牌のランク。`0` から `8` が、それぞれ実際の `1` から `9` に対応する。 -/
- abbrev Rank := Fin 9
+ abbrev Rank := Fin numberedRankCount
 
 /-- `Rank` を自然数リテラルで書くためのインスタンス。 -/
- instance (n : Nat) [ofNat : OfNat (Fin 9) n] : OfNat Rank n where
-   ofNat := (OfNat.ofNat n : Fin 9)
+ instance (n : Nat) [ofNat : OfNat (Fin numberedRankCount) n] : OfNat Rank n where
+   ofNat := (OfNat.ofNat n : Fin numberedRankCount)
+
+namespace Rank
+
+/-- 最初の数牌ランク。 -/
+def first : Rank := ⟨0, by decide⟩
+
+/-- 2番目の数牌ランク。 -/
+def second : Rank := ⟨1, by decide⟩
+
+/-- 最後から2番目の数牌ランク。 -/
+def penultimate : Rank := ⟨numberedRankCount - 2, by decide⟩
+
+/-- 最後の数牌ランク。 -/
+def last : Rank := ⟨numberedRankCount - 1, by decide⟩
+
+end Rank
 
 /-- 数牌の3種類のスート。 -/
  inductive Suit
@@ -39,6 +58,9 @@ namespace Suit
 
 /-- 数牌の全スートを標準順で並べたリスト。 -/
 def all : List Suit := [.Manzu, .Pinzu, .Souzu]
+
+/-- 数牌のスート数。 -/
+def count : Nat := all.length
 
 /-- 標準列挙順に対応するスートのキー。 -/
 def orderKey : Suit → Nat
@@ -68,6 +90,9 @@ namespace Honor
 /-- すべての字牌を標準順で並べたリスト。 -/
 def all : List Honor := [.East, .South, .West, .North, .White, .Green, .Red]
 
+/-- 字牌の種類数。 -/
+def count : Nat := all.length
+
 /-- 標準列挙順に対応する字牌のキー。 -/
 def orderKey : Honor → Nat
   | .East => 0
@@ -91,10 +116,16 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace Tile
 
+/-- 数牌の牌種数。 -/
+def numberedCount : Nat := Suit.count * numberedRankCount
+
+/-- 牌種の総数。 -/
+def count : Nat := numberedCount + Honor.count
+
 /-- 34種類すべての牌種を標準順で並べたリスト。 -/
 def all : List Tile :=
   (Suit.all.flatMap fun suit =>
-    List.ofFn fun rank : Fin 9 => Tile.numbered suit rank) ++
+    List.ofFn fun rank : Rank => Tile.numbered suit rank) ++
   Honor.all.map .honor
 
 /-- すべての牌種は標準列挙に含まれる。 -/
@@ -110,20 +141,23 @@ theorem mem_all (tile : Tile) : tile ∈ all := by
 /-- 標準列挙順に対応する牌種のキー。 -/
 def orderKey : Tile → Nat
   | Tile.numbered suit rank =>
-      Suit.orderKey suit * 9 + rank.val
-  | Tile.honor honorTile => 27 + Honor.orderKey honorTile
+      Suit.orderKey suit * numberedRankCount + rank.val
+  | Tile.honor honorTile => numberedCount + Honor.orderKey honorTile
 
 end Tile
 
 /-!
  ## セットの定義
 -/
-/-- 34種類すべての牌種。 -/
+/-- すべての牌種。 -/
 def tileTypes : Finset Tile :=
   Tile.all.toFinset
 
+/-- 同じ牌種ごとの物理牌の枚数。 -/
+abbrev copiesPerTile : Nat := 4
+
 /-- 物理的な1枚の牌。同じ牌種が4枚あることを `Fin 4` で区別する。 -/
-abbrev PhysicalTile := Tile × Fin 4
+abbrev PhysicalTile := Tile × Fin copiesPerTile
 
 /-- 136枚すべての物理牌からなる山。 -/
 def deck : Finset PhysicalTile :=

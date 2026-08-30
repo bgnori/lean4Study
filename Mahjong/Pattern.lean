@@ -9,6 +9,60 @@ import Mahjong.Basic
 完成部品 `TileChunk` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
 
+/-- 両面ターツの開始位置数。 -/
+abbrev ryanmenStartCount : Nat := numberedRankCount - 3
+
+/-- 順子・嵌張ターツの開始位置数。 -/
+abbrev shuntsuStartCount : Nat := numberedRankCount - 2
+
+/-- 最初の順子開始位置。 -/
+abbrev firstShuntsuStart : Nat := Rank.first.val
+
+/-- 最後の順子開始位置。 -/
+abbrev lastShuntsuStart : Nat := shuntsuStartCount - 1
+
+/-- 両面ターツの開始位置。 -/
+abbrev RyanmenStart := Fin ryanmenStartCount
+
+/-- 順子・嵌張ターツの開始位置。 -/
+abbrev ShuntsuStart := Fin shuntsuStartCount
+
+namespace RyanmenStart
+
+/-- 両面ターツの低い側のランク。 -/
+def lowerRank (start : RyanmenStart) : Rank :=
+  ⟨start.val + 1, Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩
+
+/-- 両面ターツの高い側のランク。 -/
+def upperRank (start : RyanmenStart) : Rank :=
+  ⟨start.val + 2, Nat.lt_trans (Nat.add_lt_add_right start.isLt 2) (by decide)⟩
+
+end RyanmenStart
+
+namespace ShuntsuStart
+
+/-- 順子の先頭ランク。 -/
+def firstRank (start : ShuntsuStart) : Rank :=
+  ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩
+
+/-- 順子の中央ランク。 -/
+def middleRank (start : ShuntsuStart) : Rank :=
+  ⟨start.val + 1, Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩
+
+/-- 順子の終端ランク。 -/
+def lastRank (start : ShuntsuStart) : Rank :=
+  ⟨start.val + 2, Nat.add_lt_add_right start.isLt 2⟩
+
+/-- 最初の順子開始位置かどうか。 -/
+def isFirst (start : ShuntsuStart) : Bool :=
+  start.val == firstShuntsuStart
+
+/-- 最後の順子開始位置かどうか。 -/
+def isLast (start : ShuntsuStart) : Bool :=
+  start.val == lastShuntsuStart
+
+end ShuntsuStart
+
 /--
 ターツ。常に同じスートの数牌2枚で構成する。
 
@@ -16,8 +70,8 @@ import Mahjong.Basic
 `penchan` は1--2または8--9を表す。
 -/
 inductive Taats
-| ryanmen (suit : Suit) (start : Fin 6)
-| kanchan (suit : Suit) (start : Fin 7)
+| ryanmen (suit : Suit) (start : RyanmenStart)
+| kanchan (suit : Suit) (start : ShuntsuStart)
 | penchan (suit : Suit) (high : Bool)
 deriving BEq, DecidableEq, Repr, Fintype
 
@@ -26,16 +80,13 @@ namespace Taats
 /-- ターツを構成する2枚の牌種列。 -/
 def tiles : Taats → List Tile
   | .ryanmen suit start =>
-      [.numbered suit ⟨start.val + 1,
-        Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
-       .numbered suit ⟨start.val + 2,
-        Nat.lt_trans (Nat.add_lt_add_right start.isLt 2) (by decide)⟩]
+      [.numbered suit start.lowerRank,
+       .numbered suit start.upperRank]
   | .kanchan suit start =>
-      [.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
-       .numbered suit ⟨start.val + 2, by
-         simpa using Nat.add_lt_add_right start.isLt 2⟩]
-  | .penchan suit false => [.numbered suit 0, .numbered suit 1]
-  | .penchan suit true => [.numbered suit 7, .numbered suit 8]
+      [.numbered suit start.firstRank,
+       .numbered suit start.lastRank]
+  | .penchan suit false => [.numbered suit Rank.first, .numbered suit Rank.second]
+  | .penchan suit true => [.numbered suit Rank.penultimate, .numbered suit Rank.last]
 
 instance : HasTilePattern Taats where
   tiles := Taats.tiles
@@ -98,7 +149,7 @@ end Tanki
 -/
 /-- 順子。数牌の同一スートで、連続する3ランクからなる。 -/
 inductive Shuntsu
-| shuntsu (suit : Suit) (start : Fin 7)
+| shuntsu (suit : Suit) (start : ShuntsuStart)
 deriving BEq, DecidableEq, Repr, Fintype
 
 namespace Shuntsu
@@ -106,11 +157,9 @@ namespace Shuntsu
 /-- 順子を構成する3枚の牌種列。 -/
 def tiles : Shuntsu → List Tile
   | .shuntsu suit start =>
-      [.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
-       .numbered suit ⟨start.val + 1,
-        Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
-       .numbered suit ⟨start.val + 2, by
-         simpa using Nat.add_lt_add_right start.isLt 2⟩]
+      [.numbered suit start.firstRank,
+       .numbered suit start.middleRank,
+       .numbered suit start.lastRank]
 
 instance : HasTilePattern Shuntsu where
   tiles := Shuntsu.tiles
@@ -173,7 +222,7 @@ def pair (tile : Tile) : TileChunk :=
   .inl (.toitsu tile)
 
 /-- 指定した順子を完成部品として作る。 -/
-def shuntsu (suit : Suit) (start : Fin 7) : TileChunk :=
+def shuntsu (suit : Suit) (start : ShuntsuStart) : TileChunk :=
   .inr (.shuntsu (.shuntsu suit start))
 
 /-- 指定した牌種の刻子を完成部品として作る。 -/

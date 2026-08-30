@@ -12,8 +12,8 @@ import Mahjong.Pattern
 inductive FourTileExtraction
 | tankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
 | tankiKoutsu (tanki : Tanki) (tile : Tile)
-| toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : Fin 6)
-| toitsuKanchan (toitsu : Toitsu) (suit : Suit) (start : Fin 7)
+| toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : RyanmenStart)
+| toitsuKanchan (toitsu : Toitsu) (suit : Suit) (start : ShuntsuStart)
 | toitsuPenchan (toitsu : Toitsu) (suit : Suit) (high : Bool)
 | shanpon (first second : Toitsu)
 deriving BEq, DecidableEq, Repr, Fintype

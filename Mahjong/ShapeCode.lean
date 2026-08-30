@@ -1,3 +1,5 @@
+import Mahjong.Basic
+import Mahjong.Pattern
 import Mahjong.ShapeFinder
 
 /-!
@@ -23,6 +25,13 @@ inductive ShapeComponent
 deriving BEq, DecidableEq, Repr
 
 namespace ShapeComponent
+
+/-- すべての部品種別。キーの基数を部品数から導くためにも使う。 -/
+def all : List ShapeComponent :=
+  [.tanki, .toitsu, .ryanmen, .kanchan, .penchan, .shuntsu, .koutsu]
+
+/-- 部品種別の数。 -/
+def count : Nat := all.length
 
 /-- 部品種別に割り当てる素数。積をとることで多重集合の代表コードにする。 -/
 def prime : ShapeComponent → Nat
@@ -81,16 +90,25 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
       | .honor _ => none
       | .numbered waitSuit rank =>
           if waitSuit != suit then none
-          else if rank.val == start.val then
-            result (if start.val == 6 then .penchan else .ryanmen)
-          else if rank.val == start.val + 1 then
+          else if rank == ShuntsuStart.firstRank start then
+            result (if ShuntsuStart.isLast start then .penchan else .ryanmen)
+          else if rank == ShuntsuStart.middleRank start then
             result .kanchan
-          else if rank.val == start.val + 2 then
-            result (if start.val == 0 then .penchan else .ryanmen)
+          else if rank == ShuntsuStart.lastRank start then
+            result (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
           else none
 
 private def componentProduct (components : List ShapeComponent) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
+
+private def tileKeyBase : Nat := Tile.count + 1
+private def maxComponentTiles : Nat := 3
+private def maxShapeComponents : Nat := 5
+private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
+private def extractionComponentKeyStride : Nat := ShapeComponent.count * componentTileKeyStride
+private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxShapeComponents
+private def abstractComponentKeyBase : Nat := ShapeComponent.count + 1
+private def waitKeyStride : Nat := Tile.count
 
 private def shapeComponentKey : ShapeComponent → Nat
   | .tanki => 0
@@ -102,8 +120,8 @@ private def shapeComponentKey : ShapeComponent → Nat
   | .koutsu => 6
 
 private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
-  shapeComponentKey component.kind * 50000 +
-    component.tiles.foldl (fun key tile => key * 35 + tile.orderKey + 1) 0
+  shapeComponentKey component.kind * componentTileKeyStride +
+    component.tiles.foldl (fun key tile => key * tileKeyBase + tile.orderKey + 1) 0
 
 private def canonicalizeShapeExtraction
     (components : List ConcreteShapeComponent) : List ConcreteShapeComponent :=
@@ -111,15 +129,18 @@ private def canonicalizeShapeExtraction
     concreteComponentKey first ≤ concreteComponentKey second
 
 private def concreteShapeExtractionKey (extraction : ConcreteShapeExtraction) : Nat :=
-  extraction.wait.orderKey * 100000000 +
-    extraction.components.foldl (fun key component => key * 500000 + concreteComponentKey component) 0
+  extraction.wait.orderKey * extractionWaitKeyStride +
+    extraction.components.foldl
+      (fun key component => key * extractionComponentKeyStride + concreteComponentKey component) 0
 
 private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : Nat :=
-  extraction.components.foldl (fun key component => key * 10 + shapeComponentKey component + 1) 0 * 100 +
+  extraction.components.foldl
+    (fun key component => key * abstractComponentKeyBase + shapeComponentKey component + 1) 0 *
+      waitKeyStride +
     extraction.wait.orderKey
 
 private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
-  entry.code * 100 + entry.wait.orderKey
+  entry.code * waitKeyStride + entry.wait.orderKey
 
 private def decompositionShapeExtractions (decomposition : Shape) :
     List (List ConcreteShapeComponent) :=

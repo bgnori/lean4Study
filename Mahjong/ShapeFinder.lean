@@ -10,11 +10,11 @@ import Mathlib.Tactic
 待ち牌を加えた和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
-出現回数で表し、`waitingTiles` では同じ牌種が5枚以上にならないよう `count < 4` を確認する。
+出現回数で表し、`waitingTiles` では同じ牌種が手牌上限を超えないよう確認する。
 -/
 namespace ShapeFinder
 
-/-- 待ち牌候補として使う34種類すべての牌種。 -/
+/-- 待ち牌候補として使うすべての牌種。 -/
 def allTiles : List Tile :=
   Tile.all
 
@@ -34,7 +34,7 @@ def pairChunkCandidates : List TileChunk :=
 /-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
 def meldChunkCandidates : List TileChunk :=
   (Suit.all.flatMap fun suit =>
-    List.ofFn fun start : Fin 7 =>
+    List.ofFn fun start : ShuntsuStart =>
       TileChunk.shuntsu suit start) ++
   allTiles.map .koutsu
 
@@ -68,7 +68,7 @@ def IsStandardAgari (tiles : List Tile) : Prop :=
 
 /-- `candidate` を1枚加えると通常形で和了し、5枚目にもならないこと。 -/
 def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
-  tiles.count candidate < 4 ∧ IsStandardAgari (candidate :: tiles)
+  tiles.count candidate < copiesPerTile ∧ IsStandardAgari (candidate :: tiles)
 
 /-- 牌種列が少なくとも1種類の通常形待ちを持つこと。 -/
 def IsTenpai (tiles : List Tile) : Prop :=
@@ -82,9 +82,9 @@ structure Wait (tiles : List Tile) where
 /-- 与えられた聴牌形に対し、加えると通常形で和了になる牌種を列挙する。 -/
 def waitingTiles (tiles : List Tile) : List Tile :=
   allTiles.filter fun candidate =>
-    (tiles.count candidate < 4) && isWinning (candidate :: tiles)
+    (tiles.count candidate < copiesPerTile) && isWinning (candidate :: tiles)
 
-/-- すべての牌種は34種類の候補列に含まれる。 -/
+/-- すべての牌種は候補列に含まれる。 -/
 theorem mem_allTiles (candidate : Tile) : candidate ∈ allTiles := by
   exact Tile.mem_all candidate
 
@@ -266,8 +266,8 @@ def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
 private def manzuPair (rank : Rank) : TileChunk :=
   .pair (.numbered .Manzu rank)
 
-private def manzuShuntsu (start : Fin 7) : TileChunk :=
-  .shuntsu .Manzu start
+private def manzuShuntsu (start : Nat) (valid : start < shuntsuStartCount := by decide) : TileChunk :=
+  .shuntsu .Manzu ⟨start, valid⟩
 
 private def manzuKoutsu (rank : Rank) : TileChunk :=
   .koutsu (.numbered .Manzu rank)

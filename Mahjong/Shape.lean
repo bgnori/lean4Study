@@ -1,3 +1,4 @@
+import Mahjong.Basic
 import Mahjong.Pattern
 
 /-!
@@ -13,8 +14,8 @@ namespace TileChunk
 private def orderKey : TileChunk → Nat
   | .inl (.toitsu tile) => tile.orderKey
   | .inr (.shuntsu (.shuntsu suit start)) =>
-      34 + suit.orderKey * 7 + start.val
-  | .inr (.koutsu tile) => 55 + tile.orderKey
+      Tile.count + suit.orderKey * shuntsuStartCount + start.val
+  | .inr (.koutsu tile) => Tile.count + Suit.count * shuntsuStartCount + tile.orderKey
 
 /-- 分割内の部品順を一意にする。 -/
 def canonicalize (chunks : List TileChunk) : List TileChunk :=
