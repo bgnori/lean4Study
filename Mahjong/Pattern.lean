@@ -15,9 +15,12 @@ abbrev mentsuTileCount : Nat := 3
 /-- 通常の最大手牌に含まれる面子数。 -/
 abbrev standardHandMentsuCount : Nat := 4
 
+/-- 通常形に含まれる雀頭の数。 -/
+abbrev standardHandPairCount : Nat := 1
+
 /-- 指定した面子数に対応する通常形聴牌の手牌枚数。 -/
 def standardTenpaiHandSize (mentsuCount : Nat) : Nat :=
-  mentsuCount * mentsuTileCount + 1
+  mentsuCount * mentsuTileCount + standardHandPairCount
 
 /-- 両面ターツの開始位置数。 -/
 abbrev ryanmenStartCount : Nat := numberedRankCount - 3

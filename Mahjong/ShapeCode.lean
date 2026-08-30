@@ -101,13 +101,14 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
 private def componentProduct (components : List ShapeComponent) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
 
-private def tileKeyBase : Nat := Tile.count + 1
+private def keyDigitOffset : Nat := 1
+private def tileKeyBase : Nat := Tile.count + keyDigitOffset
 private def maxComponentTiles : Nat := mentsuTileCount
-private def maxShapeComponents : Nat := standardHandMentsuCount + 1
+private def maxShapeComponents : Nat := standardHandMentsuCount + standardHandPairCount
 private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
 private def extractionComponentKeyStride : Nat := ShapeComponent.count * componentTileKeyStride
 private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxShapeComponents
-private def abstractComponentKeyBase : Nat := ShapeComponent.count + 1
+private def abstractComponentKeyBase : Nat := ShapeComponent.count + keyDigitOffset
 private def waitKeyStride : Nat := Tile.count
 
 private def shapeComponentKey (component : ShapeComponent) : Nat :=
@@ -115,7 +116,8 @@ private def shapeComponentKey (component : ShapeComponent) : Nat :=
 
 private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
   shapeComponentKey component.kind * componentTileKeyStride +
-    component.tiles.foldl (fun key tile => key * tileKeyBase + tile.orderKey + 1) 0
+    component.tiles.foldl
+      (fun key tile => key * tileKeyBase + tile.orderKey + keyDigitOffset) 0
 
 private def canonicalizeShapeExtraction
     (components : List ConcreteShapeComponent) : List ConcreteShapeComponent :=
@@ -129,12 +131,17 @@ private def concreteShapeExtractionKey (extraction : ConcreteShapeExtraction) : 
 
 private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : Nat :=
   extraction.components.foldl
-    (fun key component => key * abstractComponentKeyBase + shapeComponentKey component + 1) 0 *
+    (fun key component =>
+      key * abstractComponentKeyBase + shapeComponentKey component + keyDigitOffset) 0 *
       waitKeyStride +
     extraction.wait.orderKey
 
 private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
   entry.code * waitKeyStride + entry.wait.orderKey
+
+private def deduplicateAndSortBy {α : Type} [BEq α]
+    (key : α → Nat) (values : List α) : List α :=
+  values.eraseDups.mergeSort fun first second => key first ≤ key second
 
 private def decompositionShapeExtractions (decomposition : Shape) :
     List (List ConcreteShapeComponent) :=
@@ -155,10 +162,7 @@ def concreteShapeExtractions (shapes : List Shape) : List ConcreteShapeExtractio
       (decompositionShapeExtractions decomposition).map fun extraction =>
         { wait := decomposition.wait
           components := canonicalizeShapeExtraction extraction }
-  entries
-    |>.eraseDups
-    |>.mergeSort fun first second =>
-      concreteShapeExtractionKey first ≤ concreteShapeExtractionKey second
+  deduplicateAndSortBy concreteShapeExtractionKey entries
 
 /-- 発見済みShapeから牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
 def abstractShapeExtractions (shapes : List Shape) : List AbstractShapeExtraction :=
@@ -166,9 +170,7 @@ def abstractShapeExtractions (shapes : List Shape) : List AbstractShapeExtractio
     |>.map (fun extraction =>
       { wait := extraction.wait
         components := extraction.components.map (fun component => component.kind) })
-    |>.eraseDups
-    |>.mergeSort fun first second =>
-      abstractShapeExtractionKey first ≤ abstractShapeExtractionKey second
+    |> deduplicateAndSortBy abstractShapeExtractionKey
 
 /-- 発見済みShapeを、待ち牌ごとの素数積コードへ変換する。 -/
 def shapeCodeEntries (shapes : List Shape) : List ShapeCodeEntry :=
@@ -176,9 +178,7 @@ def shapeCodeEntries (shapes : List Shape) : List ShapeCodeEntry :=
     |>.map (fun extraction =>
       { wait := extraction.wait
         code := componentProduct extraction.components })
-    |>.eraseDups
-    |>.mergeSort fun first second =>
-      shapeCodeEntryKey first ≤ shapeCodeEntryKey second
+    |> deduplicateAndSortBy shapeCodeEntryKey
 
 /-- 発見済みShapeから計算した、待ち牌を残す抽象形コード。 -/
 def abstractShapeCodeWithWait (shapes : List Shape) : List (Nat × Tile) :=
@@ -189,8 +189,7 @@ def abstractShapeCodeWithWait (shapes : List Shape) : List (Nat × Tile) :=
 def abstractShapeCode (shapes : List Shape) : List Nat :=
   shapeCodeEntries shapes
     |>.map (fun entry => entry.code)
-    |>.eraseDups
-    |>.mergeSort (· ≤ ·)
+    |> deduplicateAndSortBy id
 
 /-! ## 牌列から探索して符号化する便利関数 -/
 

@@ -8,8 +8,11 @@ import Mahjong.Pattern
 麻雀上の分類語彙を `FourTileWaitKind` として表す。実際に待ちであることは
 `ShapeFinder.IsWaitFor` が定め、分類は解析結果から計算する。
 -/
+/-- 4枚待ちに含まれる完成面子の数。 -/
+abbrev fourTileMentsuCount : Nat := 1
+
 /-- 1面子を含む通常形聴牌の手牌枚数。 -/
-abbrev fourTileHandSize : Nat := standardTenpaiHandSize 1
+abbrev fourTileHandSize : Nat := standardTenpaiHandSize fourTileMentsuCount
 
 /-- 4枚の牌を、単騎+面子または対子+ターツとして取り出す方法。 -/
 inductive FourTileExtraction

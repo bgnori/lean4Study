@@ -20,29 +20,26 @@ deriving BEq, DecidableEq, Repr
 
 namespace FourTileSpecification
 
-/-- 両面くっつきの2つの読みが共存すること。 -/
-def HasKuttsukiRyanmen (profiles : List FourTileProfile) : Prop :=
-  profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuRyanmen = true
+/-- 刻子を伴う単騎と、指定した対子+ターツの読みが共存すること。 -/
+def HasKuttsuki (profiles : List FourTileProfile) (taatsuProfile : FourTileProfile) : Prop :=
+  profiles.contains .tankiKoutsu = true ∧ profiles.contains taatsuProfile = true
 
-instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiRyanmen profiles) := by
-  unfold HasKuttsukiRyanmen
+instance (profiles : List FourTileProfile) (taatsuProfile : FourTileProfile) :
+    Decidable (HasKuttsuki profiles taatsuProfile) := by
+  unfold HasKuttsuki
   infer_instance
+
+/-- 両面くっつきの2つの読みが共存すること。 -/
+abbrev HasKuttsukiRyanmen (profiles : List FourTileProfile) : Prop :=
+  HasKuttsuki profiles .toitsuRyanmen
 
 /-- 嵌張くっつきの2つの読みが共存すること。 -/
-def HasKuttsukiKanchan (profiles : List FourTileProfile) : Prop :=
-  profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuKanchan = true
-
-instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiKanchan profiles) := by
-  unfold HasKuttsukiKanchan
-  infer_instance
+abbrev HasKuttsukiKanchan (profiles : List FourTileProfile) : Prop :=
+  HasKuttsuki profiles .toitsuKanchan
 
 /-- 辺張くっつきの2つの読みが共存すること。 -/
-def HasKuttsukiPenchan (profiles : List FourTileProfile) : Prop :=
-  profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuPenchan = true
-
-instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiPenchan profiles) := by
-  unfold HasKuttsukiPenchan
-  infer_instance
+abbrev HasKuttsukiPenchan (profiles : List FourTileProfile) : Prop :=
+  HasKuttsuki profiles .toitsuPenchan
 
 /--
 観測された基本形列に期待する名前付き分類を与える参照仕様。
