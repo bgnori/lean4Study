@@ -1,18 +1,20 @@
 import Mahjong.FourTileWait
 
 /-!
-## 7枚手牌の待ち
+# 7枚手牌の待ち分類
 
 7枚の聴牌に1枚加えて通常形（2面子1雀頭）で和了するとき、和了牌を含まない
 完成面子を1つ選べる。したがって残る4枚は `FourTileWait` であり、7枚固有の
 基本待ちは増えない。
 -/
+/-- 7枚待ちの種類。完成面子を1つ取り除いた残りの4枚待ちで分類する。 -/
 inductive SevenTileWaitKind
 | mentsuThen (remaining : FourTileWaitKind)
 deriving BEq, DecidableEq, Repr, Fintype
 
 namespace SevenTileWaitKind
 
+/-- `SevenTileWaitKind` のすべての分類。4枚待ちの10分類に対応する。 -/
 def all : List SevenTileWaitKind :=
   FourTileWaitKind.all.map .mentsuThen
 
@@ -26,6 +28,7 @@ theorem number_of_kinds : all.length = 10 := by
 
 end SevenTileWaitKind
 
+/-- 7枚手牌から、完成面子1つと残り4枚の抽出を選んだもの。 -/
 structure SevenTileExtraction where
   mentsu : MentsuCandidate
   remaining : FourTileExtraction
@@ -33,9 +36,11 @@ deriving Repr
 
 namespace SevenTileExtraction
 
+/-- 7枚抽出で使われる牌種列。完成面子3枚と残り4枚を連結する。 -/
 def tiles (extraction : SevenTileExtraction) : List Tile :=
   extraction.mentsu.tiles ++ extraction.remaining.tiles
 
+/-- 7枚抽出は常に7枚の牌種列を持つ。 -/
 theorem tiles_length (extraction : SevenTileExtraction) :
     extraction.tiles.length = 7 := by
   have taats_tiles_length (taats : Taats) : taats.tiles.length = 2 := by
@@ -52,10 +57,12 @@ theorem tiles_length (extraction : SevenTileExtraction) :
 
 end SevenTileExtraction
 
+/-- 7枚待ちの具体的な証拠。完成面子1つと4枚待ちで表す。 -/
 inductive SevenTileWait
 | mentsuThen (mentsu : MentsuCandidate) (remaining : FourTileWait)
 deriving Repr
 
+/-- 7枚待ちの既約性は、残り4枚待ちの既約性をそのまま使う。 -/
 abbrev SevenTileReducibility := FourTileReducibility
 
 namespace SevenTileReducibility
@@ -67,6 +74,7 @@ end SevenTileReducibility
 
 namespace SevenTileWait
 
+/-- 7枚待ちの既約性。 -/
 def reducibility : SevenTileWait → SevenTileReducibility
   | .mentsuThen _ remaining => .ofFour remaining.reducibility
 
@@ -119,12 +127,15 @@ example : exampleReducibilities =
      .irreducible, .irreducible, .irreducible, .irreducible] := by
   native_decide
 
+/-- この7枚待ちの分類。 -/
 def kind : SevenTileWait → SevenTileWaitKind
   | .mentsuThen _ remaining => .mentsuThen remaining.kind
 
+/-- 残り4枚待ち由来の曖昧性。 -/
 def ambiguity : SevenTileWait → FourTileAmbiguity
   | .mentsuThen _ remaining => remaining.ambiguity
 
+/-- この7枚待ちを説明する抽出列。残り4枚が曖昧なら2要素になる。 -/
 def extractions : SevenTileWait → List SevenTileExtraction
   | .mentsuThen mentsu remaining =>
       remaining.extractions.map fun extraction => ⟨mentsu, extraction⟩
@@ -151,6 +162,7 @@ theorem ambiguous_extractionCount
 theorem exhaustive (wait : SevenTileWait) : wait.kind ∈ SevenTileWaitKind.all :=
   SevenTileWaitKind.exhaustive wait.kind
 
+/-- すべての7枚待ちは、完成面子1つと4枚待ちの形である。 -/
 theorem is_mentsu_then_four (wait : SevenTileWait) :
     ∃ mentsu remaining, wait = .mentsuThen mentsu remaining := by
   cases wait with

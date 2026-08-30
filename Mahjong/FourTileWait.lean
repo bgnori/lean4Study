@@ -1,8 +1,13 @@
 import Mahjong.Pattern
 
 /-!
-## 4枚手牌の待ちの取り方
+# 4枚手牌の待ち分類
+
+4枚手牌は、和了牌を1枚加えると「1面子1雀頭」になる最小の待ち解析単位である。
+このモジュールでは、4枚手牌をどの未完成部品として読むかを `FourTileExtraction`、
+麻雀上の待ち種別を `FourTileWaitKind`、分類結果を `FourTileWait` として表す。
 -/
+/-- 4枚の牌を、単騎+面子または対子+ターツとして取り出す方法。 -/
 inductive FourTileExtraction
 | tankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
 | tankiKoutsu (tanki : Tanki) (tile : Tile)
@@ -14,9 +19,11 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace FourTileExtraction
 
+/-- 有限型として列挙できるすべての4枚抽出候補。 -/
 noncomputable def all : List FourTileExtraction :=
   (Finset.univ : Finset FourTileExtraction).toList
 
+/-- 抽出候補が要求する4枚の牌種列。 -/
 def tiles : FourTileExtraction → List Tile
   | .tankiShuntsu tanki shuntsu => tanki.tiles ++ shuntsu.tiles
   | .tankiKoutsu tanki tile => tanki.tiles ++ koutsuTiles tile
@@ -34,6 +41,7 @@ noncomputable def take (extraction : FourTileExtraction) (chunk : Chunk) :
 
 end FourTileExtraction
 
+/-- 4枚手牌で現れる待ちの種類。 -/
 inductive FourTileWaitKind
 | tankiShuntsu
 | tankiKoutsu
@@ -49,6 +57,7 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace FourTileWaitKind
 
+/-- `FourTileWaitKind` の明示的な列挙。ドキュメント上の分類表としても使う。 -/
 def all : List FourTileWaitKind :=
   [.tankiShuntsu,
    .tankiKoutsu,
@@ -66,22 +75,31 @@ theorem exhaustive (kind : FourTileWaitKind) : kind ∈ all := by
 
 end FourTileWaitKind
 
+/-- 分解が一意か、複数の読みを持つか。 -/
 inductive FourTileAmbiguity
 | noAmbiguity
 | ambiguous
 deriving BEq, DecidableEq, Repr, Fintype
 
+/-- 完成面子を取り除いてより小さい待ちへ還元できるか。 -/
 inductive FourTileReducibility
 | reducible
 | irreducible
 deriving BEq, DecidableEq, Repr, Fintype
 
+/-- 4枚待ちの分類ラベル。種類、曖昧性、既約性をまとめる。 -/
 structure FourTileClassification where
   kind : FourTileWaitKind
   ambiguity : FourTileAmbiguity
   reducibility : FourTileReducibility
 deriving BEq, DecidableEq, Repr
 
+/--
+4枚待ちの具体的な証拠。
+
+曖昧でない待ちは1つの抽出を持つ。`ambiguousNobetan` と `ambiguousKuttsuki*` は、
+同じ4枚手牌が2通りの自然な抽出を持つことを明示的に保持する。
+-/
 inductive FourTileWait
 | noAmbiguityTankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
 | noAmbiguityTankiKoutsu (tanki : Tanki) (tile : Tile)
@@ -101,6 +119,7 @@ deriving BEq, DecidableEq, Repr
 
 namespace FourTileWait
 
+/-- `FourTileWait` の各コンストラクタに対応する分類ラベル。 -/
 def classification : FourTileWait → FourTileClassification
   | .noAmbiguityTankiShuntsu .. =>
     ⟨.tankiShuntsu, .noAmbiguity, .reducible⟩
@@ -123,10 +142,11 @@ def classification : FourTileWait → FourTileClassification
   | .ambiguousKuttsukiPenchan .. =>
     ⟨.kuttsukiPenchan, .ambiguous, .irreducible⟩
 
+/-- この4枚待ちが面子除去で還元可能かどうか。 -/
 def reducibility (wait : FourTileWait) : FourTileReducibility :=
   wait.classification.reducibility
 
-  /-- One concrete mpsz example for every four-tile wait kind. -/
+/-- One concrete mpsz example for every four-tile wait kind. -/
   def examples : List (String × FourTileWait) :=
     [("1235m: tanki 5m", .noAmbiguityTankiShuntsu
       (.tanki (.numbered .Manzu 4)) (.shuntsu .Manzu 0)),
@@ -165,12 +185,15 @@ def reducibility (wait : FourTileWait) : FourTileReducibility :=
       .irreducible, .irreducible, .irreducible, .irreducible] := by
     native_decide
 
+/-- この4枚待ちの待ち種別。 -/
 def kind (wait : FourTileWait) : FourTileWaitKind :=
   wait.classification.kind
 
+/-- この4枚待ちの分解が一意かどうか。 -/
 def ambiguity (wait : FourTileWait) : FourTileAmbiguity :=
   wait.classification.ambiguity
 
+/-- この待ちを説明する4枚抽出の列。曖昧な待ちは2要素になる。 -/
 def extractions : FourTileWait → List FourTileExtraction
   | .noAmbiguityTankiShuntsu tanki shuntsu =>
       [.tankiShuntsu tanki shuntsu]
@@ -200,6 +223,7 @@ def extractions : FourTileWait → List FourTileExtraction
 def extractionCount : FourTileWait → Nat
   | wait => wait.extractions.length
 
+/-- どの4枚待ちも、少なくとも1つの抽出を持つ。 -/
 theorem extractions_nonempty (wait : FourTileWait) : wait.extractions ≠ [] := by
   cases wait <;> simp [extractions]
 

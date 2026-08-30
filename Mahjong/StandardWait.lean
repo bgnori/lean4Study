@@ -1,25 +1,33 @@
 import Mahjong.Pattern
 
 /-!
-## 通常形の待ち分析
+# 通常形の待ち分析
 
 `waitingTiles` は実際の待ち牌を返す。`analyzeWait` は、待ち牌を加えた
 和了形をチャンクへ分解して得られる集合に対して正規化を行う。
+
+このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
+出現回数で表し、`waitingTiles` では同じ牌種が5枚以上にならないよう `count < 4` を確認する。
 -/
 namespace StandardWait
 
+/-- 通常形で順子を作れる3種類の数牌スート。 -/
 def suits : List Suit := [.Manzu, .Pinzu, .Souzu]
 
+/-- すべての字牌。 -/
 def honors : List Honor :=
   [.East, .South, .West, .North, .White, .Green, .Red]
 
+/-- 27種類すべての数牌。 -/
 def numberedTiles : List Tile :=
   suits.flatMap fun suit => List.ofFn fun rank : Fin 9 =>
     Tile.numbered suit rank
 
+/-- 待ち牌候補として使う34種類すべての牌種。 -/
 def allTiles : List Tile :=
   numberedTiles ++ honors.map .honor
 
+/-- `available` から `wanted` の牌種列を多重集合的に取り除く。 -/
 def removeTiles : List Tile → List Tile → Option (List Tile)
   | available, [] => some available
   | available, wanted :: rest =>
@@ -28,6 +36,7 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
       else
         none
 
+/-- 和了形の分解に現れる完成部品。雀頭、順子、刻子。 -/
 inductive TileChunk
 | pair (tile : Tile)
 | shuntsu (suit : Suit) (start : Fin 7)
@@ -36,6 +45,7 @@ deriving BEq, DecidableEq, Repr
 
 namespace TileChunk
 
+/-- 完成部品を構成する牌種列。 -/
 def tiles : TileChunk → List Tile
   | .pair tile => pairTiles tile
   | .shuntsu suit start => numberedRun suit start
@@ -69,20 +79,24 @@ def canonicalize (chunks : List TileChunk) : List TileChunk :=
 
 end TileChunk
 
+/-- ある待ち牌を加えた和了形の1つの分解。 -/
 structure WaitDecomposition where
   wait : Tile
   chunks : List TileChunk
 deriving BEq, DecidableEq, Repr
 
+/-- 雀頭候補として使う全牌種の対子。 -/
 def pairChunkCandidates : List TileChunk :=
   allTiles.map .pair
 
+/-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
 def meldChunkCandidates : List TileChunk :=
   (suits.flatMap fun suit =>
     List.ofFn fun start : Fin 7 =>
       TileChunk.shuntsu suit start) ++
   allTiles.map .koutsu
 
+/-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
 def decomposeMelds : Nat → List Tile → List (List TileChunk)
   | 0, tiles =>
       if tiles.isEmpty then [[]] else []
@@ -93,6 +107,7 @@ def decomposeMelds : Nat → List Tile → List (List TileChunk)
             (decomposeMelds fuel remaining).map fun chunks => meld :: chunks
         | none => [])
 
+/-- 牌種リストを雀頭1つと完成面子列に分解する。 -/
 def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
   List.flatten (pairChunkCandidates.map fun pairChunk =>
     match removeTiles tiles pairChunk.tiles with
@@ -101,13 +116,16 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
           pairChunk :: chunks
     | none => [])
 
+/-- 牌種リストが通常形の和了形として分解できるか。 -/
 def isWinning (tiles : List Tile) : Bool :=
   !(winningDecompositions tiles).isEmpty
 
+/-- 与えられた聴牌形に対し、加えると通常形で和了になる牌種を列挙する。 -/
 def waitingTiles (tiles : List Tile) : List Tile :=
   allTiles.filter fun candidate =>
     (tiles.count candidate < 4) && isWinning (candidate :: tiles)
 
+/-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分解を列挙する。 -/
 def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningDecompositions (wait :: tiles)).map fun chunks =>
@@ -123,6 +141,7 @@ def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
 def decompositionCount (tiles : List Tile) : Nat :=
   (waitDecompositionSet tiles).length
 
+/-- `tiles` が少なくとも1つの待ち牌を持つこと。 -/
 def IsTenpaiTiles (tiles : List Tile) : Prop :=
   waitingTiles tiles ≠ []
 
@@ -130,10 +149,12 @@ instance decidableIsTenpaiTiles (tiles : List Tile) : Decidable (IsTenpaiTiles t
   unfold IsTenpaiTiles
   infer_instance
 
+/-- `tiles` から完成面子を1つ取り除いて得られる牌種リストの候補。 -/
 def mentsuReductions (tiles : List Tile) : List (List Tile) :=
   meldChunkCandidates.filterMap fun mentsu =>
     removeTiles tiles mentsu.tiles
 
+/-- 完成面子を1つ除いても同じ分解数の聴牌形が残るなら可約とする。 -/
 def CanReduceMentsu (tiles : List Tile) : Prop :=
   1 < tiles.length ∧ IsTenpaiTiles tiles ∧
     (mentsuReductions tiles).any (fun remaining =>
@@ -144,6 +165,7 @@ instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMent
   unfold CanReduceMentsu
   infer_instance
 
+/-- それ以上、完成面子除去で同じ待ち構造へ小さくできない聴牌形。 -/
 def IsIrreducible (tiles : List Tile) : Prop :=
   tiles.length = 1 ∨
     (IsTenpaiTiles tiles ∧ ¬CanReduceMentsu tiles)
@@ -152,9 +174,11 @@ instance decidableIsIrreducible (tiles : List Tile) : Decidable (IsIrreducible t
   unfold IsIrreducible
   infer_instance
 
+/-- 1枚手牌は単騎として既約である。 -/
 theorem singleton_irreducible (tile : Tile) : IsIrreducible [tile] := by
   simp [IsIrreducible]
 
+/-- 可約なら既約ではない。 -/
 theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
     (reducible : CanReduceMentsu tiles) : ¬IsIrreducible tiles := by
   rcases reducible with ⟨moreThanOne, tenpai, reduction⟩
@@ -163,22 +187,26 @@ theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
   · omega
   · exact notReducible ⟨moreThanOne, tenpai, reduction⟩
 
+/-- スート名と絶対ランクを忘れた正規化後の牌。 -/
 inductive NormalizedTile
 | numbered (suitIndex rank : Nat)
 | honor (honor : Honor)
 deriving BEq, DecidableEq, Repr
 
+/-- 正規化後の完成部品。 -/
 inductive NormalizedChunk
 | pair (tile : NormalizedTile)
 | shuntsu (suitIndex start : Nat)
 | koutsu (tile : NormalizedTile)
 deriving BEq, DecidableEq, Repr
 
+/-- 待ち牌と和了分解を平行移動で正規化したもの。 -/
 structure NormalizedDecomposition where
   wait : NormalizedTile
   chunks : List NormalizedChunk
 deriving BEq, DecidableEq, Repr
 
+/-- 通常形待ち解析の結果。 -/
 structure Analysis where
   decompositions : List NormalizedDecomposition
 deriving BEq, DecidableEq, Repr
@@ -219,16 +247,23 @@ private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk
       .shuntsu (suitIndexFrom present suit) (start.val - lowestRank tiles suit)
   | .koutsu tile => .koutsu (normalizeTile tiles present tile)
 
+/--
+スート名とランクの平行移動を忘れて、同型な牌姿を同じ形として扱う。
+
+各スート内の最小ランクを0へ移し、出現するスートを出現順に `0, 1, ...` と番号付けする。
+-/
 def normalizeByTranslation (decomposition : WaitDecomposition) : NormalizedDecomposition :=
   let tiles := chunkTiles decomposition
   let present := presentSuits tiles
   { wait := normalizeTile tiles present decomposition.wait
     chunks := decomposition.chunks.map (normalizeChunk tiles present) }
 
+/-- 任意の正規化関数で待ち分解集合を商としてまとめる。 -/
 def analysisWith {α : Type} [DecidableEq α]
     (normalize : WaitDecomposition → α) (tiles : List Tile) : List α :=
   (waitDecompositionSet tiles).map normalize |>.eraseDups
 
+/-- 平行移動による正規化で通常形待ちを解析する。 -/
 def analyzeWait (tiles : List Tile) : Analysis :=
   { decompositions := analysisWith normalizeByTranslation tiles }
 
@@ -238,6 +273,7 @@ def analyzeWait (tiles : List Tile) : Analysis :=
 牌の位置を忘れ、待ち牌を除いた各分解を部品種別の多重集合として扱う。
 異なる部品種別に異なる素数を割り当て、その積を代表元とする。
 -/
+/-- 待ち牌を除いた後に見える部品種別。 -/
 inductive ShapeComponent
 | tanki
 | toitsu
@@ -250,6 +286,7 @@ deriving BEq, DecidableEq, Repr
 
 namespace ShapeComponent
 
+/-- 部品種別に割り当てる素数。積をとることで多重集合の代表コードにする。 -/
 def prime : ShapeComponent → Nat
   | .tanki => 2
   | .toitsu => 3
@@ -261,21 +298,25 @@ def prime : ShapeComponent → Nat
 
 end ShapeComponent
 
+/-- 具体的な牌種列を保持した部品。 -/
 structure ConcreteShapeComponent where
   kind : ShapeComponent
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
+/-- 1つの待ち牌に対する、具体牌つきの形抽出。 -/
 structure ConcreteShapeExtraction where
   wait : Tile
   components : List ConcreteShapeComponent
 deriving BEq, DecidableEq, Repr
 
+/-- 牌の位置を忘れ、部品種別だけを残した形抽出。 -/
 structure AbstractShapeExtraction where
   wait : Tile
   components : List ShapeComponent
 deriving BEq, DecidableEq, Repr
 
+/-- 待ち牌ごとの抽象形コード。 -/
 structure ShapeCodeEntry where
   wait : Tile
   code : Nat
@@ -362,6 +403,7 @@ private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
         | none => later
   selectCompletedChunk decomposition.chunks
 
+/-- 牌種リストから、待ち牌ごとの具体的な形抽出を列挙する。 -/
 def concreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction :=
   let entries := (waitDecompositionSet tiles).flatMap fun decomposition =>
       (decompositionShapeExtractions decomposition).map fun extraction =>
@@ -372,6 +414,7 @@ def concreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction 
     |>.mergeSort fun first second =>
       concreteShapeExtractionKey first ≤ concreteShapeExtractionKey second
 
+/-- 具体的な形抽出から牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
 def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction :=
   concreteShapeExtractions tiles
     |>.map (fun extraction =>
@@ -381,6 +424,7 @@ def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction 
     |>.mergeSort fun first second =>
       abstractShapeExtractionKey first ≤ abstractShapeExtractionKey second
 
+/-- 抽象形抽出を、部品種別に対応する素数積のコードへ変換する。 -/
 def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
   abstractShapeExtractions tiles
     |>.map (fun extraction =>
@@ -390,10 +434,12 @@ def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
     |>.mergeSort fun first second =>
       shapeCodeEntryKey first ≤ shapeCodeEntryKey second
 
+/-- 待ち牌を残した抽象形コード。 -/
 def abstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
   shapeCodeEntries tiles
     |>.map fun entry => (entry.code, entry.wait)
 
+/-- 待ち牌を忘れ、牌姿に現れる抽象形コードだけを列挙する。 -/
 def abstractShapeCode (tiles : List Tile) : List Nat :=
   shapeCodeEntries tiles
     |>.map (fun entry => entry.code)

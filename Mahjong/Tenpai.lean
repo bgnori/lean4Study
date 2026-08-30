@@ -1,9 +1,13 @@
 import Mahjong.Hand
 
-/-! # 待ち -/
-/-! ## 待ち要素の定義 -/
-/-! ### Hand one に対しては単騎のみ -/
+/-!
+# 聴牌の証拠
 
+`Tenpai hand` は、手牌 `hand` がどの待ち証拠を持つかを表す依存型である。
+現在は学習用に、1枚、4枚、7枚の聴牌証拠を扱う。
+-/
+
+/-- 手牌サイズごとの聴牌証拠。 -/
 inductive Tenpai : Hand → Type
   | tanki
       (tiles : Fin 1 ↪ { pt : PhysicalTile // pt ∈ deck })
@@ -19,6 +23,7 @@ inductive Tenpai : Hand → Type
       (wait : SevenTileWait) :
       Tenpai (.seven tiles)
 
+/-- 1枚手牌は、その1枚を単騎として待つ聴牌である。 -/
 def one_is_tenpai (tiles : Fin 1 ↪ { pt : PhysicalTile // pt ∈ deck }) :
     Tenpai (.one tiles) :=
   .tanki tiles (.tanki ((tiles 0).1).1) (by simp [Tanki.Matches, Tanki.tiles])

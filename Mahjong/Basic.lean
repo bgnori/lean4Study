@@ -6,23 +6,29 @@ import Mathlib.Data.Fintype.Sigma
 import Mathlib.Data.Fintype.Sum
 import Mathlib.Tactic.DeriveFintype
 
-/-! This is a module for the Lean 4 study project. -/
-
-/-! このプロジェクトのゴール：麻雀の待ちの分類を行うツール提供する。ツールは証明を伴い正しさを保証する。 -/
-
 /-!
- # 麻雀牌の定義
- -/
+# 麻雀牌の基礎定義
+
+このモジュールでは、以降の待ち分類で使う最小限のドメインモデルを定義する。
+牌種としての `Tile` と、同じ牌種が4枚あることを表す `PhysicalTile` を分けることで、
+「3mという種類」と「3mの1枚目」のような区別を Lean の型で表せるようにする。
+
+待ちの解析ロジックの多くは牌種 `Tile` の列を扱う。一方、実際の手牌から牌を取り出す
+処理では重複を扱う必要があるため、`PhysicalTile` と `Finset` を使う。
+-/
 
 
 /-!
  ## 数牌の定義
  -/
+/-- 数牌のランク。`0` から `8` が、それぞれ実際の `1` から `9` に対応する。 -/
  abbrev Rank := Fin 9
 
+/-- `Rank` を自然数リテラルで書くためのインスタンス。 -/
  instance (n : Nat) [ofNat : OfNat (Fin 9) n] : OfNat Rank n where
    ofNat := (OfNat.ofNat n : Fin 9)
 
+/-- 数牌の3種類のスート。 -/
  inductive Suit
  | Manzu
  | Pinzu
@@ -33,6 +39,7 @@ deriving BEq, DecidableEq, Repr, Fintype
 /-!
  ## 字牌の定義
  -/
+/-- 字牌の7種類。 -/
  inductive Honor
  | East
  | South
@@ -46,6 +53,7 @@ deriving BEq, DecidableEq, Repr, Fintype
 /-!
  ## 麻雀牌の種類の定義 -> 萬子・筒子・索子と字牌
  -/
+/-- 牌種。数牌はスートとランク、字牌は `Honor` で表す。 -/
  inductive Tile
  | numbered(suit : Suit) (rank : Rank )
  | honor(h : Honor )
@@ -54,24 +62,34 @@ deriving BEq, DecidableEq, Repr, Fintype
 /-!
  ## セットの定義
 -/
+/-- 34種類すべての牌種。 -/
 def tileTypes : Finset Tile :=
   Finset.univ
 
+/-- 物理的な1枚の牌。同じ牌種が4枚あることを `Fin 4` で区別する。 -/
 abbrev PhysicalTile := Tile × Fin 4
 
+/-- 136枚すべての物理牌からなる山。 -/
 def deck : Finset PhysicalTile :=
   Finset.univ
 
+/-- 麻雀牌の山は34種類それぞれ4枚、合計136枚である。 -/
 theorem deck_cardinality : deck.card = 136 := by
   simp [deck]
   rfl
 
+/--
+まだ取り出せる物理牌の有限集合。
+
+`nonempty` を持たせることで、空集合ではない牌集合だけを `Chunk` として扱う。
+-/
 structure Chunk where
   tiles : Finset PhysicalTile
   nonempty : tiles.Nonempty
 
 namespace Chunk
 
+/-- `chunk` から指定した物理牌を1枚取り出し、取り出した牌と残りを返す。 -/
 def take (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     PhysicalTile × Finset PhysicalTile :=
   (tile, chunk.tiles.erase tile)
@@ -91,6 +109,11 @@ noncomputable def takeTileFrom (tiles : Finset PhysicalTile) (wanted : Tile) :
   | some tile => some (tile, tiles.erase tile)
   | none => none
 
+/--
+指定された牌種列に対応する物理牌を、有限集合から順に取り出す。
+
+必要な牌が足りない場合は `none` を返す。成功時は、取り出した物理牌の列と残りの集合を返す。
+-/
 noncomputable def takeTilesFrom :
     Finset PhysicalTile → List Tile → Option (List PhysicalTile × Finset PhysicalTile)
   | tiles, [] => some ([], tiles)
@@ -105,6 +128,7 @@ noncomputable def takeTiles (chunk : Chunk) (wanted : List Tile) :
 
 end Chunk
 
+/-- 「この型の値は、対応する牌種列を持つ」ことを表す型クラス。 -/
 class HasTilePattern (α : Type) where
   tiles : α → List Tile
 
@@ -122,6 +146,7 @@ end HasTilePattern
  b) mpsz
  -/
 
+/-- 牌の表示形式。`mpsz` は `123m55p` のような牌譜でよく使われる表記。 -/
 inductive TileFormat
 | unicode
 | mpsz
@@ -157,6 +182,7 @@ private def Honor.unicode : Honor → String
 | .Green => "🀅"
 | .Red => "🀄"
 
+/-- 1つの牌種を指定された形式の文字列に変換する。 -/
 def format (output : TileFormat) : Tile → String
 | .numbered suit rank =>
   match output with
@@ -178,16 +204,18 @@ end Tile
 # 牌パターンの共通部品
 -/
 
+/-- 同じ牌種2枚からなる対子の牌種列。 -/
 def pairTiles (tile : Tile) : List Tile :=
   [tile, tile]
 
+/-- 同じ牌種3枚からなる刻子の牌種列。 -/
 def koutsuTiles (tile : Tile) : List Tile :=
   [tile, tile, tile]
 
+/-- 指定されたスートで、`start`, `start + 1`, `start + 2` の順子を作る。 -/
 def numberedRun (suit : Suit) (start : Fin 7) : List Tile :=
   [Tile.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
    Tile.numbered suit ⟨start.val + 1,
     Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
    Tile.numbered suit ⟨start.val + 2, by
      simpa using Nat.add_lt_add_right start.isLt 2⟩]
-
