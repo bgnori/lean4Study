@@ -8,20 +8,7 @@ import Mahjong.Pattern
 `ShapeCode` が担当する。
 -/
 
-/-- 通常形の和了分割に現れる完成部品。雀頭、順子、刻子。 -/
-inductive TileChunk
-| pair (tile : Tile)
-| shuntsu (suit : Suit) (start : Fin 7)
-| koutsu (tile : Tile)
-deriving BEq, DecidableEq, Repr
-
 namespace TileChunk
-
-/-- 完成部品を構成する牌種列。 -/
-def tiles : TileChunk → List Tile
-  | .pair tile => pairTiles tile
-  | .shuntsu suit start => numberedRun suit start
-  | .koutsu tile => koutsuTiles tile
 
 private def suitKey : Suit → Nat
   | .Manzu => 0
@@ -42,9 +29,9 @@ private def tileKey : Tile → Nat
   | .honor honor => 27 + honorKey honor
 
 private def orderKey : TileChunk → Nat
-  | .pair tile => tileKey tile
-  | .shuntsu suit start => 34 + suitKey suit * 7 + start.val
-  | .koutsu tile => 55 + tileKey tile
+  | .inl (.toitsu tile) => tileKey tile
+  | .inr (.shuntsu (.shuntsu suit start)) => 34 + suitKey suit * 7 + start.val
+  | .inr (.koutsu tile) => 55 + tileKey tile
 
 /-- 分割内の部品順を一意にする。 -/
 def canonicalize (chunks : List TileChunk) : List TileChunk :=

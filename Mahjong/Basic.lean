@@ -199,23 +199,3 @@ example : format .unicode (.honor .Red) = "🀄" := rfl
 example : format .mpsz (.honor .White) = "5z" := rfl
 
 end Tile
-
-/-!
-# 牌パターンの共通部品
--/
-
-/-- 同じ牌種2枚からなる対子の牌種列。 -/
-def pairTiles (tile : Tile) : List Tile :=
-  [tile, tile]
-
-/-- 同じ牌種3枚からなる刻子の牌種列。 -/
-def koutsuTiles (tile : Tile) : List Tile :=
-  [tile, tile, tile]
-
-/-- 指定されたスートで、`start`, `start + 1`, `start + 2` の順子を作る。 -/
-def numberedRun (suit : Suit) (start : Fin 7) : List Tile :=
-  [Tile.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
-   Tile.numbered suit ⟨start.val + 1,
-    Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
-   Tile.numbered suit ⟨start.val + 2, by
-     simpa using Nat.add_lt_add_right start.isLt 2⟩]

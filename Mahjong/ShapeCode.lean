@@ -62,9 +62,9 @@ deriving BEq, DecidableEq, Repr
 
 private def completeComponent (chunk : TileChunk) : ConcreteShapeComponent :=
   { kind := match chunk with
-      | .pair _ => .toitsu
-      | .shuntsu .. => .shuntsu
-      | .koutsu _ => .koutsu
+      | .inl _ => .toitsu
+      | .inr (.shuntsu _) => .shuntsu
+      | .inr (.koutsu _) => .koutsu
     tiles := chunk.tiles }
 
 private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
@@ -72,11 +72,11 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
   let incompleteTiles := chunk.tiles.erase wait
   let result kind := some { kind, tiles := incompleteTiles }
   match chunk with
-  | .pair tile =>
+    | .inl (.toitsu tile) =>
       if tile == wait then result .tanki else none
-  | .koutsu tile =>
+    | .inr (.koutsu tile) =>
       if tile == wait then result .toitsu else none
-  | .shuntsu suit start =>
+    | .inr (.shuntsu (.shuntsu suit start)) =>
       match wait with
       | .honor _ => none
       | .numbered waitSuit rank =>

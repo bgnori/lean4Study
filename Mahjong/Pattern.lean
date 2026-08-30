@@ -6,6 +6,7 @@ import Mahjong.Basic
 このモジュールでは、待ち分類を構成する小さな部品を定義する。
 `Taats`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` はいずれも
 `HasTilePattern` インスタンスを持ち、必要な牌種列を共通の方法で取り出せる。
+完成部品 `TileChunk` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
 
 /--
@@ -54,7 +55,7 @@ namespace Toitsu
 
 /-- 対子を構成する2枚の牌種列。 -/
 def tiles : Toitsu → List Tile
-  | .toitsu tile => pairTiles tile
+  | .toitsu tile => [tile, tile]
 
 instance : HasTilePattern Toitsu where
   tiles := Toitsu.tiles
@@ -104,7 +105,12 @@ namespace Shuntsu
 
 /-- 順子を構成する3枚の牌種列。 -/
 def tiles : Shuntsu → List Tile
-  | .shuntsu suit start => numberedRun suit start
+  | .shuntsu suit start =>
+      [.numbered suit ⟨start.val, Nat.lt_trans start.isLt (by decide)⟩,
+       .numbered suit ⟨start.val + 1,
+        Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩,
+       .numbered suit ⟨start.val + 2, by
+         simpa using Nat.add_lt_add_right start.isLt 2⟩]
 
 instance : HasTilePattern Shuntsu where
   tiles := Shuntsu.tiles
@@ -133,7 +139,7 @@ noncomputable def all : List MentsuCandidate :=
 /-- 完成面子候補を構成する3枚の牌種列。 -/
 def tiles : MentsuCandidate → List Tile
   | .shuntsu sequence => sequence.tiles
-  | .koutsu tile => koutsuTiles tile
+  | .koutsu tile => [tile, tile, tile]
 
 instance : HasTilePattern MentsuCandidate where
   tiles := MentsuCandidate.tiles
@@ -149,10 +155,37 @@ theorem honor_not_in_shuntsu (candidate : MentsuCandidate) (honor : Honor)
   | koutsu tile => simp [IsShuntsu]
   | shuntsu sequence =>
       cases sequence
-      simp [tiles, Shuntsu.tiles, numberedRun] at honor_mem
+      simp [tiles, Shuntsu.tiles] at honor_mem
 
 noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
   HasTilePattern.take candidate chunk
 
 end MentsuCandidate
+
+/-- 通常形の和了分割に現れる完成部品。雀頭または完成面子。 -/
+abbrev TileChunk := Toitsu ⊕ MentsuCandidate
+
+namespace TileChunk
+
+/-- 指定した牌種の雀頭を完成部品として作る。 -/
+def pair (tile : Tile) : TileChunk :=
+  .inl (.toitsu tile)
+
+/-- 指定した順子を完成部品として作る。 -/
+def shuntsu (suit : Suit) (start : Fin 7) : TileChunk :=
+  .inr (.shuntsu (.shuntsu suit start))
+
+/-- 指定した牌種の刻子を完成部品として作る。 -/
+def koutsu (tile : Tile) : TileChunk :=
+  .inr (.koutsu tile)
+
+/-- 完成部品を構成する牌種列。 -/
+def tiles : TileChunk → List Tile
+  | .inl pair => pair.tiles
+  | .inr mentsu => mentsu.tiles
+
+instance : HasTilePattern TileChunk where
+  tiles := TileChunk.tiles
+
+end TileChunk

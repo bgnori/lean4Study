@@ -27,7 +27,7 @@ noncomputable def all : List FourTileExtraction :=
 /-- 抽出候補が要求する4枚の牌種列。 -/
 def tiles : FourTileExtraction → List Tile
   | .tankiShuntsu tanki shuntsu => tanki.tiles ++ shuntsu.tiles
-  | .tankiKoutsu tanki tile => tanki.tiles ++ koutsuTiles tile
+  | .tankiKoutsu tanki tile => tanki.tiles ++ (MentsuCandidate.koutsu tile).tiles
   | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taats.ryanmen suit start).tiles
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taats.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taats.penchan suit high).tiles

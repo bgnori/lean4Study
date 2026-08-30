@@ -239,10 +239,10 @@ private def normalizeTile (tiles : List Tile) (present : List Suit) : Tile → N
       .numbered (suitIndexFrom present suit) (rank.val - lowestRank tiles suit)
 
 private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk → NormalizedChunk
-  | .pair tile => .pair (normalizeTile tiles present tile)
-  | .shuntsu suit start =>
+  | .inl (.toitsu tile) => .pair (normalizeTile tiles present tile)
+  | .inr (.shuntsu (.shuntsu suit start)) =>
       .shuntsu (suitIndexFrom present suit) (start.val - lowestRank tiles suit)
-  | .koutsu tile => .koutsu (normalizeTile tiles present tile)
+  | .inr (.koutsu tile) => .koutsu (normalizeTile tiles present tile)
 
 /--
 スート名とランクの平行移動を忘れて、同型な牌姿を同じ形として扱う。
