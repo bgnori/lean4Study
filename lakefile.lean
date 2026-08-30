@@ -13,6 +13,9 @@ require mathlib from git
 lean_lib «Lean4Project» where
   -- add library configuration options here
 
+lean_lib «Mahjong» where
+  -- Mahjong wait-classification study modules.
+
 @[default_target]
 lean_exe «lean4-project» where
   root := `Main
