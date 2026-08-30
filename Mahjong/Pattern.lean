@@ -9,6 +9,16 @@ import Mahjong.Basic
 完成部品 `TileChunk` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
 
+/-- 完成面子を構成する牌の枚数。 -/
+abbrev mentsuTileCount : Nat := 3
+
+/-- 通常の最大手牌に含まれる面子数。 -/
+abbrev standardHandMentsuCount : Nat := 4
+
+/-- 指定した面子数に対応する通常形聴牌の手牌枚数。 -/
+def standardTenpaiHandSize (mentsuCount : Nat) : Nat :=
+  mentsuCount * mentsuTileCount + 1
+
 /-- 両面ターツの開始位置数。 -/
 abbrev ryanmenStartCount : Nat := numberedRankCount - 3
 

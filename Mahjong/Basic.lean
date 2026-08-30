@@ -122,6 +122,10 @@ def numberedCount : Nat := Suit.count * numberedRankCount
 /-- 牌種の総数。 -/
 def count : Nat := numberedCount + Honor.count
 
+/-- 指定したスートとランク列から数牌列を作る。 -/
+def numberedTiles (suit : Suit) (ranks : List Rank) : List Tile :=
+  ranks.map (.numbered suit)
+
 /-- 34種類すべての牌種を標準順で並べたリスト。 -/
 def all : List Tile :=
   (Suit.all.flatMap fun suit =>
@@ -156,6 +160,9 @@ def tileTypes : Finset Tile :=
 /-- 同じ牌種ごとの物理牌の枚数。 -/
 abbrev copiesPerTile : Nat := 4
 
+/-- 山を構成する物理牌の総数。 -/
+abbrev deckSize : Nat := Tile.count * copiesPerTile
+
 /-- 物理的な1枚の牌。同じ牌種が4枚あることを `Fin 4` で区別する。 -/
 abbrev PhysicalTile := Tile × Fin copiesPerTile
 
@@ -163,8 +170,8 @@ abbrev PhysicalTile := Tile × Fin copiesPerTile
 def deck : Finset PhysicalTile :=
   Finset.univ
 
-/-- 麻雀牌の山は34種類それぞれ4枚、合計136枚である。 -/
-theorem deck_cardinality : deck.card = 136 := by
+/-- 麻雀牌の山は各牌種を `copiesPerTile` 枚ずつ含む。 -/
+theorem deck_cardinality : deck.card = deckSize := by
   simp [deck]
   rfl
 

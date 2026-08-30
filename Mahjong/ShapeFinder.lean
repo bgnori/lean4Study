@@ -14,10 +14,6 @@ import Mathlib.Tactic
 -/
 namespace ShapeFinder
 
-/-- 待ち牌候補として使うすべての牌種。 -/
-def allTiles : List Tile :=
-  Tile.all
-
 /-- `available` から `wanted` の牌種列を多重集合的に取り除く。 -/
 def removeTiles : List Tile → List Tile → Option (List Tile)
   | available, [] => some available
@@ -29,14 +25,14 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
 
 /-- 雀頭候補として使う全牌種の対子。 -/
 def pairChunkCandidates : List TileChunk :=
-  allTiles.map .pair
+  Tile.all.map .pair
 
 /-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
 def meldChunkCandidates : List TileChunk :=
   (Suit.all.flatMap fun suit =>
     List.ofFn fun start : ShuntsuStart =>
       TileChunk.shuntsu suit start) ++
-  allTiles.map .koutsu
+  Tile.all.map .koutsu
 
 /-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
 def decomposeMelds : Nat → List Tile → List (List TileChunk)
@@ -54,7 +50,7 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
   List.flatten (pairChunkCandidates.map fun pairChunk =>
     match removeTiles tiles pairChunk.tiles with
     | some remaining =>
-        (decomposeMelds (remaining.length / 3) remaining).map fun chunks =>
+        (decomposeMelds (remaining.length / mentsuTileCount) remaining).map fun chunks =>
           pairChunk :: chunks
     | none => [])
 
@@ -81,17 +77,13 @@ structure Wait (tiles : List Tile) where
 
 /-- 与えられた聴牌形に対し、加えると通常形で和了になる牌種を列挙する。 -/
 def waitingTiles (tiles : List Tile) : List Tile :=
-  allTiles.filter fun candidate =>
+  Tile.all.filter fun candidate =>
     (tiles.count candidate < copiesPerTile) && isWinning (candidate :: tiles)
-
-/-- すべての牌種は候補列に含まれる。 -/
-theorem mem_allTiles (candidate : Tile) : candidate ∈ allTiles := by
-  exact Tile.mem_all candidate
 
 /-- `waitingTiles` は `IsWaitFor` をちょうど判定する。 -/
 theorem mem_waitingTiles_iff (tiles : List Tile) (candidate : Tile) :
     candidate ∈ waitingTiles tiles ↔ IsWaitFor tiles candidate := by
-  simp [waitingTiles, mem_allTiles, IsWaitFor, IsStandardAgari,
+  simp [waitingTiles, Tile.mem_all, IsWaitFor, IsStandardAgari,
     Bool.and_eq_true]
 
 /-- `waitingTiles` が空でないことと意味論上の聴牌は同値である。 -/
@@ -243,21 +235,23 @@ def analysisWith {α : Type} [DecidableEq α]
 def analyzeWait (tiles : List Tile) : Analysis :=
   { decompositions := analysisWith normalizeByTranslation tiles }
 
-private def manzu (ranks : List Rank) : List Tile :=
-  ranks.map (.numbered .Manzu)
+def manzu (ranks : List Rank) : List Tile :=
+  Tile.numberedTiles .Manzu ranks
 
-private def souzu (ranks : List Rank) : List Tile :=
-  ranks.map (.numbered .Souzu)
+def souzu (ranks : List Rank) : List Tile :=
+  Tile.numberedTiles .Souzu ranks
 
 -- Rank は 0 始まりなので、牌姿の数字から 1 を引いて記述する。
-def testHandA : List Tile := manzu [2, 3, 4, 4, 4] ++ souzu [7, 7]
-def testHandB : List Tile := manzu [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
-def testHandC : List Tile := souzu [2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
-def testHandD : List Tile := manzu [1, 1, 2, 2, 3, 3, 4, 4] ++ souzu [6, 6]
-def testHand3456678 : List Tile := manzu [2, 3, 4, 5, 5, 6, 7]
-def testHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
-def testHand3334556 : List Tile := manzu [2, 2, 2, 3, 4, 4, 5]
-def testHand3335678 : List Tile := manzu [2, 2, 2, 4, 5, 6, 7]
+def testHandA : List Tile := Tile.numberedTiles .Manzu [2, 3, 4, 4, 4] ++
+  Tile.numberedTiles .Souzu [7, 7]
+def testHandB : List Tile := Tile.numberedTiles .Manzu [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+def testHandC : List Tile := Tile.numberedTiles .Souzu [2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
+def testHandD : List Tile := Tile.numberedTiles .Manzu [1, 1, 2, 2, 3, 3, 4, 4] ++
+  Tile.numberedTiles .Souzu [6, 6]
+def testHand3456678 : List Tile := Tile.numberedTiles .Manzu [2, 3, 4, 5, 5, 6, 7]
+def testHand2345678 : List Tile := Tile.numberedTiles .Manzu [1, 2, 3, 4, 5, 6, 7]
+def testHand3334556 : List Tile := Tile.numberedTiles .Manzu [2, 2, 2, 3, 4, 4, 5]
+def testHand3335678 : List Tile := Tile.numberedTiles .Manzu [2, 2, 2, 4, 5, 6, 7]
 def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
 def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]

@@ -102,8 +102,8 @@ private def componentProduct (components : List ShapeComponent) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
 
 private def tileKeyBase : Nat := Tile.count + 1
-private def maxComponentTiles : Nat := 3
-private def maxShapeComponents : Nat := 5
+private def maxComponentTiles : Nat := mentsuTileCount
+private def maxShapeComponents : Nat := standardHandMentsuCount + 1
 private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
 private def extractionComponentKeyStride : Nat := ShapeComponent.count * componentTileKeyStride
 private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxShapeComponents
@@ -215,12 +215,12 @@ def findAbstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
 def findAbstractShapeCode (tiles : List Tile) : List Nat :=
   abstractShapeCode (ShapeFinder.find tiles)
 
-private def manzu (ranks : List Rank) : List Tile :=
-  ranks.map (.numbered .Manzu)
-
-private def shapeCodeTestHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
-private def shapeCodeTestHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
-private def shapeCodeTestHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
+private def shapeCodeTestHand2345678 : List Tile :=
+  Tile.numberedTiles .Manzu [1, 2, 3, 4, 5, 6, 7]
+private def shapeCodeTestHand1167888 : List Tile :=
+  Tile.numberedTiles .Manzu [0, 0, 5, 6, 7, 7, 7]
+private def shapeCodeTestHand1166678 : List Tile :=
+  Tile.numberedTiles .Manzu [0, 0, 5, 5, 5, 6, 7]
 
 example : findAbstractShapeExtractions shapeCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },

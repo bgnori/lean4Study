@@ -10,19 +10,16 @@ import Mahjong.FourTileWait
 1枚、4枚、7枚、10枚、13枚の手牌だけを扱う。
 -/
 /-- 通常形聴牌として扱う最大手牌サイズ。 -/
-abbrev thirteenTileHandSize : Nat := 13
+abbrev thirteenTileHandSize : Nat := standardTenpaiHandSize standardHandMentsuCount
 
 /-- 3面子を除去できる手牌サイズ。 -/
-abbrev tenTileHandSize : Nat := 10
+abbrev tenTileHandSize : Nat := standardTenpaiHandSize 3
 
 /-- 2面子を除去できる手牌サイズ。 -/
-abbrev sevenTileHandSize : Nat := 7
-
-/-- 4枚待ち分類の対象サイズ。 -/
-abbrev fourTileHandSize : Nat := 4
+abbrev sevenTileHandSize : Nat := standardTenpaiHandSize 2
 
 /-- 単騎だけの最小手牌サイズ。 -/
-abbrev oneTileHandSize : Nat := 1
+abbrev oneTileHandSize : Nat := standardTenpaiHandSize 0
 
 /-- 解析対象にする手牌サイズ。各手牌は `deck` から重複なく取られた物理牌で表す。 -/
 inductive Hand where
@@ -107,7 +104,7 @@ end HandExtraction
 namespace Hand
 
 /-- 13枚手牌から単騎・4枚待ちまで降りるために取り除ける最大面子数。 -/
-def maxMentsuRemovalCount : Nat := 4
+def maxMentsuRemovalCount : Nat := standardHandMentsuCount
 
 /-- 手牌から得られる抽出候補を列挙する。 -/
 noncomputable def extractions (hand : Hand) : List HandExtraction :=

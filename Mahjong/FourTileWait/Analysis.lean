@@ -40,14 +40,14 @@ theorem classifyFourTileProfiles_iff (profiles : List FourTileProfile)
 
 /-- 4枚牌列に名前付き分類を与える解析器。 -/
 def classifyFourTile (tiles : List Tile) : Option FourTileWaitKind :=
-  if tiles.length = 4 then
+  if tiles.length = fourTileHandSize then
     classifyFourTileProfiles (observedFourTileProfiles tiles)
   else
     none
 
 /-- 牌列が名前付き4枚分類の仕様を満たすこと。 -/
 def HasFourTileKind (tiles : List Tile) (kind : FourTileWaitKind) : Prop :=
-  tiles.length = 4 ∧
+  tiles.length = fourTileHandSize ∧
     FourTileSpecification.Classifies (observedFourTileProfiles tiles) kind
 
 /-- `classifyFourTile` の健全性。 -/
@@ -71,25 +71,33 @@ theorem classifyFourTile_iff (tiles : List Tile) (kind : FourTileWaitKind) :
     classifyFourTile tiles = some kind ↔ HasFourTileKind tiles kind :=
   ⟨classifyFourTile_sound, classifyFourTile_complete⟩
 
-private def manzu (ranks : List Rank) : List Tile :=
-  ranks.map (.numbered .Manzu)
-
-private def pinzu (ranks : List Rank) : List Tile :=
-  ranks.map (.numbered .Pinzu)
-
-example : classifyFourTile (manzu [0, 1, 2, 4]) = some .tankiShuntsu := by native_decide
-example : classifyFourTile (manzu [0, 0, 0, 4]) = some .tankiKoutsu := by native_decide
-example : classifyFourTile (manzu [2, 3] ++ pinzu [4, 4]) = some .toitsuRyanmen := by
+example : classifyFourTile (Tile.numberedTiles .Manzu [0, 1, 2, 4]) =
+    some .tankiShuntsu := by native_decide
+example : classifyFourTile (Tile.numberedTiles .Manzu [0, 0, 0, 4]) =
+    some .tankiKoutsu := by native_decide
+example : classifyFourTile
+    (Tile.numberedTiles .Manzu [2, 3] ++ Tile.numberedTiles .Pinzu [4, 4]) =
+    some .toitsuRyanmen := by
   native_decide
-example : classifyFourTile (manzu [2, 4] ++ pinzu [4, 4]) = some .toitsuKanchan := by
+example : classifyFourTile
+    (Tile.numberedTiles .Manzu [2, 4] ++ Tile.numberedTiles .Pinzu [4, 4]) =
+    some .toitsuKanchan := by
   native_decide
-example : classifyFourTile (manzu [0, 1] ++ pinzu [4, 4]) = some .toitsuPenchan := by
+example : classifyFourTile
+    (Tile.numberedTiles .Manzu [0, 1] ++ Tile.numberedTiles .Pinzu [4, 4]) =
+    some .toitsuPenchan := by
   native_decide
-example : classifyFourTile (manzu [0, 0] ++ pinzu [1, 1]) = some .shanpon := by
+example : classifyFourTile
+    (Tile.numberedTiles .Manzu [0, 0] ++ Tile.numberedTiles .Pinzu [1, 1]) =
+    some .shanpon := by
   native_decide
-example : classifyFourTile (manzu [0, 1, 2, 3]) = some .nobetan := by native_decide
-example : classifyFourTile (manzu [1, 1, 1, 2]) = some .kuttsukiRyanmen := by native_decide
-example : classifyFourTile (manzu [0, 0, 0, 2]) = some .kuttsukiKanchan := by native_decide
-example : classifyFourTile (manzu [0, 0, 0, 1]) = some .kuttsukiPenchan := by native_decide
+example : classifyFourTile (Tile.numberedTiles .Manzu [0, 1, 2, 3]) = some .nobetan := by
+  native_decide
+example : classifyFourTile (Tile.numberedTiles .Manzu [1, 1, 1, 2]) =
+    some .kuttsukiRyanmen := by native_decide
+example : classifyFourTile (Tile.numberedTiles .Manzu [0, 0, 0, 2]) =
+    some .kuttsukiKanchan := by native_decide
+example : classifyFourTile (Tile.numberedTiles .Manzu [0, 0, 0, 1]) =
+    some .kuttsukiPenchan := by native_decide
 
 end FourTileAnalysis
