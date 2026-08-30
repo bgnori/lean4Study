@@ -14,21 +14,9 @@ import Mathlib.Tactic
 -/
 namespace ShapeFinder
 
-/-- 通常形で順子を作れる3種類の数牌スート。 -/
-def suits : List Suit := [.Manzu, .Pinzu, .Souzu]
-
-/-- すべての字牌。 -/
-def honors : List Honor :=
-  [.East, .South, .West, .North, .White, .Green, .Red]
-
-/-- 27種類すべての数牌。 -/
-def numberedTiles : List Tile :=
-  suits.flatMap fun suit => List.ofFn fun rank : Fin 9 =>
-    Tile.numbered suit rank
-
 /-- 待ち牌候補として使う34種類すべての牌種。 -/
 def allTiles : List Tile :=
-  numberedTiles ++ honors.map .honor
+  Tile.all
 
 /-- `available` から `wanted` の牌種列を多重集合的に取り除く。 -/
 def removeTiles : List Tile → List Tile → Option (List Tile)
@@ -45,7 +33,7 @@ def pairChunkCandidates : List TileChunk :=
 
 /-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
 def meldChunkCandidates : List TileChunk :=
-  (suits.flatMap fun suit =>
+  (Suit.all.flatMap fun suit =>
     List.ofFn fun start : Fin 7 =>
       TileChunk.shuntsu suit start) ++
   allTiles.map .koutsu
@@ -98,12 +86,7 @@ def waitingTiles (tiles : List Tile) : List Tile :=
 
 /-- すべての牌種は34種類の候補列に含まれる。 -/
 theorem mem_allTiles (candidate : Tile) : candidate ∈ allTiles := by
-  cases candidate with
-  | numbered suit rank =>
-      cases suit <;> fin_cases rank <;>
-        simp [allTiles, numberedTiles, suits]
-  | honor honor =>
-      cases honor <;> simp [allTiles, honors]
+  exact Tile.mem_all candidate
 
 /-- `waitingTiles` は `IsWaitFor` をちょうど判定する。 -/
 theorem mem_waitingTiles_iff (tiles : List Tile) (candidate : Tile) :
@@ -138,11 +121,7 @@ def find (tiles : List Tile) : List Shape :=
 def decompositionCount (tiles : List Tile) : Nat :=
   (find tiles).length
 
-/-- 従来名。新しいコードでは意味論を直接表す `IsTenpai` を使う。 -/
-abbrev IsTenpaiTiles := IsTenpai
-
-instance decidableIsTenpaiTiles (tiles : List Tile) : Decidable (IsTenpaiTiles tiles) := by
-  change Decidable (IsTenpai tiles)
+instance decidableIsTenpai (tiles : List Tile) : Decidable (IsTenpai tiles) := by
   rw [← waitingTiles_ne_nil_iff]
   infer_instance
 
@@ -153,7 +132,7 @@ def mentsuReductions (tiles : List Tile) : List (List Tile) :=
 
 /-- 完成面子を1つ除いても同じ分解数の聴牌形が残るなら可約とする。 -/
 def CanReduceMentsu (tiles : List Tile) : Prop :=
-  1 < tiles.length ∧ IsTenpaiTiles tiles ∧
+  1 < tiles.length ∧ IsTenpai tiles ∧
     (mentsuReductions tiles).any (fun remaining =>
       !(waitingTiles remaining).isEmpty &&
         decompositionCount remaining == decompositionCount tiles) = true
@@ -165,7 +144,7 @@ instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMent
 /-- それ以上、完成面子除去で同じ待ち構造へ小さくできない聴牌形。 -/
 def IsIrreducible (tiles : List Tile) : Prop :=
   tiles.length = 1 ∨
-    (IsTenpaiTiles tiles ∧ ¬CanReduceMentsu tiles)
+    (IsTenpai tiles ∧ ¬CanReduceMentsu tiles)
 
 instance decidableIsIrreducible (tiles : List Tile) : Decidable (IsIrreducible tiles) := by
   unfold IsIrreducible
@@ -221,7 +200,7 @@ private def suitHasTiles (tiles : List Tile) (suit : Suit) : Bool :=
   !(ranksIn suit tiles).isEmpty
 
 private def presentSuits (tiles : List Tile) : List Suit :=
-  suits.filter (suitHasTiles tiles)
+  Suit.all.filter (suitHasTiles tiles)
 
 private def suitIndexFrom : List Suit → Suit → Nat
   | [], _ => 0

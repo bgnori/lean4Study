@@ -35,6 +35,19 @@ import Mathlib.Tactic.DeriveFintype
  | Souzu
 deriving BEq, DecidableEq, Repr, Fintype
 
+namespace Suit
+
+/-- 数牌の全スートを標準順で並べたリスト。 -/
+def all : List Suit := [.Manzu, .Pinzu, .Souzu]
+
+/-- 標準列挙順に対応するスートのキー。 -/
+def orderKey : Suit → Nat
+  | .Manzu => 0
+  | .Pinzu => 1
+  | .Souzu => 2
+
+end Suit
+
 
 /-!
  ## 字牌の定義
@@ -50,6 +63,23 @@ deriving BEq, DecidableEq, Repr, Fintype
  | Red
 deriving BEq, DecidableEq, Repr, Fintype
 
+namespace Honor
+
+/-- すべての字牌を標準順で並べたリスト。 -/
+def all : List Honor := [.East, .South, .West, .North, .White, .Green, .Red]
+
+/-- 標準列挙順に対応する字牌のキー。 -/
+def orderKey : Honor → Nat
+  | .East => 0
+  | .South => 1
+  | .West => 2
+  | .North => 3
+  | .White => 4
+  | .Green => 5
+  | .Red => 6
+
+end Honor
+
 /-!
  ## 麻雀牌の種類の定義 -> 萬子・筒子・索子と字牌
  -/
@@ -59,12 +89,38 @@ deriving BEq, DecidableEq, Repr, Fintype
  | honor(h : Honor )
 deriving BEq, DecidableEq, Repr, Fintype
 
+namespace Tile
+
+/-- 34種類すべての牌種を標準順で並べたリスト。 -/
+def all : List Tile :=
+  (Suit.all.flatMap fun suit =>
+    List.ofFn fun rank : Fin 9 => Tile.numbered suit rank) ++
+  Honor.all.map .honor
+
+/-- すべての牌種は標準列挙に含まれる。 -/
+theorem mem_all (tile : Tile) : tile ∈ all := by
+  cases tile with
+  | numbered suit rank =>
+    simp only [all, List.mem_append, List.mem_flatMap]
+    left
+    exact ⟨suit, by cases suit <;> simp [Suit.all], List.mem_ofFn.mpr ⟨rank, rfl⟩⟩
+  | honor honor =>
+      cases honor <;> simp [all, Honor.all]
+
+/-- 標準列挙順に対応する牌種のキー。 -/
+def orderKey : Tile → Nat
+  | Tile.numbered suit rank =>
+      Suit.orderKey suit * 9 + rank.val
+  | Tile.honor honorTile => 27 + Honor.orderKey honorTile
+
+end Tile
+
 /-!
  ## セットの定義
 -/
 /-- 34種類すべての牌種。 -/
 def tileTypes : Finset Tile :=
-  Finset.univ
+  Tile.all.toFinset
 
 /-- 物理的な1枚の牌。同じ牌種が4枚あることを `Fin 4` で区別する。 -/
 abbrev PhysicalTile := Tile × Fin 4

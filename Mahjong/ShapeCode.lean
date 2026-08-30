@@ -101,16 +101,9 @@ private def shapeComponentKey : ShapeComponent → Nat
   | .shuntsu => 5
   | .koutsu => 6
 
-private def concreteTileKey : Tile → Nat
-  | .numbered suit rank =>
-      (match suit with | .Manzu => 0 | .Pinzu => 1 | .Souzu => 2) * 9 + rank.val
-  | .honor honor => 27 + match honor with
-      | .East => 0 | .South => 1 | .West => 2 | .North => 3
-      | .White => 4 | .Green => 5 | .Red => 6
-
 private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
   shapeComponentKey component.kind * 50000 +
-    component.tiles.foldl (fun key tile => key * 35 + concreteTileKey tile + 1) 0
+    component.tiles.foldl (fun key tile => key * 35 + tile.orderKey + 1) 0
 
 private def canonicalizeShapeExtraction
     (components : List ConcreteShapeComponent) : List ConcreteShapeComponent :=
@@ -118,15 +111,15 @@ private def canonicalizeShapeExtraction
     concreteComponentKey first ≤ concreteComponentKey second
 
 private def concreteShapeExtractionKey (extraction : ConcreteShapeExtraction) : Nat :=
-  concreteTileKey extraction.wait * 100000000 +
+  extraction.wait.orderKey * 100000000 +
     extraction.components.foldl (fun key component => key * 500000 + concreteComponentKey component) 0
 
 private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : Nat :=
   extraction.components.foldl (fun key component => key * 10 + shapeComponentKey component + 1) 0 * 100 +
-    concreteTileKey extraction.wait
+    extraction.wait.orderKey
 
 private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
-  entry.code * 100 + concreteTileKey entry.wait
+  entry.code * 100 + entry.wait.orderKey
 
 private def decompositionShapeExtractions (decomposition : Shape) :
     List (List ConcreteShapeComponent) :=

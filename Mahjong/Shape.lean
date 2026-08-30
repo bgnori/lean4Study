@@ -10,28 +10,11 @@ import Mahjong.Pattern
 
 namespace TileChunk
 
-private def suitKey : Suit → Nat
-  | .Manzu => 0
-  | .Pinzu => 1
-  | .Souzu => 2
-
-private def honorKey : Honor → Nat
-  | .East => 0
-  | .South => 1
-  | .West => 2
-  | .North => 3
-  | .White => 4
-  | .Green => 5
-  | .Red => 6
-
-private def tileKey : Tile → Nat
-  | .numbered suit rank => suitKey suit * 9 + rank.val
-  | .honor honor => 27 + honorKey honor
-
 private def orderKey : TileChunk → Nat
-  | .inl (.toitsu tile) => tileKey tile
-  | .inr (.shuntsu (.shuntsu suit start)) => 34 + suitKey suit * 7 + start.val
-  | .inr (.koutsu tile) => 55 + tileKey tile
+  | .inl (.toitsu tile) => tile.orderKey
+  | .inr (.shuntsu (.shuntsu suit start)) =>
+      34 + suit.orderKey * 7 + start.val
+  | .inr (.koutsu tile) => 55 + tile.orderKey
 
 /-- 分割内の部品順を一意にする。 -/
 def canonicalize (chunks : List TileChunk) : List TileChunk :=
