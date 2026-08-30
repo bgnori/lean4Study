@@ -13,26 +13,23 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Taatsu, toitsu, tanki, shuntsu, and mentsu candidates.
 
 3. `FourTileWait.lean`
-   - Four-tile wait extractions and wait kinds.
-   - Ambiguity and reducibility classification.
-   - Concrete checked examples for each four-tile wait kind.
+   - Four-tile extraction syntax and named classification vocabulary.
+   - Ambiguity and reducibility properties of each classification name.
 
-4. `SevenTileWait.lean`
-   - Seven-tile waits as a complete mentsu plus a four-tile wait.
-   - Checked examples and extraction-count theorems.
-
-5. `Hand.lean`
+4. `Hand.lean`
    - Hand sizes used in the study project.
    - Enumeration of possible hand extractions from physical tiles.
 
-6. `StandardWait.lean`
-   - Normal-form wait analysis over lists of tile types.
-   - Winning decompositions, irreducibility, normalized decompositions, and abstract shape codes.
-   - Larger executable examples, including the 53 one-suit irreducible seven-tile examples.
+5. `StandardWait.lean`
+   - Shared standard-form semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
+   - Executable decision procedures, winning decompositions, and irreducibility.
+
+6. `StandardWait/ShapeCode.lean`
+   - Normalized shape analysis and abstract shape codes.
+   - `classifyFourTile`, checked examples for all ten names, and the 53 one-suit irreducible seven-tile examples.
 
 7. `Tenpai.lean`
-   - Dependent `Tenpai` relation tying hand sizes to wait witnesses.
-   - Currently a small bridge layer for one-, four-, and seven-tile tenpai evidence.
+   - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points
 

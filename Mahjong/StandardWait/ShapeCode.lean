@@ -1,4 +1,5 @@
 import Mahjong.StandardWait
+import Mahjong.FourTileWait
 
 /-!
 # 通常形待ち分解の部品種別コード
@@ -159,6 +160,34 @@ def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction 
     |>.mergeSort fun first second =>
       abstractShapeExtractionKey first ≤ abstractShapeExtractionKey second
 
+/--
+4枚牌列を通常形の意味論で解析し、名前付き4枚分類へ変換する。
+
+待ちでない牌列や4枚でない牌列には分類を与えない。くっつきは異なる部品読みの
+併存、ノベタンは複数の単騎+順子分解として認識する。
+-/
+def classifyFourTile (tiles : List Tile) : Option FourTileWaitKind :=
+  if tiles.length != 4 then none
+  else
+    let profiles := (abstractShapeExtractions tiles).map (fun extraction => extraction.components)
+    if profiles.contains [.tanki, .koutsu] && profiles.contains [.toitsu, .ryanmen] then
+      some .kuttsukiRyanmen
+    else if profiles.contains [.tanki, .koutsu] && profiles.contains [.toitsu, .kanchan] then
+      some .kuttsukiKanchan
+    else if profiles.contains [.tanki, .koutsu] && profiles.contains [.toitsu, .penchan] then
+      some .kuttsukiPenchan
+    else match profiles with
+      | [] => none
+      | profile :: rest =>
+          if profile == [ShapeComponent.tanki, .shuntsu] then
+            if rest.isEmpty then some .tankiShuntsu else some .nobetan
+          else if profile == [.tanki, .koutsu] then some .tankiKoutsu
+          else if profile == [.toitsu, .ryanmen] then some .toitsuRyanmen
+          else if profile == [.toitsu, .kanchan] then some .toitsuKanchan
+          else if profile == [.toitsu, .penchan] then some .toitsuPenchan
+          else if profile == [.toitsu, .toitsu] then some .shanpon
+          else none
+
 /-- 抽象形抽出を、部品種別に対応する素数積のコードへ変換する。 -/
 def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
   abstractShapeExtractions tiles
@@ -184,9 +213,27 @@ def abstractShapeCode (tiles : List Tile) : List Nat :=
 private def manzu (ranks : List Rank) : List Tile :=
   ranks.map (.numbered .Manzu)
 
+private def pinzu (ranks : List Rank) : List Tile :=
+  ranks.map (.numbered .Pinzu)
+
 private def shapeCodeTestHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
 private def shapeCodeTestHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 private def shapeCodeTestHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
+
+example : classifyFourTile (manzu [0, 1, 2, 4]) = some .tankiShuntsu := by native_decide
+example : classifyFourTile (manzu [0, 0, 0, 4]) = some .tankiKoutsu := by native_decide
+example : classifyFourTile (manzu [2, 3] ++ pinzu [4, 4]) = some .toitsuRyanmen := by
+  native_decide
+example : classifyFourTile (manzu [2, 4] ++ pinzu [4, 4]) = some .toitsuKanchan := by
+  native_decide
+example : classifyFourTile (manzu [0, 1] ++ pinzu [4, 4]) = some .toitsuPenchan := by
+  native_decide
+example : classifyFourTile (manzu [0, 0] ++ pinzu [1, 1]) = some .shanpon := by
+  native_decide
+example : classifyFourTile (manzu [0, 1, 2, 3]) = some .nobetan := by native_decide
+example : classifyFourTile (manzu [1, 1, 1, 2]) = some .kuttsukiRyanmen := by native_decide
+example : classifyFourTile (manzu [0, 0, 0, 2]) = some .kuttsukiKanchan := by native_decide
+example : classifyFourTile (manzu [0, 0, 0, 1]) = some .kuttsukiPenchan := by native_decide
 
 example : abstractShapeExtractions shapeCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },

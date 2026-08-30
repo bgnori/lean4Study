@@ -1,6 +1,6 @@
 # lean4Study
 
-Lean 4 と mathlib の学習用リポジトリです。中心的な題材として、麻雀の待ち分類を Lean で形式化しています。牌、ターツ、面子、4枚待ち、7枚待ち、通常形の待ち解析を定義し、`example` や theorem によって確認します。
+Lean 4 と mathlib の学習用リポジトリです。中心的な題材として、麻雀の待ち分類を Lean で形式化しています。牌、ターツ、面子、通常形の待ちの意味論、4枚待ちの名前付き分類を定義し、`example` や theorem によって確認します。
 
 [English version](README.md)
 
@@ -23,9 +23,9 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── Basic.lean
 │   ├── Pattern.lean
 │   ├── FourTileWait.lean
-│   ├── SevenTileWait.lean
 │   ├── Hand.lean
 │   ├── StandardWait.lean
+│   ├── StandardWait/ShapeCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
 └── mj.lean                # 旧メモ向けの互換 import

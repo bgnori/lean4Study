@@ -1,4 +1,4 @@
-import Mahjong.SevenTileWait
+import Mahjong.FourTileWait
 
 /-!
 # 手牌と抽出列挙
@@ -26,6 +26,10 @@ noncomputable def toFinset : Hand → Finset PhysicalTile
   | .seven tiles => (Finset.univ : Finset (Fin 7)).image fun i => (tiles i).1
   | .four tiles => (Finset.univ : Finset (Fin 4)).image fun i => (tiles i).1
   | .one tiles => (Finset.univ : Finset (Fin 1)).image fun i => (tiles i).1
+
+/-- 手牌を通常形の意味論が扱う牌種列へ変換する。 -/
+noncomputable def tileTypes (hand : Hand) : List Tile :=
+  hand.toFinset.toList.map Prod.fst
 
 end Hand
 

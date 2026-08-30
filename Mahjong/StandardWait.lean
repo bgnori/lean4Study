@@ -1,10 +1,13 @@
 import Mahjong.Pattern
+import Mathlib.Tactic
 
 /-!
 # 通常形の待ち分析
 
-`waitingTiles` は実際の待ち牌を返す。`analyzeWait` は、待ち牌を加えた
-和了形をチャンクへ分解して得られる集合に対して正規化を行う。
+`IsStandardAgari`、`IsWaitFor`、`IsTenpai` が通常形の意味論を定め、
+`Wait tiles` が聴牌牌列 `tiles` に結び付いた待ちの証拠を表す。
+`waitingTiles` は実際の待ち牌を計算する決定手続きであり、`analyzeWait` は、
+待ち牌を加えた和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
 出現回数で表し、`waitingTiles` では同じ牌種が5枚以上にならないよう `count < 4` を確認する。
@@ -120,10 +123,53 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
 def isWinning (tiles : List Tile) : Bool :=
   !(winningDecompositions tiles).isEmpty
 
+/-- 牌種列が通常形（雀頭1つと完成面子列）の和了形であること。 -/
+def IsStandardAgari (tiles : List Tile) : Prop :=
+  isWinning tiles = true
+
+/-- `candidate` を1枚加えると通常形で和了し、5枚目にもならないこと。 -/
+def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
+  tiles.count candidate < 4 ∧ IsStandardAgari (candidate :: tiles)
+
+/-- 牌種列が少なくとも1種類の通常形待ちを持つこと。 -/
+def IsTenpai (tiles : List Tile) : Prop :=
+  ∃ candidate, IsWaitFor tiles candidate
+
+/-- 手牌に結び付いた通常形待ちの証拠。 -/
+structure Wait (tiles : List Tile) where
+  tile : Tile
+  valid : IsWaitFor tiles tile
+
 /-- 与えられた聴牌形に対し、加えると通常形で和了になる牌種を列挙する。 -/
 def waitingTiles (tiles : List Tile) : List Tile :=
   allTiles.filter fun candidate =>
     (tiles.count candidate < 4) && isWinning (candidate :: tiles)
+
+/-- すべての牌種は34種類の候補列に含まれる。 -/
+theorem mem_allTiles (candidate : Tile) : candidate ∈ allTiles := by
+  cases candidate with
+  | numbered suit rank =>
+      cases suit <;> fin_cases rank <;>
+        simp [allTiles, numberedTiles, suits]
+  | honor honor =>
+      cases honor <;> simp [allTiles, honors]
+
+/-- `waitingTiles` は `IsWaitFor` をちょうど判定する。 -/
+theorem mem_waitingTiles_iff (tiles : List Tile) (candidate : Tile) :
+    candidate ∈ waitingTiles tiles ↔ IsWaitFor tiles candidate := by
+  simp [waitingTiles, mem_allTiles, IsWaitFor, IsStandardAgari,
+    Bool.and_eq_true]
+
+/-- `waitingTiles` が空でないことと意味論上の聴牌は同値である。 -/
+theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
+    waitingTiles tiles ≠ [] ↔ IsTenpai tiles := by
+  constructor
+  · intro nonempty
+    obtain ⟨candidate, member⟩ := List.exists_mem_of_ne_nil _ nonempty
+    exact ⟨candidate, (mem_waitingTiles_iff tiles candidate).mp member⟩
+  · rintro ⟨candidate, valid⟩ empty
+    have member := (mem_waitingTiles_iff tiles candidate).mpr valid
+    simp [empty] at member
 
 /-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分解を列挙する。 -/
 def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
@@ -141,12 +187,12 @@ def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
 def decompositionCount (tiles : List Tile) : Nat :=
   (waitDecompositionSet tiles).length
 
-/-- `tiles` が少なくとも1つの待ち牌を持つこと。 -/
-def IsTenpaiTiles (tiles : List Tile) : Prop :=
-  waitingTiles tiles ≠ []
+/-- 従来名。新しいコードでは意味論を直接表す `IsTenpai` を使う。 -/
+abbrev IsTenpaiTiles := IsTenpai
 
 instance decidableIsTenpaiTiles (tiles : List Tile) : Decidable (IsTenpaiTiles tiles) := by
-  unfold IsTenpaiTiles
+  change Decidable (IsTenpai tiles)
+  rw [← waitingTiles_ne_nil_iff]
   infer_instance
 
 /-- `tiles` から完成面子を1つ取り除いて得られる牌種リストの候補。 -/
