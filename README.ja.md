@@ -26,8 +26,9 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── FourTileWait/Specification.lean
 │   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
-│   ├── StandardWait.lean
-│   ├── StandardWait/ShapeCode.lean
+│   ├── Shape.lean
+│   ├── ShapeFinder.lean
+│   ├── ShapeCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
 └── mj.lean                # 旧メモ向けの互換 import
@@ -50,7 +51,7 @@ lake build Mahjong
 単一ファイルを直接確認する場合:
 
 ```bash
-lake env lean Mahjong/StandardWait.lean
+lake env lean Mahjong/ShapeFinder.lean
 ```
 
 ## ドキュメント方針

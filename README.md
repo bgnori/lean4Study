@@ -26,8 +26,9 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── FourTileWait/Specification.lean
 │   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
-│   ├── StandardWait.lean
-│   ├── StandardWait/ShapeCode.lean
+│   ├── Shape.lean
+│   ├── ShapeFinder.lean
+│   ├── ShapeCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
 └── mj.lean                # Compatibility import for older notes
@@ -48,7 +49,7 @@ lake build Mahjong
 To check a single file directly:
 
 ```bash
-lake env lean Mahjong/StandardWait.lean
+lake env lean Mahjong/ShapeFinder.lean
 ```
 
 ## Documentation Style

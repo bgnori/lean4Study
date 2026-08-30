@@ -1,5 +1,5 @@
 import Mahjong.FourTileWait.Specification
-import Mahjong.StandardWait.ShapeCode
+import Mahjong.ShapeCode
 
 /-!
 # 4枚待ち分類の解析器
@@ -10,7 +10,7 @@ import Mahjong.StandardWait.ShapeCode
 
 namespace FourTileAnalysis
 
-open StandardWait
+open ShapeCode
 
 /-- 形部品列を4枚待ち仕様の基本形へ変換する。 -/
 def fourTileProfileOfComponents : List ShapeComponent → Option FourTileProfile
@@ -24,7 +24,7 @@ def fourTileProfileOfComponents : List ShapeComponent → Option FourTileProfile
 
 /-- 通常形の和了分解から得られる4枚基本形の正規化済み観測列。 -/
 def observedFourTileProfiles (tiles : List Tile) : List FourTileProfile :=
-  (abstractShapeExtractions tiles).filterMap fun extraction =>
+  (findAbstractShapeExtractions tiles).filterMap fun extraction =>
     fourTileProfileOfComponents extraction.components
 
 /-- 純粋な分類仕様を実行する、基本形列上の決定手続き。 -/

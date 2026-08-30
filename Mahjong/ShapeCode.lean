@@ -1,12 +1,15 @@
-import Mahjong.StandardWait
+import Mahjong.ShapeFinder
 
 /-!
-# 通常形待ち分解の部品種別コード
+# 発見済みShapeの部品種別コード
 
-牌の位置を忘れ、待ち牌を除いた各分解を部品種別の多重集合として扱う。
+`ShapeFinder.find` が発見した `Shape` を入力とし、牌の位置を忘れて、
+待ち牌を除いた各分割を部品種別の多重集合として扱う。
 異なる部品種別に異なる素数を割り当て、その積を代表元とする。
 -/
-namespace StandardWait
+namespace ShapeCode
+
+open ShapeFinder
 
 /-- 待ち牌を除いた後に見える部品種別。 -/
 inductive ShapeComponent
@@ -125,7 +128,7 @@ private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : 
 private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
   entry.code * 100 + concreteTileKey entry.wait
 
-private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
+private def decompositionShapeExtractions (decomposition : Shape) :
     List (List ConcreteShapeComponent) :=
   let rec selectCompletedChunk : List TileChunk → List (List ConcreteShapeComponent)
     | [] => []
@@ -138,9 +141,9 @@ private def decompositionShapeExtractions (decomposition : WaitDecomposition) :
         | none => later
   selectCompletedChunk decomposition.chunks
 
-/-- 牌種リストから、待ち牌ごとの具体的な形抽出を列挙する。 -/
-def concreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction :=
-  let entries := (waitDecompositionSet tiles).flatMap fun decomposition =>
+/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な形抽出を列挙する。 -/
+def concreteShapeExtractions (shapes : List Shape) : List ConcreteShapeExtraction :=
+  let entries := shapes.flatMap fun decomposition =>
       (decompositionShapeExtractions decomposition).map fun extraction =>
         { wait := decomposition.wait
           components := canonicalizeShapeExtraction extraction }
@@ -149,9 +152,9 @@ def concreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction 
     |>.mergeSort fun first second =>
       concreteShapeExtractionKey first ≤ concreteShapeExtractionKey second
 
-/-- 具体的な形抽出から牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
-def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction :=
-  concreteShapeExtractions tiles
+/-- 発見済みShapeから牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
+def abstractShapeExtractions (shapes : List Shape) : List AbstractShapeExtraction :=
+  concreteShapeExtractions shapes
     |>.map (fun extraction =>
       { wait := extraction.wait
         components := extraction.components.map (fun component => component.kind) })
@@ -159,9 +162,9 @@ def abstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction 
     |>.mergeSort fun first second =>
       abstractShapeExtractionKey first ≤ abstractShapeExtractionKey second
 
-/-- 抽象形抽出を、部品種別に対応する素数積のコードへ変換する。 -/
-def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
-  abstractShapeExtractions tiles
+/-- 発見済みShapeを、待ち牌ごとの素数積コードへ変換する。 -/
+def shapeCodeEntries (shapes : List Shape) : List ShapeCodeEntry :=
+  abstractShapeExtractions shapes
     |>.map (fun extraction =>
       { wait := extraction.wait
         code := componentProduct extraction.components })
@@ -169,17 +172,34 @@ def shapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
     |>.mergeSort fun first second =>
       shapeCodeEntryKey first ≤ shapeCodeEntryKey second
 
-/-- 待ち牌を残した抽象形コード。 -/
-def abstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
-  shapeCodeEntries tiles
+/-- 発見済みShapeから計算した、待ち牌を残す抽象形コード。 -/
+def abstractShapeCodeWithWait (shapes : List Shape) : List (Nat × Tile) :=
+  shapeCodeEntries shapes
     |>.map fun entry => (entry.code, entry.wait)
 
-/-- 待ち牌を忘れ、牌姿に現れる抽象形コードだけを列挙する。 -/
-def abstractShapeCode (tiles : List Tile) : List Nat :=
-  shapeCodeEntries tiles
+/-- 発見済みShapeから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
+def abstractShapeCode (shapes : List Shape) : List Nat :=
+  shapeCodeEntries shapes
     |>.map (fun entry => entry.code)
     |>.eraseDups
     |>.mergeSort (· ≤ ·)
+
+/-! ## 牌列から探索して符号化する便利関数 -/
+
+def findConcreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction :=
+  concreteShapeExtractions (ShapeFinder.find tiles)
+
+def findAbstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction :=
+  abstractShapeExtractions (ShapeFinder.find tiles)
+
+def findShapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
+  shapeCodeEntries (ShapeFinder.find tiles)
+
+def findAbstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  abstractShapeCodeWithWait (ShapeFinder.find tiles)
+
+def findAbstractShapeCode (tiles : List Tile) : List Nat :=
+  abstractShapeCode (ShapeFinder.find tiles)
 
 private def manzu (ranks : List Rank) : List Tile :=
   ranks.map (.numbered .Manzu)
@@ -188,26 +208,27 @@ private def shapeCodeTestHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
 private def shapeCodeTestHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 private def shapeCodeTestHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
 
-example : abstractShapeExtractions shapeCodeTestHand2345678 =
+example : findAbstractShapeExtractions shapeCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },
    { wait := .numbered .Manzu 4, components := [.tanki, .shuntsu, .shuntsu] },
    { wait := .numbered .Manzu 7, components := [.tanki, .shuntsu, .shuntsu] }] := by
   native_decide
 
-example : shapeCodeEntries shapeCodeTestHand2345678 =
+example : findShapeCodeEntries shapeCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, code := 338 },
    { wait := .numbered .Manzu 4, code := 338 },
    { wait := .numbered .Manzu 7, code := 338 }] := by
   native_decide
 
-example : abstractShapeCodeWithWait shapeCodeTestHand2345678 =
+example : findAbstractShapeCodeWithWait shapeCodeTestHand2345678 =
   [(338, .numbered .Manzu 1),
    (338, .numbered .Manzu 4),
    (338, .numbered .Manzu 7)] := by native_decide
-example : abstractShapeCode shapeCodeTestHand2345678 = [338] := by native_decide
-example : abstractShapeCode shapeCodeTestHand1167888 = [117, 255] := by native_decide
-example : abstractShapeCode shapeCodeTestHand1166678 = [117, 255] := by native_decide
-example : abstractShapeCode shapeCodeTestHand1167888 = abstractShapeCode shapeCodeTestHand1166678 := by
+example : findAbstractShapeCode shapeCodeTestHand2345678 = [338] := by native_decide
+example : findAbstractShapeCode shapeCodeTestHand1167888 = [117, 255] := by native_decide
+example : findAbstractShapeCode shapeCodeTestHand1166678 = [117, 255] := by native_decide
+example : findAbstractShapeCode shapeCodeTestHand1167888 =
+  findAbstractShapeCode shapeCodeTestHand1166678 := by
   native_decide
 
 /--
@@ -287,7 +308,7 @@ private def insertAbstractShapeClass (entry : String × List Nat) :
 
 def irreducibleSevenTileAbstractShapeClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-    insertAbstractShapeClass (entry.1, abstractShapeCode entry.2) classes) []
+    insertAbstractShapeClass (entry.1, findAbstractShapeCode entry.2) classes) []
 
 example : irreducibleSevenTileAbstractShapeClasses.length = 26 := by native_decide
 
@@ -299,4 +320,4 @@ example : irreducibleSevenTileAbstractShapeClasses.find? (fun entry =>
         "1112399m", "1112388m", "1112377m", "1112366m", "1112355m"]) := by
   native_decide
 
-end StandardWait
+end ShapeCode

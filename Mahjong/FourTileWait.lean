@@ -6,7 +6,7 @@ import Mahjong.Pattern
 4枚手牌は、和了牌を1枚加えると「1面子1雀頭」になる最小の待ち解析単位である。
 このモジュールでは、4枚手牌をどの未完成部品として読むかを `FourTileExtraction`、
 麻雀上の分類語彙を `FourTileWaitKind` として表す。実際に待ちであることは
-`StandardWait.IsWaitFor` が定め、分類は解析結果から計算する。
+`ShapeFinder.IsWaitFor` が定め、分類は解析結果から計算する。
 -/
 /-- 4枚の牌を、単騎+面子または対子+ターツとして取り出す方法。 -/
 inductive FourTileExtraction

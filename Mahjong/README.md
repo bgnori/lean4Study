@@ -28,15 +28,20 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Hand sizes used in the study project.
    - Enumeration of possible hand extractions from physical tiles.
 
-7. `StandardWait.lean`
-   - Shared standard-form semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
-   - Executable decision procedures, winning decompositions, and irreducibility.
+7. `Shape.lean`
+   - The `Shape` data type: one wait tile and one completed decomposition.
+   - Completed chunk types and canonical ordering.
 
-8. `StandardWait/ShapeCode.lean`
-   - Normalized shape analysis and abstract shape codes.
+8. `ShapeFinder.lean`
+   - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
+   - `ShapeFinder.find`, executable decomposition discovery, and irreducibility.
+
+9. `ShapeCode.lean`
+   - Codes already-found `List Shape` values without performing discovery.
+   - `find...` convenience functions explicitly compose `ShapeFinder` with coding.
    - The 53 one-suit irreducible seven-tile examples.
 
-9. `Tenpai.lean`
+10. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points
@@ -51,7 +56,8 @@ For focused work, import the smallest module that contains the definitions you n
 
 ```lean
 import Mahjong.FourTileWait
-import Mahjong.StandardWait
+import Mahjong.ShapeFinder
+import Mahjong.ShapeCode
 ```
 
 The old `mj.lean` file is kept only as a compatibility import for older notes.
@@ -65,7 +71,7 @@ lake build Mahjong
 For a single file:
 
 ```bash
-lake env lean Mahjong/StandardWait.lean
+lake env lean Mahjong/ShapeFinder.lean
 ```
 
 ## Documentation Style

@@ -1,18 +1,18 @@
-import Mahjong.Pattern
+import Mahjong.Shape
 import Mathlib.Tactic
 
 /-!
-# 通常形の待ち分析
+# 待ちと和了分割の探索
 
 `IsStandardAgari`、`IsWaitFor`、`IsTenpai` が通常形の意味論を定め、
 `Wait tiles` が聴牌牌列 `tiles` に結び付いた待ちの証拠を表す。
-`waitingTiles` は実際の待ち牌を計算する決定手続きであり、`analyzeWait` は、
+`waitingTiles` は実際の待ち牌を計算する決定手続きであり、`find` は、
 待ち牌を加えた和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
 出現回数で表し、`waitingTiles` では同じ牌種が5枚以上にならないよう `count < 4` を確認する。
 -/
-namespace StandardWait
+namespace ShapeFinder
 
 /-- 通常形で順子を作れる3種類の数牌スート。 -/
 def suits : List Suit := [.Manzu, .Pinzu, .Souzu]
@@ -38,55 +38,6 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
         removeTiles (available.erase wanted) rest
       else
         none
-
-/-- 和了形の分解に現れる完成部品。雀頭、順子、刻子。 -/
-inductive TileChunk
-| pair (tile : Tile)
-| shuntsu (suit : Suit) (start : Fin 7)
-| koutsu (tile : Tile)
-deriving BEq, DecidableEq, Repr
-
-namespace TileChunk
-
-/-- 完成部品を構成する牌種列。 -/
-def tiles : TileChunk → List Tile
-  | .pair tile => pairTiles tile
-  | .shuntsu suit start => numberedRun suit start
-  | .koutsu tile => koutsuTiles tile
-
-private def suitKey : Suit → Nat
-  | .Manzu => 0
-  | .Pinzu => 1
-  | .Souzu => 2
-
-private def honorKey : Honor → Nat
-  | .East => 0
-  | .South => 1
-  | .West => 2
-  | .North => 3
-  | .White => 4
-  | .Green => 5
-  | .Red => 6
-
-private def tileKey : Tile → Nat
-  | .numbered suit rank => suitKey suit * 9 + rank.val
-  | .honor honor => 27 + honorKey honor
-
-private def orderKey : TileChunk → Nat
-  | .pair tile => tileKey tile
-  | .shuntsu suit start => 34 + suitKey suit * 7 + start.val
-  | .koutsu tile => 55 + tileKey tile
-
-def canonicalize (chunks : List TileChunk) : List TileChunk :=
-  chunks.mergeSort fun first second => orderKey first ≤ orderKey second
-
-end TileChunk
-
-/-- ある待ち牌を加えた和了形の1つの分解。 -/
-structure WaitDecomposition where
-  wait : Tile
-  chunks : List TileChunk
-deriving BEq, DecidableEq, Repr
 
 /-- 雀頭候補として使う全牌種の対子。 -/
 def pairChunkCandidates : List TileChunk :=
@@ -171,8 +122,8 @@ theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
     have member := (mem_waitingTiles_iff tiles candidate).mpr valid
     simp [empty] at member
 
-/-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分解を列挙する。 -/
-def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
+/-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
+def find (tiles : List Tile) : List Shape :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningDecompositions (wait :: tiles)).map fun chunks =>
       { wait, chunks := TileChunk.canonicalize chunks }).eraseDups
@@ -185,7 +136,7 @@ def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
 待ちでない牌列を既約とは扱わない。
 -/
 def decompositionCount (tiles : List Tile) : Nat :=
-  (waitDecompositionSet tiles).length
+  (find tiles).length
 
 /-- 従来名。新しいコードでは意味論を直接表す `IsTenpai` を使う。 -/
 abbrev IsTenpaiTiles := IsTenpai
@@ -263,7 +214,7 @@ private def ranksIn (suit : Suit) (tiles : List Tile) : List Nat :=
         if tileSuit == suit then some rank.val else none
     | .honor _ => none
 
-private def chunkTiles (decomposition : WaitDecomposition) : List Tile :=
+private def chunkTiles (decomposition : Shape) : List Tile :=
   decomposition.wait :: decomposition.chunks.flatMap TileChunk.tiles
 
 private def suitHasTiles (tiles : List Tile) (suit : Suit) : Bool :=
@@ -298,7 +249,7 @@ private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk
 
 各スート内の最小ランクを0へ移し、出現するスートを出現順に `0, 1, ...` と番号付けする。
 -/
-def normalizeByTranslation (decomposition : WaitDecomposition) : NormalizedDecomposition :=
+def normalizeByTranslation (decomposition : Shape) : NormalizedDecomposition :=
   let tiles := chunkTiles decomposition
   let present := presentSuits tiles
   { wait := normalizeTile tiles present decomposition.wait
@@ -306,8 +257,8 @@ def normalizeByTranslation (decomposition : WaitDecomposition) : NormalizedDecom
 
 /-- 任意の正規化関数で待ち分解集合を商としてまとめる。 -/
 def analysisWith {α : Type} [DecidableEq α]
-    (normalize : WaitDecomposition → α) (tiles : List Tile) : List α :=
-  (waitDecompositionSet tiles).map normalize |>.eraseDups
+    (normalize : Shape → α) (tiles : List Tile) : List α :=
+  (find tiles).map normalize |>.eraseDups
 
 /-- 平行移動による正規化で通常形待ちを解析する。 -/
 def analyzeWait (tiles : List Tile) : Analysis :=
@@ -342,7 +293,7 @@ private def manzuShuntsu (start : Fin 7) : TileChunk :=
 private def manzuKoutsu (rank : Rank) : TileChunk :=
   .koutsu (.numbered .Manzu rank)
 
-private def manzuDecomposition (wait : Rank) (chunks : List TileChunk) : WaitDecomposition :=
+private def manzuDecomposition (wait : Rank) (chunks : List TileChunk) : Shape :=
   { wait := .numbered .Manzu wait, chunks }
 
 example : waitingTiles testHandA =
@@ -359,45 +310,45 @@ example : analyzeWait testHandB ≠ analyzeWait testHandD := by native_decide
 example : analyzeWait testHandC ≠ analyzeWait testHandD := by native_decide
 
 -- 3456678: 単騎 3・6、両面 6・9
-example : waitDecompositionSet testHand3456678 =
+example : find testHand3456678 =
   [manzuDecomposition 2 [manzuPair 2, manzuShuntsu 3, manzuShuntsu 5],
    manzuDecomposition 5 [manzuPair 5, manzuShuntsu 2, manzuShuntsu 5],
    manzuDecomposition 8 [manzuPair 5, manzuShuntsu 2, manzuShuntsu 6]] ∧
-  (waitDecompositionSet testHand3456678).length = 3 := by native_decide
+  (find testHand3456678).length = 3 := by native_decide
 
 -- 2345678: 単騎 2・5・8
-example : waitDecompositionSet testHand2345678 =
+example : find testHand2345678 =
   [manzuDecomposition 1 [manzuPair 1, manzuShuntsu 2, manzuShuntsu 5],
    manzuDecomposition 4 [manzuPair 4, manzuShuntsu 1, manzuShuntsu 5],
    manzuDecomposition 7 [manzuPair 7, manzuShuntsu 1, manzuShuntsu 4]] ∧
-  (waitDecompositionSet testHand2345678).length = 3 := by native_decide
+  (find testHand2345678).length = 3 := by native_decide
 
 -- 3334556: 単騎 5、嵌張 5、両面 4・7
-example : waitDecompositionSet testHand3334556 =
+example : find testHand3334556 =
   [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 3],
    manzuDecomposition 4 [manzuPair 4, manzuShuntsu 3, manzuKoutsu 2],
    manzuDecomposition 6 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 4]] ∧
-  (waitDecompositionSet testHand3334556).length = 3 := by native_decide
+  (find testHand3334556).length = 3 := by native_decide
 
 -- 3335678: 単騎 5・8、嵌張 4
-example : waitDecompositionSet testHand3335678 =
+example : find testHand3335678 =
   [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 5],
    manzuDecomposition 4 [manzuPair 4, manzuShuntsu 5, manzuKoutsu 2],
    manzuDecomposition 7 [manzuPair 7, manzuShuntsu 4, manzuKoutsu 2]] ∧
-  (waitDecompositionSet testHand3335678).length = 3 := by native_decide
+  (find testHand3335678).length = 3 := by native_decide
 
 -- 3335567: 単騎 5、嵌張 4、両面 5・8
-example : waitDecompositionSet testHand3335567 =
+example : find testHand3335567 =
   [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuShuntsu 4],
    manzuDecomposition 4 [manzuPair 4, manzuShuntsu 4, manzuKoutsu 2],
    manzuDecomposition 7 [manzuPair 4, manzuShuntsu 5, manzuKoutsu 2]] ∧
-  (waitDecompositionSet testHand3335567).length = 3 := by native_decide
+  (find testHand3335567).length = 3 := by native_decide
 
 -- 3335777: 単騎 5、嵌張 4・6
-example : waitDecompositionSet testHand3335777 =
+example : find testHand3335777 =
   [manzuDecomposition 3 [manzuPair 2, manzuShuntsu 2, manzuKoutsu 6],
    manzuDecomposition 4 [manzuPair 4, manzuKoutsu 2, manzuKoutsu 6],
    manzuDecomposition 5 [manzuPair 6, manzuShuntsu 4, manzuKoutsu 2]] ∧
-  (waitDecompositionSet testHand3335777).length = 3 := by native_decide
+  (find testHand3335777).length = 3 := by native_decide
 
-end StandardWait
+end ShapeFinder
