@@ -304,8 +304,14 @@ def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
 
 example : irreducibleSingleSuitSevenTileExamples.length = 53 := by native_decide
 
+private def isIrreducibleTenpai (tiles : List Tile) : Bool :=
+  if tenpai : IsTenpai tiles then
+    decide (IsIrreducible tiles tenpai)
+  else
+    false
+
 example : irreducibleSingleSuitSevenTileExamples.all
-    (fun entry => decide (IsIrreducible entry.2)) = true := by
+    (fun entry => isIrreducibleTenpai entry.2) = true := by
   native_decide
 
 private def insertAbstractDecompositionClass (entry : String × List Nat) :

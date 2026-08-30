@@ -39,7 +39,7 @@ theorem classifyWaitProfiles_iff (profiles : List WaitProfile)
     (kind : WaitKind) :
     classifyWaitProfiles profiles = some kind ↔
       WaitSpecification.Classifies profiles kind := by
-  rfl
+  exact WaitSpecification.expectedKind_iff profiles kind
 
 /-- 牌列に名前付き分類を与える解析器。 -/
 def classifyWait (tiles : List Tile) : Option WaitKind :=
@@ -67,5 +67,36 @@ theorem classifyWait_complete {tiles : List Tile} {kind : WaitKind}
 theorem classifyWait_iff (tiles : List Tile) (kind : WaitKind) :
     classifyWait tiles = some kind ↔ HasWaitKind tiles kind :=
   ⟨classifyWait_sound, classifyWait_complete⟩
+
+/--
+聴牌の証拠を前提に、面子除去で同じ待ち構造へ縮約できるかを計算する。
+
+`WaitKind` だけでは既約性は決まらないため、この値は具体的な牌姿に依存する。
+引数に `IsTenpai tiles` を要求することで、和了不能な牌姿の既約性は構成できない。
+-/
+def reducibility (tiles : List Tile) (_ : DecompositionFinder.IsTenpai tiles) :
+    WaitReducibility :=
+  if DecompositionFinder.CanReduceMentsu tiles then .reducible else .irreducible
+
+/-- 非聴牌を `none` として明示する、既約性の決定手続き。 -/
+def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
+  if tenpai : DecompositionFinder.IsTenpai tiles then
+    some (reducibility tiles tenpai)
+  else
+    none
+
+/-- 計算結果が可約であることは、面子除去可能性と同値である。 -/
+theorem reducibility_eq_reducible_iff (tiles : List Tile)
+    (tenpai : DecompositionFinder.IsTenpai tiles) :
+    reducibility tiles tenpai = .reducible ↔
+      DecompositionFinder.CanReduceMentsu tiles := by
+  simp [reducibility]
+
+/-- 計算結果が既約であることは、面子除去不能性と同値である。 -/
+theorem reducibility_eq_irreducible_iff (tiles : List Tile)
+    (tenpai : DecompositionFinder.IsTenpai tiles) :
+    reducibility tiles tenpai = .irreducible ↔
+      ¬DecompositionFinder.CanReduceMentsu tiles := by
+  simp [reducibility]
 
 end WaitAnalysis

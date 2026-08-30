@@ -10,7 +10,8 @@ import Mathlib.Tactic
 待ち牌を加えた和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
-出現回数で表し、`waitingTiles` では同じ牌種が手牌上限を超えないよう確認する。
+出現回数で表す。`waitingTiles` は手牌枚数を1、4、7、10、13枚に限定し、
+すべての牌種が4枚以下であることを確認してから探索する。
 -/
 namespace DecompositionFinder
 
@@ -58,13 +59,38 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
 def isWinning (tiles : List Tile) : Bool :=
   !(winningDecompositions tiles).isEmpty
 
+/-- 通常形聴牌として扱う手牌枚数。 -/
+def IsTenpaiHandSize (size : Nat) : Prop :=
+  size = 1 ∨ size = 4 ∨ size = 7 ∨ size = 10 ∨ size = 13
+
+/-- 各牌種が物理的な上限枚数を超えていないこと。 -/
+def HasLegalTileCounts (tiles : List Tile) : Prop :=
+  ∀ tile, tiles.count tile ≤ copiesPerTile
+
+/-- 待ち判定へ渡せる牌種列であること。 -/
+def IsLegalTenpaiHand (tiles : List Tile) : Prop :=
+  IsTenpaiHandSize tiles.length ∧ HasLegalTileCounts tiles
+
+instance (size : Nat) : Decidable (IsTenpaiHandSize size) := by
+  unfold IsTenpaiHandSize
+  infer_instance
+
+instance (tiles : List Tile) : Decidable (HasLegalTileCounts tiles) :=
+  Fintype.decidableForallFintype
+
+instance (tiles : List Tile) : Decidable (IsLegalTenpaiHand tiles) := by
+  unfold IsLegalTenpaiHand
+  infer_instance
+
 /-- 牌種列が通常形（雀頭1つと完成面子列）の和了形であること。 -/
 def IsStandardAgari (tiles : List Tile) : Prop :=
   isWinning tiles = true
 
-/-- `candidate` を1枚加えると通常形で和了し、5枚目にもならないこと。 -/
+/-- 有効な聴牌手に `candidate` を1枚加えると通常形で和了し、5枚目にもならないこと。 -/
 def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
-  tiles.count candidate < copiesPerTile ∧ IsStandardAgari (candidate :: tiles)
+  IsLegalTenpaiHand tiles ∧
+    tiles.count candidate < copiesPerTile ∧
+    IsStandardAgari (candidate :: tiles)
 
 /-- 牌種列が少なくとも1種類の通常形待ちを持つこと。 -/
 def IsTenpai (tiles : List Tile) : Prop :=
@@ -77,14 +103,19 @@ structure Wait (tiles : List Tile) where
 
 /-- 与えられた聴牌形に対し、加えると通常形で和了になる牌種を列挙する。 -/
 def waitingTiles (tiles : List Tile) : List Tile :=
-  Tile.all.filter fun candidate =>
-    (tiles.count candidate < copiesPerTile) && isWinning (candidate :: tiles)
+  if IsLegalTenpaiHand tiles then
+    Tile.all.filter fun candidate =>
+      (tiles.count candidate < copiesPerTile) && isWinning (candidate :: tiles)
+  else
+    []
 
 /-- `waitingTiles` は `IsWaitFor` をちょうど判定する。 -/
 theorem mem_waitingTiles_iff (tiles : List Tile) (candidate : Tile) :
     candidate ∈ waitingTiles tiles ↔ IsWaitFor tiles candidate := by
-  simp [waitingTiles, Tile.mem_all, IsWaitFor, IsStandardAgari,
-    Bool.and_eq_true]
+  by_cases legal : IsLegalTenpaiHand tiles
+  · simp [waitingTiles, legal, Tile.mem_all, IsWaitFor, IsStandardAgari,
+      Bool.and_eq_true]
+  · simp [waitingTiles, legal, IsWaitFor]
 
 /-- `waitingTiles` が空でないことと意味論上の聴牌は同値である。 -/
 theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
@@ -134,106 +165,25 @@ instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMent
   infer_instance
 
 /-- それ以上、完成面子除去で同じ待ち構造へ小さくできない聴牌形。 -/
-def IsIrreducible (tiles : List Tile) : Prop :=
-  tiles.length = 1 ∨
-    (IsTenpai tiles ∧ ¬CanReduceMentsu tiles)
+def IsIrreducible (tiles : List Tile) (_ : IsTenpai tiles) : Prop :=
+  ¬CanReduceMentsu tiles
 
-instance decidableIsIrreducible (tiles : List Tile) : Decidable (IsIrreducible tiles) := by
+instance decidableIsIrreducible (tiles : List Tile) (tenpai : IsTenpai tiles) :
+    Decidable (IsIrreducible tiles tenpai) := by
   unfold IsIrreducible
   infer_instance
 
 /-- 1枚手牌は単騎として既約である。 -/
-theorem singleton_irreducible (tile : Tile) : IsIrreducible [tile] := by
-  simp [IsIrreducible]
+theorem singleton_irreducible (tile : Tile) (tenpai : IsTenpai [tile]) :
+    IsIrreducible [tile] tenpai := by
+  intro reducible
+  simpa using reducible.1
 
 /-- 可約なら既約ではない。 -/
 theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
-    (reducible : CanReduceMentsu tiles) : ¬IsIrreducible tiles := by
-  rcases reducible with ⟨moreThanOne, tenpai, reduction⟩
-  intro irreducible
-  rcases irreducible with singleton | ⟨_, notReducible⟩
-  · omega
-  · exact notReducible ⟨moreThanOne, tenpai, reduction⟩
-
-/-- スート名と絶対ランクを忘れた正規化後の牌。 -/
-inductive NormalizedTile
-| numbered (suitIndex rank : Nat)
-| honor (honor : Honor)
-deriving BEq, DecidableEq, Repr
-
-/-- 正規化後の完成部品。 -/
-inductive NormalizedChunk
-| pair (tile : NormalizedTile)
-| shuntsu (suitIndex start : Nat)
-| koutsu (tile : NormalizedTile)
-deriving BEq, DecidableEq, Repr
-
-/-- 待ち牌と和了分解を平行移動で正規化したもの。 -/
-structure NormalizedDecomposition where
-  wait : NormalizedTile
-  chunks : List NormalizedChunk
-deriving BEq, DecidableEq, Repr
-
-/-- 通常形待ち解析の結果。 -/
-structure Analysis where
-  decompositions : List NormalizedDecomposition
-deriving BEq, DecidableEq, Repr
-
-private def ranksIn (suit : Suit) (tiles : List Tile) : List Nat :=
-  tiles.filterMap fun
-    | .numbered tileSuit rank =>
-        if tileSuit == suit then some rank.val else none
-    | .honor _ => none
-
-private def chunkTiles (decomposition : Decomposition) : List Tile :=
-  decomposition.wait :: decomposition.chunks.flatMap TileChunk.tiles
-
-private def suitHasTiles (tiles : List Tile) (suit : Suit) : Bool :=
-  !(ranksIn suit tiles).isEmpty
-
-private def presentSuits (tiles : List Tile) : List Suit :=
-  Suit.all.filter (suitHasTiles tiles)
-
-private def suitIndexFrom : List Suit → Suit → Nat
-  | [], _ => 0
-  | current :: rest, suit =>
-      if current == suit then 0 else suitIndexFrom rest suit + 1
-
-private def lowestRank (tiles : List Tile) (suit : Suit) : Nat :=
-  match ranksIn suit tiles with
-  | [] => 0
-  | first :: rest => rest.foldl Nat.min first
-
-private def normalizeTile (tiles : List Tile) (present : List Suit) : Tile → NormalizedTile
-  | .honor honor => .honor honor
-  | .numbered suit rank =>
-      .numbered (suitIndexFrom present suit) (rank.val - lowestRank tiles suit)
-
-private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk → NormalizedChunk
-  | .inl (.toitsu tile) => .pair (normalizeTile tiles present tile)
-  | .inr (.shuntsu (.shuntsu suit start)) =>
-      .shuntsu (suitIndexFrom present suit) (start.val - lowestRank tiles suit)
-  | .inr (.koutsu tile) => .koutsu (normalizeTile tiles present tile)
-
-/--
-スート名とランクの平行移動を忘れて、同型な牌姿を同じ形として扱う。
-
-各スート内の最小ランクを0へ移し、出現するスートを出現順に `0, 1, ...` と番号付けする。
--/
-def normalizeByTranslation (decomposition : Decomposition) : NormalizedDecomposition :=
-  let tiles := chunkTiles decomposition
-  let present := presentSuits tiles
-  { wait := normalizeTile tiles present decomposition.wait
-    chunks := decomposition.chunks.map (normalizeChunk tiles present) }
-
-/-- 任意の正規化関数で待ち分解集合を商としてまとめる。 -/
-def analysisWith {α : Type} [DecidableEq α]
-    (normalize : Decomposition → α) (tiles : List Tile) : List α :=
-  (find tiles).map normalize |>.eraseDups
-
-/-- 平行移動による正規化で通常形待ちを解析する。 -/
-def analyzeWait (tiles : List Tile) : Analysis :=
-  { decompositions := analysisWith normalizeByTranslation tiles }
+    (tenpai : IsTenpai tiles) (reducible : CanReduceMentsu tiles) :
+    ¬IsIrreducible tiles tenpai := by
+  exact fun irreducible => irreducible reducible
 
 def manzu (ranks : List Rank) : List Tile :=
   Tile.numberedTiles .Manzu ranks
@@ -278,9 +228,8 @@ example : waitingTiles testHandC = souzu [2, 3, 5, 6] := by native_decide
 
 example : waitingTiles testHandD = manzu [1, 4] ++ souzu [6] := by native_decide
 
-example : analyzeWait testHandB = analyzeWait testHandC := by native_decide
-example : analyzeWait testHandB ≠ analyzeWait testHandD := by native_decide
-example : analyzeWait testHandC ≠ analyzeWait testHandD := by native_decide
+example : waitingTiles (manzu [0, 1]) = [] := by native_decide
+example : waitingTiles (manzu [0, 0, 0, 0, 0, 1, 2]) = [] := by native_decide
 
 -- 3456678: 単騎 3・6、両面 6・9
 example : find testHand3456678 =

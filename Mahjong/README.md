@@ -14,21 +14,23 @@ This directory contains the Mahjong wait-classification formalization used as th
 
 3. `Wait.lean`
    - Size-independent wait extraction syntax and named classification vocabulary.
-   - Ambiguity and reducibility properties of each classification name.
+   - Ambiguity metadata that is determined by each classification name.
 
 4. `Wait/Specification.lean`
-   - Analyzer-independent profiles and the reference classification specification.
+   - Analyzer-independent, rule-based classification evidence.
+   - A broad `HasNobetanReading` alias separated from narrow whole-profile classification.
 
 5. `Wait/Analysis.lean`
    - Observation of profiles from standard-form winning decompositions.
    - The executable classifier and its soundness/completeness theorems.
+   - Evidence-indexed reducibility computation for concrete tenpai hands.
 
 6. `FourTileWait.lean` and `FourTileWait/`
    - Four-tile constants, compatibility names, and checked examples for all ten named classifications.
 
 7. `Hand.lean`
    - Hand sizes used in the study project.
-   - Enumeration of possible hand extractions from physical tiles.
+   - Verified enumeration of exact physical-tile extractions.
 
 8. `Decomposition.lean`
    - The `Decomposition` data type: one wait tile and one completed decomposition.
@@ -36,7 +38,8 @@ This directory contains the Mahjong wait-classification formalization used as th
 
 9. `DecompositionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
-   - `DecompositionFinder.find`, executable decomposition discovery, and irreducibility.
+   - Legal tenpai sizes and physical copy-count validation.
+   - `DecompositionFinder.find`, executable decomposition discovery, and evidence-indexed irreducibility.
 
 10. `DecompositionCode.lean`
    - Codes already-found `List Decomposition` values without performing discovery.

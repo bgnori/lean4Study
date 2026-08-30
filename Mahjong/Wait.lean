@@ -88,39 +88,34 @@ inductive WaitReducibility
 | irreducible
 deriving BEq, DecidableEq, Repr, Fintype
 
-/-- 待ちの分類ラベル。種類、曖昧性、既約性をまとめる。 -/
+/-- 待ち名だけから決まる分類ラベル。既約性は牌姿に対して別途計算する。 -/
 structure WaitClassification where
   kind : WaitKind
   ambiguity : WaitAmbiguity
-  reducibility : WaitReducibility
 deriving BEq, DecidableEq, Repr
 
 /-- 待ちの分類語彙に対応する性質。 -/
 def WaitKind.classification : WaitKind → WaitClassification
   | .tankiShuntsu =>
-    ⟨.tankiShuntsu, .noAmbiguity, .reducible⟩
+    ⟨.tankiShuntsu, .noAmbiguity⟩
   | .tankiKoutsu =>
-    ⟨.tankiKoutsu, .noAmbiguity, .reducible⟩
+    ⟨.tankiKoutsu, .noAmbiguity⟩
   | .toitsuRyanmen =>
-    ⟨.toitsuRyanmen, .noAmbiguity, .irreducible⟩
+    ⟨.toitsuRyanmen, .noAmbiguity⟩
   | .toitsuKanchan =>
-    ⟨.toitsuKanchan, .noAmbiguity, .irreducible⟩
+    ⟨.toitsuKanchan, .noAmbiguity⟩
   | .toitsuPenchan =>
-    ⟨.toitsuPenchan, .noAmbiguity, .irreducible⟩
+    ⟨.toitsuPenchan, .noAmbiguity⟩
   | .shanpon =>
-    ⟨.shanpon, .noAmbiguity, .irreducible⟩
+    ⟨.shanpon, .noAmbiguity⟩
   | .nobetan =>
-    ⟨.nobetan, .ambiguous, .irreducible⟩
+    ⟨.nobetan, .ambiguous⟩
   | .kuttsukiRyanmen =>
-    ⟨.kuttsukiRyanmen, .ambiguous, .irreducible⟩
+    ⟨.kuttsukiRyanmen, .ambiguous⟩
   | .kuttsukiKanchan =>
-    ⟨.kuttsukiKanchan, .ambiguous, .irreducible⟩
+    ⟨.kuttsukiKanchan, .ambiguous⟩
   | .kuttsukiPenchan =>
-    ⟨.kuttsukiPenchan, .ambiguous, .irreducible⟩
-
-/-- この分類の既約性。 -/
-def WaitKind.reducibility (kind : WaitKind) : WaitReducibility :=
-  kind.classification.reducibility
+    ⟨.kuttsukiPenchan, .ambiguous⟩
 
 /-- この分類が複数の自然な読みを持つか。 -/
 def WaitKind.ambiguity (kind : WaitKind) : WaitAmbiguity :=
