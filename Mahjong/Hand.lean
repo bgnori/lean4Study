@@ -51,12 +51,12 @@ end Hand
 /--
 手牌から取り出せる待ち分類の構造。
 
-`tanki` と `four` は終端で、`mentsuThen` は完成面子を1つ取り除いたあと、
+`tanki` と `wait` は終端で、`mentsuThen` は完成面子を1つ取り除いたあと、
 残りの手牌に対してさらに抽出を続ける。
 -/
 inductive HandExtraction
 | tanki (tanki : Tanki) (taken : List PhysicalTile)
-| four (extraction : FourTileExtraction) (taken : List PhysicalTile)
+| wait (extraction : WaitExtraction) (taken : List PhysicalTile)
 | mentsuThen (mentsu : MentsuCandidate) (taken : List PhysicalTile)
     (remaining : HandExtraction)
 deriving Repr
@@ -77,10 +77,10 @@ private noncomputable def tankiTerminals (tiles : Finset PhysicalTile) : List Ha
     let taken ← takeExact tiles tanki.tiles
     some (.tanki tanki taken)
 
-private noncomputable def fourTerminals (tiles : Finset PhysicalTile) : List HandExtraction :=
-  FourTileExtraction.all.filterMap fun extraction => do
+private noncomputable def waitTerminals (tiles : Finset PhysicalTile) : List HandExtraction :=
+  WaitExtraction.all.filterMap fun extraction => do
     let taken ← takeExact tiles extraction.tiles
-    some (.four extraction taken)
+    some (.wait extraction taken)
 
 /--
 手牌から可能な抽出を列挙する。
@@ -88,10 +88,10 @@ private noncomputable def fourTerminals (tiles : Finset PhysicalTile) : List Han
 `fuel` は再帰の深さで、完成面子を取り除きながら、最終的に単騎または4枚待ちへ到達する。
 -/
 noncomputable def fromTiles : Nat → Finset PhysicalTile → List HandExtraction
-  | 0, tiles => tankiTerminals tiles ++ fourTerminals tiles
+  | 0, tiles => tankiTerminals tiles ++ waitTerminals tiles
   | Nat.succ fuel, tiles =>
       tankiTerminals tiles ++
-      fourTerminals tiles ++
+      waitTerminals tiles ++
       List.flatten (MentsuCandidate.all.map fun mentsu =>
         match Chunk.takeTilesFrom tiles mentsu.tiles with
         | some (taken, rest) =>
