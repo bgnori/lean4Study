@@ -63,10 +63,8 @@ def all : List Suit := [.Manzu, .Pinzu, .Souzu]
 def count : Nat := all.length
 
 /-- 標準列挙順に対応するスートのキー。 -/
-def orderKey : Suit → Nat
-  | .Manzu => 0
-  | .Pinzu => 1
-  | .Souzu => 2
+def orderKey (suit : Suit) : Nat :=
+  all.idxOf suit
 
 end Suit
 
@@ -94,14 +92,8 @@ def all : List Honor := [.East, .South, .West, .North, .White, .Green, .Red]
 def count : Nat := all.length
 
 /-- 標準列挙順に対応する字牌のキー。 -/
-def orderKey : Honor → Nat
-  | .East => 0
-  | .South => 1
-  | .West => 2
-  | .North => 3
-  | .White => 4
-  | .Green => 5
-  | .Red => 6
+def orderKey (honor : Honor) : Nat :=
+  all.idxOf honor
 
 end Honor
 
@@ -256,14 +248,8 @@ private def mpszSuffix : Suit → String
 | .Pinzu => "p"
 | .Souzu => "s"
 
-private def honorMpszRank : Honor → Nat
-| .East => 1
-| .South => 2
-| .West => 3
-| .North => 4
-| .White => 5
-| .Green => 6
-| .Red => 7
+private def honorMpszRank (honor : Honor) : Nat :=
+  Honor.orderKey honor + 1
 
 private def numberedUnicodeOffset : Suit → Nat
 | .Manzu => 0x1F007

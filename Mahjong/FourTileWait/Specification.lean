@@ -24,13 +24,25 @@ namespace FourTileSpecification
 def HasKuttsukiRyanmen (profiles : List FourTileProfile) : Prop :=
   profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuRyanmen = true
 
+instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiRyanmen profiles) := by
+  unfold HasKuttsukiRyanmen
+  infer_instance
+
 /-- 嵌張くっつきの2つの読みが共存すること。 -/
 def HasKuttsukiKanchan (profiles : List FourTileProfile) : Prop :=
   profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuKanchan = true
 
+instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiKanchan profiles) := by
+  unfold HasKuttsukiKanchan
+  infer_instance
+
 /-- 辺張くっつきの2つの読みが共存すること。 -/
 def HasKuttsukiPenchan (profiles : List FourTileProfile) : Prop :=
   profiles.contains .tankiKoutsu = true ∧ profiles.contains .toitsuPenchan = true
+
+instance (profiles : List FourTileProfile) : Decidable (HasKuttsukiPenchan profiles) := by
+  unfold HasKuttsukiPenchan
+  infer_instance
 
 /--
 観測された基本形列に期待する名前付き分類を与える参照仕様。
@@ -40,11 +52,11 @@ def HasKuttsukiPenchan (profiles : List FourTileProfile) : Prop :=
 ノベタンとする。
 -/
 def expectedKind (profiles : List FourTileProfile) : Option FourTileWaitKind :=
-  if profiles.contains .tankiKoutsu && profiles.contains .toitsuRyanmen then
+  if HasKuttsukiRyanmen profiles then
     some .kuttsukiRyanmen
-  else if profiles.contains .tankiKoutsu && profiles.contains .toitsuKanchan then
+  else if HasKuttsukiKanchan profiles then
     some .kuttsukiKanchan
-  else if profiles.contains .tankiKoutsu && profiles.contains .toitsuPenchan then
+  else if HasKuttsukiPenchan profiles then
     some .kuttsukiPenchan
   else match profiles with
     | [] => none

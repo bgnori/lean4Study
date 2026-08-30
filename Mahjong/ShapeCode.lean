@@ -110,14 +110,8 @@ private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxS
 private def abstractComponentKeyBase : Nat := ShapeComponent.count + 1
 private def waitKeyStride : Nat := Tile.count
 
-private def shapeComponentKey : ShapeComponent → Nat
-  | .tanki => 0
-  | .toitsu => 1
-  | .ryanmen => 2
-  | .kanchan => 3
-  | .penchan => 4
-  | .shuntsu => 5
-  | .koutsu => 6
+private def shapeComponentKey (component : ShapeComponent) : Nat :=
+  ShapeComponent.all.idxOf component
 
 private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
   shapeComponentKey component.kind * componentTileKeyStride +
