@@ -1,20 +1,20 @@
 import Mahjong.Basic
 import Mahjong.Pattern
-import Mahjong.ShapeFinder
+import Mahjong.DecompositionFinder
 
 /-!
-# 発見済みShapeの部品種別コード
+# 発見済みDecompositionの部品種別コード
 
-`ShapeFinder.find` が発見した `Shape` を入力とし、牌の位置を忘れて、
+`DecompositionFinder.find` が発見した `Decomposition` を入力とし、牌の位置を忘れて、
 待ち牌を除いた各分割を部品種別の多重集合として扱う。
 異なる部品種別に異なる素数を割り当て、その積を代表元とする。
 -/
-namespace ShapeCode
+namespace DecompositionCode
 
-open ShapeFinder
+open DecompositionFinder
 
 /-- 待ち牌を除いた後に見える部品種別。 -/
-inductive ShapeComponent
+inductive DecompositionComponent
 | tanki
 | toitsu
 | ryanmen
@@ -24,17 +24,17 @@ inductive ShapeComponent
 | koutsu
 deriving BEq, DecidableEq, Repr
 
-namespace ShapeComponent
+namespace DecompositionComponent
 
 /-- すべての部品種別。キーの基数を部品数から導くためにも使う。 -/
-def all : List ShapeComponent :=
+def all : List DecompositionComponent :=
   [.tanki, .toitsu, .ryanmen, .kanchan, .penchan, .shuntsu, .koutsu]
 
 /-- 部品種別の数。 -/
 def count : Nat := all.length
 
 /-- 部品種別に割り当てる素数。積をとることで多重集合の代表コードにする。 -/
-def prime : ShapeComponent → Nat
+def prime : DecompositionComponent → Nat
   | .tanki => 2
   | .toitsu => 3
   | .ryanmen => 5
@@ -43,33 +43,33 @@ def prime : ShapeComponent → Nat
   | .shuntsu => 13
   | .koutsu => 17
 
-end ShapeComponent
+end DecompositionComponent
 
 /-- 具体的な牌種列を保持した部品。 -/
-structure ConcreteShapeComponent where
-  kind : ShapeComponent
+structure ConcreteDecompositionComponent where
+  kind : DecompositionComponent
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
 /-- 1つの待ち牌に対する、具体牌つきの形抽出。 -/
-structure ConcreteShapeExtraction where
+structure ConcreteDecompositionExtraction where
   wait : Tile
-  components : List ConcreteShapeComponent
+  components : List ConcreteDecompositionComponent
 deriving BEq, DecidableEq, Repr
 
 /-- 牌の位置を忘れ、部品種別だけを残した形抽出。 -/
-structure AbstractShapeExtraction where
+structure AbstractDecompositionExtraction where
   wait : Tile
-  components : List ShapeComponent
+  components : List DecompositionComponent
 deriving BEq, DecidableEq, Repr
 
 /-- 待ち牌ごとの抽象形コード。 -/
-structure ShapeCodeEntry where
+structure DecompositionCodeEntry where
   wait : Tile
   code : Nat
 deriving BEq, DecidableEq, Repr
 
-private def completeComponent (chunk : TileChunk) : ConcreteShapeComponent :=
+private def completeComponent (chunk : TileChunk) : ConcreteDecompositionComponent :=
   { kind := match chunk with
       | .inl _ => .toitsu
       | .inr (.shuntsu _) => .shuntsu
@@ -77,7 +77,7 @@ private def completeComponent (chunk : TileChunk) : ConcreteShapeComponent :=
     tiles := chunk.tiles }
 
 private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
-    Option ConcreteShapeComponent :=
+    Option ConcreteDecompositionComponent :=
   let incompleteTiles := chunk.tiles.erase wait
   let result kind := some { kind, tiles := incompleteTiles }
   match chunk with
@@ -98,54 +98,54 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
             result (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
           else none
 
-private def componentProduct (components : List ShapeComponent) : Nat :=
+private def componentProduct (components : List DecompositionComponent) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
 
 private def keyDigitOffset : Nat := 1
 private def tileKeyBase : Nat := Tile.count + keyDigitOffset
 private def maxComponentTiles : Nat := mentsuTileCount
-private def maxShapeComponents : Nat := standardHandMentsuCount + standardHandPairCount
+private def maxDecompositionComponents : Nat := standardHandMentsuCount + standardHandPairCount
 private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
-private def extractionComponentKeyStride : Nat := ShapeComponent.count * componentTileKeyStride
-private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxShapeComponents
-private def abstractComponentKeyBase : Nat := ShapeComponent.count + keyDigitOffset
+private def extractionComponentKeyStride : Nat := DecompositionComponent.count * componentTileKeyStride
+private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxDecompositionComponents
+private def abstractComponentKeyBase : Nat := DecompositionComponent.count + keyDigitOffset
 private def waitKeyStride : Nat := Tile.count
 
-private def shapeComponentKey (component : ShapeComponent) : Nat :=
-  ShapeComponent.all.idxOf component
+private def decompositionComponentKey (component : DecompositionComponent) : Nat :=
+  DecompositionComponent.all.idxOf component
 
-private def concreteComponentKey (component : ConcreteShapeComponent) : Nat :=
-  shapeComponentKey component.kind * componentTileKeyStride +
+private def concreteComponentKey (component : ConcreteDecompositionComponent) : Nat :=
+  decompositionComponentKey component.kind * componentTileKeyStride +
     component.tiles.foldl
       (fun key tile => key * tileKeyBase + tile.orderKey + keyDigitOffset) 0
 
-private def canonicalizeShapeExtraction
-    (components : List ConcreteShapeComponent) : List ConcreteShapeComponent :=
+private def canonicalizeDecompositionExtraction
+    (components : List ConcreteDecompositionComponent) : List ConcreteDecompositionComponent :=
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
-private def concreteShapeExtractionKey (extraction : ConcreteShapeExtraction) : Nat :=
+private def concreteDecompositionExtractionKey (extraction : ConcreteDecompositionExtraction) : Nat :=
   extraction.wait.orderKey * extractionWaitKeyStride +
     extraction.components.foldl
       (fun key component => key * extractionComponentKeyStride + concreteComponentKey component) 0
 
-private def abstractShapeExtractionKey (extraction : AbstractShapeExtraction) : Nat :=
+private def abstractDecompositionExtractionKey (extraction : AbstractDecompositionExtraction) : Nat :=
   extraction.components.foldl
     (fun key component =>
-      key * abstractComponentKeyBase + shapeComponentKey component + keyDigitOffset) 0 *
+      key * abstractComponentKeyBase + decompositionComponentKey component + keyDigitOffset) 0 *
       waitKeyStride +
     extraction.wait.orderKey
 
-private def shapeCodeEntryKey (entry : ShapeCodeEntry) : Nat :=
+private def decompositionCodeEntryKey (entry : DecompositionCodeEntry) : Nat :=
   entry.code * waitKeyStride + entry.wait.orderKey
 
 private def deduplicateAndSortBy {α : Type} [BEq α]
     (key : α → Nat) (values : List α) : List α :=
   values.eraseDups.mergeSort fun first second => key first ≤ key second
 
-private def decompositionShapeExtractions (decomposition : Shape) :
-    List (List ConcreteShapeComponent) :=
-  let rec selectCompletedChunk : List TileChunk → List (List ConcreteShapeComponent)
+private def decompositionExtractions (decomposition : Decomposition) :
+    List (List ConcreteDecompositionComponent) :=
+  let rec selectCompletedChunk : List TileChunk → List (List ConcreteDecompositionComponent)
     | [] => []
     | chunk :: rest =>
         let later := (selectCompletedChunk rest).map fun extraction =>
@@ -156,86 +156,90 @@ private def decompositionShapeExtractions (decomposition : Shape) :
         | none => later
   selectCompletedChunk decomposition.chunks
 
-/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な形抽出を列挙する。 -/
-def concreteShapeExtractions (shapes : List Shape) : List ConcreteShapeExtraction :=
-  let entries := shapes.flatMap fun decomposition =>
-      (decompositionShapeExtractions decomposition).map fun extraction =>
+/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な分解抽出を列挙する。 -/
+def concreteDecompositionExtractions
+    (decompositions : List Decomposition) : List ConcreteDecompositionExtraction :=
+  let entries := decompositions.flatMap fun decomposition =>
+      (decompositionExtractions decomposition).map fun extraction =>
         { wait := decomposition.wait
-          components := canonicalizeShapeExtraction extraction }
-  deduplicateAndSortBy concreteShapeExtractionKey entries
+          components := canonicalizeDecompositionExtraction extraction }
+  deduplicateAndSortBy concreteDecompositionExtractionKey entries
 
-/-- 発見済みShapeから牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
-def abstractShapeExtractions (shapes : List Shape) : List AbstractShapeExtraction :=
-  concreteShapeExtractions shapes
+/-- 発見済みDecompositionから牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
+def abstractDecompositionExtractions
+    (decompositions : List Decomposition) : List AbstractDecompositionExtraction :=
+  concreteDecompositionExtractions decompositions
     |>.map (fun extraction =>
       { wait := extraction.wait
         components := extraction.components.map (fun component => component.kind) })
-    |> deduplicateAndSortBy abstractShapeExtractionKey
+    |> deduplicateAndSortBy abstractDecompositionExtractionKey
 
-/-- 発見済みShapeを、待ち牌ごとの素数積コードへ変換する。 -/
-def shapeCodeEntries (shapes : List Shape) : List ShapeCodeEntry :=
-  abstractShapeExtractions shapes
+/-- 発見済みDecompositionを、待ち牌ごとの素数積コードへ変換する。 -/
+def decompositionCodeEntries
+    (decompositions : List Decomposition) : List DecompositionCodeEntry :=
+  abstractDecompositionExtractions decompositions
     |>.map (fun extraction =>
       { wait := extraction.wait
         code := componentProduct extraction.components })
-    |> deduplicateAndSortBy shapeCodeEntryKey
+    |> deduplicateAndSortBy decompositionCodeEntryKey
 
-/-- 発見済みShapeから計算した、待ち牌を残す抽象形コード。 -/
-def abstractShapeCodeWithWait (shapes : List Shape) : List (Nat × Tile) :=
-  shapeCodeEntries shapes
+/-- 発見済みDecompositionから計算した、待ち牌を残す抽象形コード。 -/
+def abstractDecompositionCodeWithWait
+    (decompositions : List Decomposition) : List (Nat × Tile) :=
+  decompositionCodeEntries decompositions
     |>.map fun entry => (entry.code, entry.wait)
 
-/-- 発見済みShapeから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
-def abstractShapeCode (shapes : List Shape) : List Nat :=
-  shapeCodeEntries shapes
+/-- 発見済みDecompositionから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
+def abstractDecompositionCode (decompositions : List Decomposition) : List Nat :=
+  decompositionCodeEntries decompositions
     |>.map (fun entry => entry.code)
     |> deduplicateAndSortBy id
 
 /-! ## 牌列から探索して符号化する便利関数 -/
 
-def findConcreteShapeExtractions (tiles : List Tile) : List ConcreteShapeExtraction :=
-  concreteShapeExtractions (ShapeFinder.find tiles)
+def findConcreteDecompositionExtractions (tiles : List Tile) : List ConcreteDecompositionExtraction :=
+  concreteDecompositionExtractions (DecompositionFinder.find tiles)
 
-def findAbstractShapeExtractions (tiles : List Tile) : List AbstractShapeExtraction :=
-  abstractShapeExtractions (ShapeFinder.find tiles)
+def findAbstractDecompositionExtractions (tiles : List Tile) : List AbstractDecompositionExtraction :=
+  abstractDecompositionExtractions (DecompositionFinder.find tiles)
 
-def findShapeCodeEntries (tiles : List Tile) : List ShapeCodeEntry :=
-  shapeCodeEntries (ShapeFinder.find tiles)
+def findDecompositionCodeEntries (tiles : List Tile) : List DecompositionCodeEntry :=
+  decompositionCodeEntries (DecompositionFinder.find tiles)
 
-def findAbstractShapeCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
-  abstractShapeCodeWithWait (ShapeFinder.find tiles)
+def findAbstractDecompositionCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  abstractDecompositionCodeWithWait (DecompositionFinder.find tiles)
 
-def findAbstractShapeCode (tiles : List Tile) : List Nat :=
-  abstractShapeCode (ShapeFinder.find tiles)
+def findAbstractDecompositionCode (tiles : List Tile) : List Nat :=
+  abstractDecompositionCode (DecompositionFinder.find tiles)
 
-private def shapeCodeTestHand2345678 : List Tile :=
+private def decompositionCodeTestHand2345678 : List Tile :=
   Tile.numberedTiles .Manzu [1, 2, 3, 4, 5, 6, 7]
-private def shapeCodeTestHand1167888 : List Tile :=
+private def decompositionCodeTestHand1167888 : List Tile :=
   Tile.numberedTiles .Manzu [0, 0, 5, 6, 7, 7, 7]
-private def shapeCodeTestHand1166678 : List Tile :=
+private def decompositionCodeTestHand1166678 : List Tile :=
   Tile.numberedTiles .Manzu [0, 0, 5, 5, 5, 6, 7]
 
-example : findAbstractShapeExtractions shapeCodeTestHand2345678 =
+example : findAbstractDecompositionExtractions decompositionCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },
    { wait := .numbered .Manzu 4, components := [.tanki, .shuntsu, .shuntsu] },
    { wait := .numbered .Manzu 7, components := [.tanki, .shuntsu, .shuntsu] }] := by
   native_decide
 
-example : findShapeCodeEntries shapeCodeTestHand2345678 =
+example : findDecompositionCodeEntries decompositionCodeTestHand2345678 =
   [{ wait := .numbered .Manzu 1, code := 338 },
    { wait := .numbered .Manzu 4, code := 338 },
    { wait := .numbered .Manzu 7, code := 338 }] := by
   native_decide
 
-example : findAbstractShapeCodeWithWait shapeCodeTestHand2345678 =
+example : findAbstractDecompositionCodeWithWait decompositionCodeTestHand2345678 =
   [(338, .numbered .Manzu 1),
    (338, .numbered .Manzu 4),
    (338, .numbered .Manzu 7)] := by native_decide
-example : findAbstractShapeCode shapeCodeTestHand2345678 = [338] := by native_decide
-example : findAbstractShapeCode shapeCodeTestHand1167888 = [117, 255] := by native_decide
-example : findAbstractShapeCode shapeCodeTestHand1166678 = [117, 255] := by native_decide
-example : findAbstractShapeCode shapeCodeTestHand1167888 =
-  findAbstractShapeCode shapeCodeTestHand1166678 := by
+example : findAbstractDecompositionCode decompositionCodeTestHand2345678 = [338] := by native_decide
+example : findAbstractDecompositionCode decompositionCodeTestHand1167888 = [117, 255] := by native_decide
+example : findAbstractDecompositionCode decompositionCodeTestHand1166678 = [117, 255] := by native_decide
+example : findAbstractDecompositionCode decompositionCodeTestHand1167888 =
+  findAbstractDecompositionCode decompositionCodeTestHand1166678 := by
   native_decide
 
 /--
@@ -304,22 +308,22 @@ example : irreducibleSingleSuitSevenTileExamples.all
     (fun entry => decide (IsIrreducible entry.2)) = true := by
   native_decide
 
-private def insertAbstractShapeClass (entry : String × List Nat) :
+private def insertAbstractDecompositionClass (entry : String × List Nat) :
   List (List Nat × List String) → List (List Nat × List String)
   | [] => [(entry.2, [entry.1])]
   | current :: rest =>
       if current.1 == entry.2 then
         (current.1, current.2 ++ [entry.1]) :: rest
       else
-        current :: insertAbstractShapeClass entry rest
+        current :: insertAbstractDecompositionClass entry rest
 
-def irreducibleSevenTileAbstractShapeClasses : List (List Nat × List String) :=
+def irreducibleSevenTileAbstractDecompositionClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-    insertAbstractShapeClass (entry.1, findAbstractShapeCode entry.2) classes) []
+    insertAbstractDecompositionClass (entry.1, findAbstractDecompositionCode entry.2) classes) []
 
-example : irreducibleSevenTileAbstractShapeClasses.length = 26 := by native_decide
+example : irreducibleSevenTileAbstractDecompositionClasses.length = 26 := by native_decide
 
-example : irreducibleSevenTileAbstractShapeClasses.find? (fun entry =>
+example : irreducibleSevenTileAbstractDecompositionClasses.find? (fun entry =>
     entry.1 == [117, 255]) = some
       ([117, 255],
        ["1178999m", "1167888m", "1166678m", "1156777m", "1155567m",
@@ -327,4 +331,4 @@ example : irreducibleSevenTileAbstractShapeClasses.find? (fun entry =>
         "1112399m", "1112388m", "1112377m", "1112366m", "1112355m"]) := by
   native_decide
 
-end ShapeCode
+end DecompositionCode

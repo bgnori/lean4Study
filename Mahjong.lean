@@ -1,12 +1,12 @@
 import Mahjong.Basic
 import Mahjong.Pattern
-import Mahjong.Shape
+import Mahjong.Decomposition
 import Mahjong.FourTileWait
 import Mahjong.FourTileWait.Specification
 import Mahjong.FourTileWait.Analysis
 import Mahjong.Hand
-import Mahjong.ShapeFinder
-import Mahjong.ShapeCode
+import Mahjong.DecompositionFinder
+import Mahjong.DecompositionCode
 import Mahjong.Tenpai
 
 /-!

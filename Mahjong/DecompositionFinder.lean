@@ -1,4 +1,4 @@
-import Mahjong.Shape
+import Mahjong.Decomposition
 import Mathlib.Tactic
 
 /-!
@@ -12,7 +12,7 @@ import Mathlib.Tactic
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
 出現回数で表し、`waitingTiles` では同じ牌種が手牌上限を超えないよう確認する。
 -/
-namespace ShapeFinder
+namespace DecompositionFinder
 
 /-- `available` から `wanted` の牌種列を多重集合的に取り除く。 -/
 def removeTiles : List Tile → List Tile → Option (List Tile)
@@ -98,7 +98,7 @@ theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
     simp [empty] at member
 
 /-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
-def find (tiles : List Tile) : List Shape :=
+def find (tiles : List Tile) : List Decomposition :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningDecompositions (wait :: tiles)).map fun chunks =>
       { wait, chunks := TileChunk.canonicalize chunks }).eraseDups
@@ -185,7 +185,7 @@ private def ranksIn (suit : Suit) (tiles : List Tile) : List Nat :=
         if tileSuit == suit then some rank.val else none
     | .honor _ => none
 
-private def chunkTiles (decomposition : Shape) : List Tile :=
+private def chunkTiles (decomposition : Decomposition) : List Tile :=
   decomposition.wait :: decomposition.chunks.flatMap TileChunk.tiles
 
 private def suitHasTiles (tiles : List Tile) (suit : Suit) : Bool :=
@@ -220,7 +220,7 @@ private def normalizeChunk (tiles : List Tile) (present : List Suit) : TileChunk
 
 各スート内の最小ランクを0へ移し、出現するスートを出現順に `0, 1, ...` と番号付けする。
 -/
-def normalizeByTranslation (decomposition : Shape) : NormalizedDecomposition :=
+def normalizeByTranslation (decomposition : Decomposition) : NormalizedDecomposition :=
   let tiles := chunkTiles decomposition
   let present := presentSuits tiles
   { wait := normalizeTile tiles present decomposition.wait
@@ -228,7 +228,7 @@ def normalizeByTranslation (decomposition : Shape) : NormalizedDecomposition :=
 
 /-- 任意の正規化関数で待ち分解集合を商としてまとめる。 -/
 def analysisWith {α : Type} [DecidableEq α]
-    (normalize : Shape → α) (tiles : List Tile) : List α :=
+    (normalize : Decomposition → α) (tiles : List Tile) : List α :=
   (find tiles).map normalize |>.eraseDups
 
 /-- 平行移動による正規化で通常形待ちを解析する。 -/
@@ -266,7 +266,7 @@ private def manzuShuntsu (start : Nat) (valid : start < shuntsuStartCount := by 
 private def manzuKoutsu (rank : Rank) : TileChunk :=
   .koutsu (.numbered .Manzu rank)
 
-private def manzuDecomposition (wait : Rank) (chunks : List TileChunk) : Shape :=
+private def manzuDecomposition (wait : Rank) (chunks : List TileChunk) : Decomposition :=
   { wait := .numbered .Manzu wait, chunks }
 
 example : waitingTiles testHandA =
@@ -324,4 +324,4 @@ example : find testHand3335777 =
    manzuDecomposition 5 [manzuPair 6, manzuShuntsu 4, manzuKoutsu 2]] ∧
   (find testHand3335777).length = 3 := by native_decide
 
-end ShapeFinder
+end DecompositionFinder
