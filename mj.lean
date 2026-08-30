@@ -407,6 +407,12 @@ inductive FourTileReducibility
 | irreducible
 deriving BEq, DecidableEq, Repr, Fintype
 
+structure FourTileClassification where
+  kind : FourTileWaitKind
+  ambiguity : FourTileAmbiguity
+  reducibility : FourTileReducibility
+deriving BEq, DecidableEq, Repr
+
 inductive FourTileWait
 | noAmbiguityTankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
 | noAmbiguityTankiKoutsu (tanki : Tanki) (tile : Tile)
@@ -426,17 +432,30 @@ deriving BEq, DecidableEq, Repr
 
 namespace FourTileWait
 
-def reducibility : FourTileWait → FourTileReducibility
-  | .noAmbiguityTankiShuntsu .. => .reducible
-  | .noAmbiguityTankiKoutsu .. => .reducible
-  | .noAmbiguityToitsuRyanmen .. => .irreducible
-  | .noAmbiguityToitsuKanchan .. => .irreducible
-  | .noAmbiguityToitsuPenchan .. => .irreducible
-  | .noAmbiguityShanpon .. => .irreducible
-  | .ambiguousNobetan .. => .irreducible
-  | .ambiguousKuttsukiRyanmen .. => .irreducible
-  | .ambiguousKuttsukiKanchan .. => .irreducible
-  | .ambiguousKuttsukiPenchan .. => .irreducible
+def classification : FourTileWait → FourTileClassification
+  | .noAmbiguityTankiShuntsu .. =>
+    ⟨.tankiShuntsu, .noAmbiguity, .reducible⟩
+  | .noAmbiguityTankiKoutsu .. =>
+    ⟨.tankiKoutsu, .noAmbiguity, .reducible⟩
+  | .noAmbiguityToitsuRyanmen .. =>
+    ⟨.toitsuRyanmen, .noAmbiguity, .irreducible⟩
+  | .noAmbiguityToitsuKanchan .. =>
+    ⟨.toitsuKanchan, .noAmbiguity, .irreducible⟩
+  | .noAmbiguityToitsuPenchan .. =>
+    ⟨.toitsuPenchan, .noAmbiguity, .irreducible⟩
+  | .noAmbiguityShanpon .. =>
+    ⟨.shanpon, .noAmbiguity, .irreducible⟩
+  | .ambiguousNobetan .. =>
+    ⟨.nobetan, .ambiguous, .irreducible⟩
+  | .ambiguousKuttsukiRyanmen .. =>
+    ⟨.kuttsukiRyanmen, .ambiguous, .irreducible⟩
+  | .ambiguousKuttsukiKanchan .. =>
+    ⟨.kuttsukiKanchan, .ambiguous, .irreducible⟩
+  | .ambiguousKuttsukiPenchan .. =>
+    ⟨.kuttsukiPenchan, .ambiguous, .irreducible⟩
+
+def reducibility (wait : FourTileWait) : FourTileReducibility :=
+  wait.classification.reducibility
 
   /-- One concrete mpsz example for every four-tile wait kind. -/
   def examples : List (String × FourTileWait) :=
@@ -477,29 +496,11 @@ def reducibility : FourTileWait → FourTileReducibility
       .irreducible, .irreducible, .irreducible, .irreducible] := by
     native_decide
 
-def kind : FourTileWait → FourTileWaitKind
-  | .noAmbiguityTankiShuntsu .. => .tankiShuntsu
-  | .noAmbiguityTankiKoutsu .. => .tankiKoutsu
-  | .noAmbiguityToitsuRyanmen .. => .toitsuRyanmen
-  | .noAmbiguityToitsuKanchan .. => .toitsuKanchan
-  | .noAmbiguityToitsuPenchan .. => .toitsuPenchan
-  | .noAmbiguityShanpon .. => .shanpon
-  | .ambiguousNobetan .. => .nobetan
-  | .ambiguousKuttsukiRyanmen .. => .kuttsukiRyanmen
-  | .ambiguousKuttsukiKanchan .. => .kuttsukiKanchan
-  | .ambiguousKuttsukiPenchan .. => .kuttsukiPenchan
+def kind (wait : FourTileWait) : FourTileWaitKind :=
+  wait.classification.kind
 
-def ambiguity : FourTileWait → FourTileAmbiguity
-  | .noAmbiguityTankiShuntsu .. => .noAmbiguity
-  | .noAmbiguityTankiKoutsu .. => .noAmbiguity
-  | .noAmbiguityToitsuRyanmen .. => .noAmbiguity
-  | .noAmbiguityToitsuKanchan .. => .noAmbiguity
-  | .noAmbiguityToitsuPenchan .. => .noAmbiguity
-  | .noAmbiguityShanpon .. => .noAmbiguity
-  | .ambiguousNobetan .. => .ambiguous
-  | .ambiguousKuttsukiRyanmen .. => .ambiguous
-  | .ambiguousKuttsukiKanchan .. => .ambiguous
-  | .ambiguousKuttsukiPenchan .. => .ambiguous
+def ambiguity (wait : FourTileWait) : FourTileAmbiguity :=
+  wait.classification.ambiguity
 
 def extractions : FourTileWait → List FourTileExtraction
   | .noAmbiguityTankiShuntsu tanki shuntsu =>
@@ -536,12 +537,14 @@ theorem extractions_nonempty (wait : FourTileWait) : wait.extractions ≠ [] := 
 theorem noAmbiguity_extractionCount
     (wait : FourTileWait) (h : wait.ambiguity = .noAmbiguity) :
     wait.extractionCount = 1 := by
-  cases wait <;> simp [ambiguity] at h <;> simp [extractionCount, extractions]
+  cases wait <;> simp [ambiguity, classification] at h <;>
+    simp [extractionCount, extractions]
 
 theorem ambiguous_extractionCount
     (wait : FourTileWait) (h : wait.ambiguity = .ambiguous) :
     wait.extractionCount = 2 := by
-  cases wait <;> simp [ambiguity] at h <;> simp [extractionCount, extractions]
+  cases wait <;> simp [ambiguity, classification] at h <;>
+    simp [extractionCount, extractions]
 
 theorem exhaustive (wait : FourTileWait) : wait.kind ∈ FourTileWaitKind.all :=
   FourTileWaitKind.exhaustive wait.kind
@@ -604,16 +607,12 @@ inductive SevenTileWait
 | mentsuThen (mentsu : MentsuCandidate) (remaining : FourTileWait)
 deriving Repr
 
-inductive SevenTileReducibility
-| reducible
-| irreducible
-deriving BEq, DecidableEq, Repr, Fintype
+abbrev SevenTileReducibility := FourTileReducibility
 
 namespace SevenTileReducibility
 
-def ofFour : FourTileReducibility → SevenTileReducibility
-  | .reducible => .reducible
-  | .irreducible => .irreducible
+def ofFour (reducibility : FourTileReducibility) : SevenTileReducibility :=
+  reducibility
 
 end SevenTileReducibility
 
@@ -811,30 +810,6 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
       else
         none
 
-def meldCandidates : List (List Tile) :=
-  (suits.flatMap fun suit =>
-    List.ofFn fun start : Fin 7 =>
-      numberedRun suit start) ++
-  allTiles.map koutsuTiles
-
-def canFormMelds : Nat → List Tile → Bool
-  | 0, tiles => tiles.isEmpty
-  | fuel + 1, tiles =>
-      tiles.isEmpty || meldCandidates.any fun meld =>
-        match removeTiles tiles meld with
-        | some remaining => canFormMelds fuel remaining
-        | none => false
-
-def isWinning (tiles : List Tile) : Bool :=
-  tiles.length % 3 == 2 && allTiles.any fun pair =>
-    match removeTiles tiles (pairTiles pair) with
-    | some remaining => canFormMelds (remaining.length / 3) remaining
-    | none => false
-
-def waitingTiles (tiles : List Tile) : List Tile :=
-  allTiles.filter fun candidate =>
-    (tiles.count candidate < 4) && isWinning (candidate :: tiles)
-
 inductive TileChunk
 | pair (tile : Tile)
 | shuntsu (suit : Suit) (start : Fin 7)
@@ -907,6 +882,13 @@ def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
         (decomposeMelds (remaining.length / 3) remaining).map fun chunks =>
           pairChunk :: chunks
     | none => [])
+
+def isWinning (tiles : List Tile) : Bool :=
+  !(winningDecompositions tiles).isEmpty
+
+def waitingTiles (tiles : List Tile) : List Tile :=
+  allTiles.filter fun candidate =>
+    (tiles.count candidate < 4) && isWinning (candidate :: tiles)
 
 def waitDecompositionSet (tiles : List Tile) : List WaitDecomposition :=
   ((waitingTiles tiles).flatMap fun wait =>
