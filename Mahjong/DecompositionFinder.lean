@@ -206,6 +206,7 @@ def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
 def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
+def testHand2345555678 : List Tile := manzu [1, 2, 3, 4, 4, 4, 4, 5, 6, 7]
 
 private def manzuPair (rank : Rank) : TileChunk :=
   .pair (.numbered .Manzu rank)
@@ -227,6 +228,8 @@ example : waitingTiles testHandB = manzu [1, 2, 4, 5] := by native_decide
 example : waitingTiles testHandC = souzu [2, 3, 5, 6] := by native_decide
 
 example : waitingTiles testHandD = manzu [1, 4] ++ souzu [6] := by native_decide
+
+example : waitingTiles testHand2345555678 = manzu [1, 7] := by native_decide
 
 example : waitingTiles (manzu [0, 1]) = [] := by native_decide
 example : waitingTiles (manzu [0, 0, 0, 0, 0, 1, 2]) = [] := by native_decide
@@ -272,5 +275,13 @@ example : find testHand3335777 =
    manzuDecomposition 4 [manzuPair 4, manzuKoutsu 2, manzuKoutsu 6],
    manzuDecomposition 5 [manzuPair 6, manzuShuntsu 4, manzuKoutsu 2]] ∧
   (find testHand3335777).length = 3 := by native_decide
+
+-- 2345555678: 2待ちは22・345・555・678、8待ちは88・234・555・567
+example : find testHand2345555678 =
+  [manzuDecomposition 1
+      [manzuPair 1, manzuShuntsu 2, manzuShuntsu 5, manzuKoutsu 4],
+   manzuDecomposition 7
+      [manzuPair 7, manzuShuntsu 1, manzuShuntsu 4, manzuKoutsu 4]] ∧
+  (find testHand2345555678).length = 2 := by native_decide
 
 end DecompositionFinder
