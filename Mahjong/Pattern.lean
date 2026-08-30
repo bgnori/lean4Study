@@ -139,4 +139,3 @@ noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
   HasTilePattern.take candidate chunk
 
 end MentsuCandidate
-

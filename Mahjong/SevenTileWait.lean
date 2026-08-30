@@ -157,4 +157,3 @@ theorem is_mentsu_then_four (wait : SevenTileWait) :
   | mentsuThen mentsu remaining => exact ⟨mentsu, remaining, rfl⟩
 
 end SevenTileWait
-

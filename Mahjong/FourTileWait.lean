@@ -219,4 +219,3 @@ theorem exhaustive (wait : FourTileWait) : wait.kind ∈ FourTileWaitKind.all :=
   FourTileWaitKind.exhaustive wait.kind
 
 end FourTileWait
-

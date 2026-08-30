@@ -72,4 +72,3 @@ noncomputable def extractions (hand : Hand) : List HandExtraction :=
   HandExtraction.fromTiles 4 hand.toFinset
 
 end Hand
-

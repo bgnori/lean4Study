@@ -599,4 +599,3 @@ example : waitDecompositionSet testHand3335777 =
   (waitDecompositionSet testHand3335777).length = 3 := by native_decide
 
 end StandardWait
-
