@@ -16,19 +16,27 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Four-tile extraction syntax and named classification vocabulary.
    - Ambiguity and reducibility properties of each classification name.
 
-4. `Hand.lean`
+4. `FourTileWait/Specification.lean`
+   - Analyzer-independent profiles and the reference classification specification.
+
+5. `FourTileWait/Analysis.lean`
+   - Observation of profiles from standard-form winning decompositions.
+   - The executable classifier and its soundness/completeness theorems.
+   - Checked examples for all ten named classifications.
+
+6. `Hand.lean`
    - Hand sizes used in the study project.
    - Enumeration of possible hand extractions from physical tiles.
 
-5. `StandardWait.lean`
+7. `StandardWait.lean`
    - Shared standard-form semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
    - Executable decision procedures, winning decompositions, and irreducibility.
 
-6. `StandardWait/ShapeCode.lean`
+8. `StandardWait/ShapeCode.lean`
    - Normalized shape analysis and abstract shape codes.
-   - `classifyFourTile`, checked examples for all ten names, and the 53 one-suit irreducible seven-tile examples.
+   - The 53 one-suit irreducible seven-tile examples.
 
-7. `Tenpai.lean`
+9. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points

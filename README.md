@@ -23,6 +23,8 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── Basic.lean
 │   ├── Pattern.lean
 │   ├── FourTileWait.lean
+│   ├── FourTileWait/Specification.lean
+│   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
 │   ├── StandardWait.lean
 │   ├── StandardWait/ShapeCode.lean

@@ -23,6 +23,8 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── Basic.lean
 │   ├── Pattern.lean
 │   ├── FourTileWait.lean
+│   ├── FourTileWait/Specification.lean
+│   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
 │   ├── StandardWait.lean
 │   ├── StandardWait/ShapeCode.lean
