@@ -88,36 +88,21 @@ theorem pair_of_mem_pairChunkCandidates {chunk : TileChunk}
   obtain ⟨tile, _, rfl⟩ := List.mem_map.mp member
   exact ⟨.toitsu tile, rfl⟩
 
-/-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
+/-- 完成面子候補を完成部品として扱う候補列。 -/
 def mentsuChunkCandidates : List TileChunk :=
-  (Suit.all.flatMap fun suit =>
-    List.ofFn fun start : ShuntsuStart =>
-      TileChunk.shuntsu suit start) ++
-  Tile.all.map .koutsu
+  (MentsuCandidate.candidates).map fun mentsu => (Sum.inr mentsu : TileChunk)
 
   /-- 任意の完成面子は完成面子候補リストに含まれる。 -/
   theorem mentsu_mem_mentsuChunkCandidates (mentsu : MentsuCandidate) :
     (Sum.inr mentsu : TileChunk) ∈ mentsuChunkCandidates := by
-    cases mentsu with
-    | shuntsu sequence =>
-      rcases sequence with ⟨suit, start⟩
-      simp only [mentsuChunkCandidates, List.mem_append, List.mem_flatMap]
-      left
-      refine ⟨suit, by cases suit <;> simp [Suit.all], ?_⟩
-      exact List.mem_ofFn.mpr ⟨start, rfl⟩
-    | koutsu tile =>
-      simp [mentsuChunkCandidates, Tile.mem_all tile, TileChunk.koutsu]
+    exact List.mem_map.mpr ⟨mentsu, _root_.MentsuCandidate.mem_candidates mentsu, rfl⟩
 
   /-- 完成面子候補リストの要素は必ず面子チャンクである。 -/
   theorem mentsu_of_mem_mentsuChunkCandidates {chunk : TileChunk}
       (member : chunk ∈ mentsuChunkCandidates) :
       ∃ mentsu : MentsuCandidate, chunk = .inr mentsu := by
-    rcases List.mem_append.mp member with sequenceMember | tripletMember
-    · obtain ⟨suit, _, sequenceMember⟩ := List.mem_flatMap.mp sequenceMember
-      obtain ⟨start, _, rfl⟩ := List.mem_ofFn.mp sequenceMember
-      exact ⟨.shuntsu (.shuntsu suit start), rfl⟩
-    · obtain ⟨tile, _, rfl⟩ := List.mem_map.mp tripletMember
-      exact ⟨.koutsu tile, rfl⟩
+    obtain ⟨mentsu, _, rfl⟩ := List.mem_map.mp member
+    exact ⟨mentsu, rfl⟩
 
 /-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
 def decomposeMentsu : Nat → List Tile → List (List TileChunk)

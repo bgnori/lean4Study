@@ -95,7 +95,7 @@ noncomputable def fromTiles : Nat → Finset PhysicalTile → List HandExtractio
   | Nat.succ fuel, tiles =>
       tankiTerminals tiles ++
       waitTerminals tiles ++
-      MentsuCandidate.all.flatMap fun mentsu =>
+      MentsuCandidate.candidates.flatMap fun mentsu =>
         match Chunk.takeTilesFrom tiles mentsu.tiles with
         | some (taken, rest) =>
             (fromTiles fuel rest).map fun remaining =>
@@ -155,7 +155,7 @@ private theorem mem_waitTerminals_iff (tiles : Finset PhysicalTile)
 
 private theorem mem_mentsuExtractions_iff (fuel : Nat) (tiles : Finset PhysicalTile)
     (result : HandExtraction) :
-    result ∈ MentsuCandidate.all.flatMap (fun mentsu =>
+    result ∈ MentsuCandidate.candidates.flatMap (fun mentsu =>
       match Chunk.takeTilesFrom tiles mentsu.tiles with
       | some (taken, rest) =>
           (fromTiles fuel rest).map fun remaining => .mentsuThen mentsu taken remaining
@@ -175,7 +175,7 @@ private theorem mem_mentsuExtractions_iff (fuel : Nat) (tiles : Finset PhysicalT
         obtain ⟨remaining, next, rfl⟩ := member
         exact ⟨mentsu, taken, rest, remaining, take, next, rfl⟩
   · rintro ⟨mentsu, taken, rest, remaining, take, next, rfl⟩
-    exact ⟨mentsu, by simp [MentsuCandidate.all], by simp [take, next]⟩
+    exact ⟨mentsu, MentsuCandidate.mem_candidates mentsu, by simp [take, next]⟩
 
 /-- `fromTiles` は宣言的な抽出仕様に対して健全かつ完全である。 -/
 theorem mem_fromTiles_iff (fuel : Nat) (tiles : Finset PhysicalTile)

@@ -172,8 +172,8 @@ private theorem wait_mem_chunk_of_componentKind_isSome
       subst tile
       simp [TileChunk.tiles, Toitsu.tiles]
     · simp at valid
-  · rcases mentsu with sequence | tile
-    · rcases sequence with ⟨suit, start⟩
+  · rcases mentsu with shuntsuPattern | tile
+    · rcases shuntsuPattern with ⟨suit, start⟩
       cases wait with
       | honor honor => simp [componentKindWithoutWait] at valid
       | numbered waitSuit rank =>
@@ -205,8 +205,8 @@ private theorem componentKind_isSome_of_wait_mem
     simp [TileChunk.tiles, Toitsu.tiles] at member
     subst tile
     simp [componentKindWithoutWait]
-  · rcases mentsu with sequence | tile
-    · rcases sequence with ⟨suit, start⟩
+  · rcases mentsu with shuntsuPattern | tile
+    · rcases shuntsuPattern with ⟨suit, start⟩
       cases wait with
       | honor honor => simp [TileChunk.tiles, MentsuCandidate.tiles, Shuntsu.tiles] at member
       | numbered waitSuit rank =>
@@ -247,29 +247,11 @@ private theorem componentKind_isSome_of_wait_mem
 その部品に実際に含まれる最大3種類へ限定する。
 -/
 
-/-- 順子21種と刻子34種からなる、実行可能な完成面子候補リスト。 -/
-def mentsuCandidates : List MentsuCandidate :=
-  (Suit.all.flatMap fun suit =>
-    List.ofFn fun start : ShuntsuStart => MentsuCandidate.shuntsu (.shuntsu suit start)) ++
-  Tile.all.map MentsuCandidate.koutsu
-
-private theorem mem_mentsuCandidates (mentsu : MentsuCandidate) :
-    mentsu ∈ mentsuCandidates := by
-  cases mentsu with
-  | shuntsu sequence =>
-      rcases sequence with ⟨suit, start⟩
-      simp only [mentsuCandidates, List.mem_append, List.mem_flatMap]
-      left
-      refine ⟨suit, by cases suit <;> simp [Suit.all], ?_⟩
-      exact List.mem_ofFn.mpr ⟨start, rfl⟩
-  | koutsu tile =>
-      simp [mentsuCandidates, Tile.mem_all tile]
-
 /-- `n` 個の完成面子の全列。全関数の `Finset` を構築せず、先頭追加で生成する。 -/
 def mentsuFunctions : (n : Nat) → List (Fin n → MentsuCandidate)
   | 0 => [fun index => Fin.elim0 index]
   | n + 1 =>
-      mentsuCandidates.flatMap fun first =>
+      MentsuCandidate.candidates.flatMap fun first =>
         (mentsuFunctions n).map fun rest index => Fin.cases first rest index
 
 /-- 任意の面子関数は再帰生成リストに含まれる。 -/
@@ -285,7 +267,7 @@ private theorem mem_mentsuFunctions (mentsu : Fin n → MentsuCandidate) :
       let rest : Fin n → MentsuCandidate := fun index => mentsu index.succ
       have restMember := inductionHypothesis rest
       simp only [mentsuFunctions, List.mem_flatMap]
-      refine ⟨mentsu 0, mem_mentsuCandidates (mentsu 0), ?_⟩
+      refine ⟨mentsu 0, MentsuCandidate.mem_candidates (mentsu 0), ?_⟩
       apply List.mem_map.mpr
       refine ⟨rest, restMember, ?_⟩
       funext index
@@ -479,8 +461,8 @@ theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
 private theorem mentsuChunk_tiles_length (mentsu : MentsuCandidate) :
   (TileChunk.tiles (.inr mentsu)).length = mentsuTileCount := by
   cases mentsu with
-  | shuntsu sequence =>
-      cases sequence
+  | shuntsu shuntsuPattern =>
+      cases shuntsuPattern
       rfl
   | koutsu tile => rfl
 

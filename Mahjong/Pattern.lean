@@ -198,9 +198,28 @@ namespace MentsuCandidate
 noncomputable def all : List MentsuCandidate :=
   (Finset.univ : Finset MentsuCandidate).toList
 
+/-- 実行用の完成面子候補列。全順子候補と全刻子候補を含む。 -/
+def candidates : List MentsuCandidate :=
+  (Suit.all.flatMap fun suit =>
+    List.ofFn fun start : ShuntsuStart => MentsuCandidate.shuntsu (.shuntsu suit start)) ++
+  Tile.all.map MentsuCandidate.koutsu
+
+/-- 任意の完成面子は実行用候補列に含まれる。 -/
+theorem mem_candidates (mentsu : MentsuCandidate) :
+    mentsu ∈ candidates := by
+  cases mentsu with
+  | shuntsu shuntsuPattern =>
+      rcases shuntsuPattern with ⟨suit, start⟩
+      simp only [candidates, List.mem_append, List.mem_flatMap]
+      left
+      refine ⟨suit, by cases suit <;> simp [Suit.all], ?_⟩
+      exact List.mem_ofFn.mpr ⟨start, rfl⟩
+  | koutsu tile =>
+      simp [candidates, Tile.mem_all tile]
+
 /-- 完成面子候補を構成する3枚の牌種列。 -/
 def tiles : MentsuCandidate → List Tile
-  | .shuntsu sequence => sequence.tiles
+  | .shuntsu shuntsuPattern => shuntsuPattern.tiles
   | .koutsu tile => [tile, tile, tile]
 
 instance : HasTilePattern MentsuCandidate where
@@ -215,8 +234,8 @@ theorem honor_not_in_shuntsu (candidate : MentsuCandidate) (honor : Honor)
     (honor_mem : Tile.honor honor ∈ candidate.tiles) : ¬candidate.IsShuntsu := by
   cases candidate with
   | koutsu tile => simp [IsShuntsu]
-  | shuntsu sequence =>
-      cases sequence
+  | shuntsu shuntsuPattern =>
+      cases shuntsuPattern
       simp [tiles, Shuntsu.tiles] at honor_mem
 
 noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
