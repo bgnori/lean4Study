@@ -25,10 +25,24 @@ lean_lib «MahjongComputations» where
 lean_exe «four-tile-report-gen» where
   root := `MahjongComputations.FourTileReport
 
+lean_exe «seven-tile-report-gen» where
+  root := `MahjongComputations.SevenTileReport
+
 target fourTileReport pkg : FilePath := do
   let exeJob ← «four-tile-report-gen».fetch
   exeJob.mapM fun exeFile => do
     let reportFile := pkg.dir / "reports" / "four-tile-report.txt"
+    proc {
+      cmd := exeFile.toString
+      args := #[reportFile.toString]
+      cwd := some pkg.dir
+    }
+    return reportFile
+
+target sevenTileReport pkg : FilePath := do
+  let exeJob ← «seven-tile-report-gen».fetch
+  exeJob.mapM fun exeFile => do
+    let reportFile := pkg.dir / "reports" / "seven-tile-report.txt"
     proc {
       cmd := exeFile.toString
       args := #[reportFile.toString]

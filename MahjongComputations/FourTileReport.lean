@@ -70,10 +70,28 @@ private def reducibilityCount (reports : List FourTileShapeReport)
     (reducibility : WaitReducibility) : Nat :=
   (reports.filter fun report => report.reducibility == some reducibility).length
 
+private def reportsByReducibility (reducibility : WaitReducibility) : List FourTileShapeReport :=
+  tenpaiReports.filter fun report => report.reducibility == some reducibility
+
 private def waitCountLine (count : Nat) : String :=
   s!"{count} wait tile kinds: {(tenpaiReports.filter fun report => report.waits.length == count).length}"
 
+private def waitReadingCodeGroupLine (source : List FourTileShapeReport) (codes : List Nat) : String :=
+  let group := source.filter fun report => report.waitReadingCodes == codes
+  match group with
+  | [] => ""
+  | representative :: _ =>
+      String.intercalate "\t" [
+        toString codes,
+        toString group.length,
+        formatTiles representative.tiles,
+        formatTiles representative.waits
+      ]
+
 private def reportText : String :=
+  let reducibleReports := reportsByReducibility .reducible
+  let irreducibleReports := reportsByReducibility .irreducible
+  let nonTankiReducibleReports := reducibleReports.filter fun report => report.kind != some .tanki
   String.intercalate newline <|
     ["# Four-tile exhaustive wait report",
      "",
@@ -86,9 +104,20 @@ private def reportText : String :=
     countsByKind.map countLine ++
     ["",
      "## Reducibility",
-     s!"irreducible: {reducibilityCount tenpaiReports .irreducible}",
-     s!"reducible: {reducibilityCount tenpaiReports .reducible}",
      "",
+     "### Reducible",
+     s!"count: {reducibilityCount tenpaiReports .reducible}",
+     s!"nonTankiReports: {nonTankiReducibleReports.length}",
+     s!"allReportsAreTanki: {nonTankiReducibleReports.isEmpty}",
+     "",
+     "### Irreducible",
+     s!"count: {reducibilityCount tenpaiReports .irreducible}",
+     "",
+     "#### Groups by waitReadingCodes",
+     "waitReadingCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
+    (irreducibleReports.map (·.waitReadingCodes)).eraseDups.map
+      (waitReadingCodeGroupLine irreducibleReports) ++
+    ["",
      "## Wait tile count distribution"] ++
     ([1, 2, 3, 4].map waitCountLine) ++
     ["",
