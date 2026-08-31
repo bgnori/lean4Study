@@ -16,6 +16,9 @@ lean_lib «Lean4Project» where
 lean_lib «Mahjong» where
   -- Mahjong wait-classification study modules.
 
+lean_lib «MahjongTests» where
+  -- Computational regression tests, built explicitly with `lake build MahjongTests`.
+
 @[default_target]
 lean_exe «lean4-project» where
   root := `Main

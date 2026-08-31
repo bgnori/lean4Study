@@ -73,6 +73,13 @@ The old `mj.lean` file is kept only as a compatibility import for older notes.
 lake build Mahjong
 ```
 
+The computational regression tests are kept out of the production library so
+that normal builds do not repeatedly compile `native_decide` proofs:
+
+```bash
+lake build MahjongTests
+```
+
 For a single file:
 
 ```bash
@@ -81,4 +88,6 @@ lake env lean Mahjong/DecompositionFinder.lean
 
 ## Documentation Style
 
-The Lean files intentionally contain checked examples near the definitions they explain.  When adding a new classification rule or normalization scheme, prefer adding a small `example` close to the relevant definition so the documentation remains executable.
+Keep small proof examples near the definitions they explain. Put expensive
+`native_decide` regression tests under `MahjongTests/` so they are checked by
+the explicit test target without slowing normal library builds.

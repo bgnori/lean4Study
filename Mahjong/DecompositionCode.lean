@@ -212,36 +212,6 @@ def findAbstractDecompositionCodeWithWait (tiles : List Tile) : List (Nat × Til
 def findAbstractDecompositionCode (tiles : List Tile) : List Nat :=
   abstractDecompositionCode (DecompositionFinder.find tiles)
 
-private def decompositionCodeTestHand2345678 : List Tile :=
-  Tile.numberedTiles .Manzu [1, 2, 3, 4, 5, 6, 7]
-private def decompositionCodeTestHand1167888 : List Tile :=
-  Tile.numberedTiles .Manzu [0, 0, 5, 6, 7, 7, 7]
-private def decompositionCodeTestHand1166678 : List Tile :=
-  Tile.numberedTiles .Manzu [0, 0, 5, 5, 5, 6, 7]
-
-example : findAbstractDecompositionExtractions decompositionCodeTestHand2345678 =
-  [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },
-   { wait := .numbered .Manzu 4, components := [.tanki, .shuntsu, .shuntsu] },
-   { wait := .numbered .Manzu 7, components := [.tanki, .shuntsu, .shuntsu] }] := by
-  native_decide
-
-example : findDecompositionCodeEntries decompositionCodeTestHand2345678 =
-  [{ wait := .numbered .Manzu 1, code := 338 },
-   { wait := .numbered .Manzu 4, code := 338 },
-   { wait := .numbered .Manzu 7, code := 338 }] := by
-  native_decide
-
-example : findAbstractDecompositionCodeWithWait decompositionCodeTestHand2345678 =
-  [(338, .numbered .Manzu 1),
-   (338, .numbered .Manzu 4),
-   (338, .numbered .Manzu 7)] := by native_decide
-example : findAbstractDecompositionCode decompositionCodeTestHand2345678 = [338] := by native_decide
-example : findAbstractDecompositionCode decompositionCodeTestHand1167888 = [117, 255] := by native_decide
-example : findAbstractDecompositionCode decompositionCodeTestHand1166678 = [117, 255] := by native_decide
-example : findAbstractDecompositionCode decompositionCodeTestHand1167888 =
-  findAbstractDecompositionCode decompositionCodeTestHand1166678 := by
-  native_decide
-
 /--
 The 53 irreducible seven-tile waits using one numbered suit, normalized so the
 lowest rank is 1.  Replacing `m` with `p` or `s`, or translating a pattern
@@ -302,18 +272,6 @@ def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
    ("1111333m", manzu [0, 0, 0, 0, 2, 2, 2]),
    ("1111222m", manzu [0, 0, 0, 0, 1, 1, 1])]
 
-example : irreducibleSingleSuitSevenTileExamples.length = 53 := by native_decide
-
-private def isIrreducibleTenpai (tiles : List Tile) : Bool :=
-  if tenpai : IsTenpai tiles then
-    decide (IsIrreducible tiles tenpai)
-  else
-    false
-
-example : irreducibleSingleSuitSevenTileExamples.all
-    (fun entry => isIrreducibleTenpai entry.2) = true := by
-  native_decide
-
 private def insertAbstractDecompositionClass (entry : String × List Nat) :
   List (List Nat × List String) → List (List Nat × List String)
   | [] => [(entry.2, [entry.1])]
@@ -326,15 +284,5 @@ private def insertAbstractDecompositionClass (entry : String × List Nat) :
 def irreducibleSevenTileAbstractDecompositionClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
     insertAbstractDecompositionClass (entry.1, findAbstractDecompositionCode entry.2) classes) []
-
-example : irreducibleSevenTileAbstractDecompositionClasses.length = 26 := by native_decide
-
-example : irreducibleSevenTileAbstractDecompositionClasses.find? (fun entry =>
-    entry.1 == [117, 255]) = some
-      ([117, 255],
-       ["1178999m", "1167888m", "1166678m", "1156777m", "1155567m",
-        "1145666m", "1144456m", "1134555m", "1133345m", "1122234m",
-        "1112399m", "1112388m", "1112377m", "1112366m", "1112355m"]) := by
-  native_decide
 
 end DecompositionCode
