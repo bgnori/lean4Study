@@ -75,6 +75,13 @@ that normal builds do not repeatedly compile `native_decide` proofs:
 lake build MahjongTests
 ```
 
+Expensive exhaustive computations are also separated from the production
+library:
+
+```bash
+lake build MahjongComputations
+```
+
 For a single file:
 
 ```bash
@@ -85,4 +92,5 @@ lake env lean Mahjong/DecompositionFinder.lean
 
 Keep small proof examples near the definitions they explain. Put expensive
 `native_decide` regression tests under `MahjongTests/` so they are checked by
-the explicit test target without slowing normal library builds.
+the explicit test target without slowing normal library builds. Put broader
+enumerations and exploratory computations under `MahjongComputations/`.

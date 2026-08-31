@@ -31,6 +31,9 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── DecompositionCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
+├── MahjongComputations/   # Explicitly-built expensive/exhaustive computations
+│   ├── FourTile.lean
+│   └── README.md
 ```
 
 ## Build
@@ -43,6 +46,12 @@ To check only the Mahjong modules:
 
 ```bash
 lake build Mahjong
+```
+
+To run expensive/exhaustive Mahjong computations:
+
+```bash
+lake build MahjongComputations
 ```
 
 To check a single file directly:

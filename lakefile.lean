@@ -19,6 +19,9 @@ lean_lib «Mahjong» where
 lean_lib «MahjongTests» where
   -- Computational regression tests, built explicitly with `lake build MahjongTests`.
 
+lean_lib «MahjongComputations» where
+  -- Heavy exhaustive computations, built explicitly with `lake build MahjongComputations`.
+
 @[default_target]
 lean_exe «lean4-project» where
   root := `Main
