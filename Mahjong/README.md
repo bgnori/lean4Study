@@ -82,6 +82,12 @@ library:
 lake build MahjongComputations
 ```
 
+To write the four-tile exhaustive report:
+
+```bash
+lake build fourTileReport
+```
+
 For a single file:
 
 ```bash

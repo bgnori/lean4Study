@@ -54,6 +54,14 @@ To run expensive/exhaustive Mahjong computations:
 lake build MahjongComputations
 ```
 
+To generate the four-tile computation report:
+
+```bash
+lake build fourTileReport
+```
+
+The report is written to `reports/four-tile-report.txt`.
+
 To check a single file directly:
 
 ```bash

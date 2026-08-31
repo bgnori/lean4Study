@@ -34,6 +34,28 @@ def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
 def classifyWaitProfiles (profiles : List WaitProfile) : Option WaitKind :=
   WaitSpecification.expectedKind profiles
 
+private def basicWaitKindOfProfile : WaitProfile → WaitKind
+  | .tanki _ => .tanki
+  | .toitsuRyanmen => .toitsuRyanmen
+  | .toitsuKanchan => .toitsuKanchan
+  | .toitsuPenchan => .toitsuPenchan
+  | .shanpon => .shanpon
+
+/--
+観測された基本形列から、人間向けの代表分類へ畳む前の候補分類を広めに列挙する。
+
+`classifyWaitProfiles` は正規化済みの代表分類を1つ返すが、この関数は
+`2234m` のように単騎読みと両面読みが共存する牌姿を曖昧なまま保持する。
+-/
+def candidateWaitKindsOfProfiles (profiles : List WaitProfile) : List WaitKind :=
+  let basicKinds := profiles.map basicWaitKindOfProfile
+  let aliasKinds :=
+    (if WaitSpecification.HasNobetanReading profiles then [.nobetan] else []) ++
+    (if WaitSpecification.HasKuttsukiRyanmen profiles then [.kuttsukiRyanmen] else []) ++
+    (if WaitSpecification.HasKuttsukiKanchan profiles then [.kuttsukiKanchan] else []) ++
+    (if WaitSpecification.HasKuttsukiPenchan profiles then [.kuttsukiPenchan] else [])
+  (basicKinds ++ aliasKinds).eraseDups
+
 /-- 基本形上の解析器は宣言的な分類仕様に対して健全かつ完全である。 -/
 theorem classifyWaitProfiles_iff (profiles : List WaitProfile)
     (kind : WaitKind) :
@@ -44,6 +66,10 @@ theorem classifyWaitProfiles_iff (profiles : List WaitProfile)
 /-- 牌列に名前付き分類を与える解析器。 -/
 def classifyWait (tiles : List Tile) : Option WaitKind :=
   classifyWaitProfiles (observedWaitProfiles tiles)
+
+/-- 牌列に対する、代表分類へ畳む前の候補分類。 -/
+def candidateWaitKinds (tiles : List Tile) : List WaitKind :=
+  candidateWaitKindsOfProfiles (observedWaitProfiles tiles)
 
 /-- 牌列が名前付き分類の仕様を満たすこと。 -/
 def HasWaitKind (tiles : List Tile) (kind : WaitKind) : Prop :=

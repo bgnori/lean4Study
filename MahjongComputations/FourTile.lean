@@ -18,6 +18,7 @@ structure FourTileShapeReport where
   tiles : List Tile
   waits : List Tile
   kind : Option WaitKind
+  candidateKinds : List WaitKind
   reducibility : Option WaitReducibility
   decompositionCodes : List Nat
 deriving BEq, DecidableEq, Repr
@@ -40,6 +41,7 @@ def report (tiles : List Tile) : FourTileShapeReport :=
   { tiles
     waits := waitingTiles tiles
     kind := WaitAnalysis.classifyWait tiles
+    candidateKinds := WaitAnalysis.candidateWaitKinds tiles
     reducibility := WaitAnalysis.determineReducibility tiles
     decompositionCodes := findAbstractDecompositionCode tiles }
 
@@ -54,6 +56,7 @@ def tenpaiReports : List FourTileShapeReport :=
         { tiles
           waits
           kind := WaitAnalysis.classifyWait tiles
+          candidateKinds := WaitAnalysis.candidateWaitKinds tiles
           reducibility := WaitAnalysis.determineReducibility tiles
           decompositionCodes := findAbstractDecompositionCode tiles }
 
@@ -69,9 +72,17 @@ def countsByKind : List (WaitKind × Nat) :=
 def unclassifiedTenpaiReports : List FourTileShapeReport :=
   tenpaiReports.filter fun report => report.kind.isNone
 
+/-- Four-tile tenpai shapes with more than one broad candidate wait kind. -/
+def ambiguousReports : List FourTileShapeReport :=
+  tenpaiReports.filter fun report => 1 < report.candidateKinds.length
+
 /-- Irreducible four-tile tenpai shapes. -/
 def irreducibleReports : List FourTileShapeReport :=
   tenpaiReports.filter fun report => report.reducibility == some .irreducible
+
+example :
+    (report (manzu [1, 1, 2, 3])).candidateKinds = [.tanki, .toitsuRyanmen] := by
+  native_decide
 
 example : allFourTileShapes.length = 66045 := by
   native_decide
