@@ -71,10 +71,10 @@ private def reducibilityCount (reports : List FourTileShapeReport)
   (reports.filter fun report => report.reducibility == some reducibility).length
 
 private def reportsByReducibility (reducibility : WaitReducibility) : List FourTileShapeReport :=
-  tenpaiReports.filter fun report => report.reducibility == some reducibility
+  directReadingTenpaiReports.filter fun report => report.reducibility == some reducibility
 
 private def waitCountLine (count : Nat) : String :=
-  s!"{count} wait tile kinds: {(tenpaiReports.filter fun report => report.waits.length == count).length}"
+  s!"{count} wait tile kinds: {(directReadingTenpaiReports.filter fun report => report.waits.length == count).length}"
 
 private def waitReadingCodeGroupLine (source : List FourTileShapeReport) (codes : List Nat) : String :=
   let group := source.filter fun report => report.waitReadingCodes == codes
@@ -93,15 +93,17 @@ private def reportText : String :=
   let irreducibleReports := reportsByReducibility .irreducible
   let nonTankiReducibleReports := reducibleReports.filter fun report => report.kind != some .tanki
   String.intercalate newline <|
-    ["# Four-tile exhaustive wait report",
+    ["# Four-tile direct Reading wait report",
      "",
      s!"allFourTileShapes: {allFourTileShapes.length}",
-     s!"tenpaiReports: {tenpaiReports.length}",
-     s!"unclassifiedTenpaiReports: {unclassifiedTenpaiReports.length}",
-     s!"ambiguousReports: {ambiguousReports.length}",
+     s!"enumeratedReadings: {directReadingCount}",
+     s!"tenpaiReports: {directReadingTenpaiReports.length}",
+     s!"unclassifiedTenpaiReports: {(directReadingTenpaiReports.filter fun report => report.kind.isNone).length}",
+     s!"ambiguousReports: {(directReadingTenpaiReports.filter fun report => 1 < report.candidateKinds.length).length}",
      "",
      "## Counts by representative kind"] ++
-    countsByKind.map countLine ++
+    (WaitKind.all.map fun kind =>
+      countLine (kind, (directReadingTenpaiReports.filter fun report => report.kind == some kind).length)) ++
     ["",
      "## Reducibility",
      "",
@@ -123,11 +125,11 @@ private def reportText : String :=
     ["",
      "## Tenpai reports",
     "tiles\twaits\trepresentativeKind\tcandidateKinds\treducibility\twaitReadingCodes"] ++
-    tenpaiReports.map reportLine ++
+    directReadingTenpaiReports.map reportLine ++
     [""]
 
 def run (args : List String) : IO UInt32 := do
-  let outputPath := args.head?.getD "reports/four-tile-report.txt"
+  let outputPath := args.head?.getD "reports/four-tile-direct-report.txt"
   let path : System.FilePath := outputPath
   if let some parent := path.parent then
     IO.FS.createDirAll parent

@@ -31,7 +31,7 @@ lean_exe «seven-tile-report-gen» where
 target fourTileReport pkg : FilePath := do
   let exeJob ← «four-tile-report-gen».fetch
   exeJob.mapM fun exeFile => do
-    let reportFile := pkg.dir / "reports" / "four-tile-report.txt"
+    let reportFile := pkg.dir / "reports" / "four-tile-direct-report.txt"
     proc {
       cmd := exeFile.toString
       args := #[reportFile.toString]
