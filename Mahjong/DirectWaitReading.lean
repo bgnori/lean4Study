@@ -28,7 +28,8 @@ import Mathlib.Logic.Equiv.List
 同じ牌姿へ射影される異なる Reading は、異なる待ち牌や和了分割に由来する曖昧さである。
 `readingsForHand` をこの射影のファイバーとして定義し、
 `directly_generated_readings_complete` により、直接生成器がその曖昧さを過不足なく回収する
-ことを示す。
+ことを示す。さらに `mem_findWaitCompletions_iff_exists_reading` は、既存 Finder の各結果と
+通常手範囲の直接生成 Reading の存在が、牌姿のリスト順を正規化すれば同値であることを示す。
 -/
 
 namespace DirectWaitReading
@@ -74,13 +75,6 @@ structure Seed (n : Nat) where
   wait : Tile
 deriving BEq, DecidableEq, Fintype
 
-private def chunkOrderKey : TileChunk → Nat
-  | .inl (.toitsu tile) => tile.orderKey
-  | .inr (.shuntsu (.shuntsu suit start)) =>
-      Tile.count + suit.orderKey * shuntsuStartCount + start.val
-  | .inr (.koutsu tile) =>
-      Tile.count + Suit.count * shuntsuStartCount + tile.orderKey
-
 private def componentKindWithoutWait (wait : Tile) : TileChunk → Option WaitReadingComponentKind
   | .inl (.toitsu tile) =>
       if tile == wait then some .tanki else none
@@ -102,9 +96,43 @@ private def keysNondecreasing : List Nat → Bool
   | [] | [_] => true
   | first :: second :: rest => first ≤ second && keysNondecreasing (second :: rest)
 
+private def mentsuOrderLE (first second : MentsuCandidate) : Bool :=
+  decide (TileChunk.orderKey (.inr first) ≤ TileChunk.orderKey (.inr second))
+
+private def canonicalMentsu (mentsu : List MentsuCandidate) : List MentsuCandidate :=
+  mentsu.mergeSort mentsuOrderLE
+
+private theorem keysNondecreasing_of_pairwise {keys : List Nat}
+    (sorted : keys.Pairwise fun first second => decide (first ≤ second) = true) :
+    keysNondecreasing keys = true := by
+  induction keys with
+  | nil => rfl
+  | cons first rest inductionHypothesis =>
+      cases rest with
+      | nil => rfl
+      | cons second tail =>
+          simp only [keysNondecreasing, Bool.and_eq_true]
+          constructor
+          · cases sorted with
+            | cons head _ => exact head second (by simp)
+          · exact inductionHypothesis sorted.tail
+
+private theorem canonicalMentsu_keysNondecreasing (mentsu : List MentsuCandidate) :
+    keysNondecreasing
+      ((canonicalMentsu mentsu).map fun candidate => TileChunk.orderKey (.inr candidate)) =
+      true := by
+  apply keysNondecreasing_of_pairwise
+  have sorted := List.pairwise_mergeSort
+    (le := mentsuOrderLE) (by simp [mentsuOrderLE]; omega)
+      (by simp [mentsuOrderLE, Nat.le_total]) mentsu
+  apply List.Pairwise.map
+    (fun candidate : MentsuCandidate => TileChunk.orderKey (.inr candidate))
+    (fun _ _ relation => by simpa [mentsuOrderLE] using relation)
+    sorted
+
 private def mentsuCanonical (shape : WinningShape n) : Bool :=
   keysNondecreasing ((List.ofFn shape.mentsu).map fun mentsu =>
-    chunkOrderKey (.inr mentsu))
+    TileChunk.orderKey (.inr mentsu))
 
 private def selectedIsCanonical (seed : Seed n) : Bool :=
   match seed.selected with
@@ -168,6 +196,47 @@ private theorem wait_mem_chunk_of_componentKind_isSome
         subst tile
         simp [TileChunk.tiles, MentsuCandidate.tiles]
       · simp at valid
+
+private theorem componentKind_isSome_of_wait_mem
+    (wait : Tile) (chunk : TileChunk) (member : wait ∈ chunk.tiles) :
+    (componentKindWithoutWait wait chunk).isSome = true := by
+  rcases chunk with pair | mentsu
+  · rcases pair with ⟨tile⟩
+    simp [TileChunk.tiles, Toitsu.tiles] at member
+    subst tile
+    simp [componentKindWithoutWait]
+  · rcases mentsu with sequence | tile
+    · rcases sequence with ⟨suit, start⟩
+      cases wait with
+      | honor honor => simp [TileChunk.tiles, MentsuCandidate.tiles, Shuntsu.tiles] at member
+      | numbered waitSuit rank =>
+          simp only [TileChunk.tiles, MentsuCandidate.tiles, Shuntsu.tiles,
+            List.mem_cons] at member
+          rcases member with first | middle | last | impossible
+          · injection first with suitEq rankEq
+            subst waitSuit
+            subst rank
+            simp [componentKindWithoutWait]
+          · injection middle with suitEq rankEq
+            subst waitSuit
+            subst rank
+            simp only [componentKindWithoutWait]
+            rw [show (suit != suit) = false by simp]
+            simp only [Bool.false_eq_true, ↓reduceIte]
+            split <;> simp
+          · injection last with suitEq rankEq
+            subst waitSuit
+            subst rank
+            simp only [componentKindWithoutWait]
+            rw [show (suit != suit) = false by simp]
+            simp only [Bool.false_eq_true, ↓reduceIte]
+            split
+            · simp
+            · split <;> simp
+          · contradiction
+    · simp [TileChunk.tiles, MentsuCandidate.tiles] at member
+      subst tile
+      simp [componentKindWithoutWait]
 
 /-!
 ## 直接生成器
@@ -342,8 +411,28 @@ theorem sparseCode_injective : Function.Injective (sparseCode (n := n)) := by
   exact (@Encodable.encode_injective (Seed n) (seedEncodable n)) equal
 
 /-- リストを牌種順に並べ、牌姿を多重集合の標準表現にする。 -/
+private def tileOrderLE (first second : Tile) : Bool :=
+  decide (first.orderKey ≤ second.orderKey)
+
 def canonicalTiles (tiles : List Tile) : List Tile :=
-  tiles.mergeSort fun first second => first.orderKey ≤ second.orderKey
+  tiles.mergeSort tileOrderLE
+
+private theorem canonicalTiles_eq_of_perm {first second : List Tile}
+    (permutation : first.Perm second) :
+    canonicalTiles first = canonicalTiles second := by
+  apply List.Perm.eq_of_pairwise (le := fun a b => a.orderKey ≤ b.orderKey)
+  · intro a b _ _ firstLe secondLe
+    have keyEq : a.orderKey = b.orderKey := by omega
+    have : Function.Injective Tile.orderKey := by native_decide
+    exact this keyEq
+  · simpa [canonicalTiles, tileOrderLE] using List.pairwise_mergeSort
+      (le := tileOrderLE) (by simp [tileOrderLE]; omega)
+        (by simp [tileOrderLE, Nat.le_total]) first
+  · simpa [canonicalTiles, tileOrderLE] using List.pairwise_mergeSort
+      (le := tileOrderLE) (by simp [tileOrderLE]; omega)
+        (by simp [tileOrderLE, Nat.le_total]) second
+  · exact (List.mergeSort_perm _ _).trans
+      (permutation.trans (List.mergeSort_perm _ _).symm)
 
 /-- Reading から待ち牌を1枚除いて得られる `1 + 3n` 枚の牌姿。 -/
 def hand (reading : Reading n) : List Tile :=
@@ -387,10 +476,303 @@ theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
   exact (List.mergeSort_perm _ _).cons reading.1.wait |>.trans
     (List.perm_cons_erase waitInShape).symm
 
+private theorem mentsuChunk_tiles_length (mentsu : MentsuCandidate) :
+  (TileChunk.tiles (.inr mentsu)).length = mentsuTileCount := by
+  cases mentsu with
+  | shuntsu sequence =>
+      cases sequence
+      rfl
+  | koutsu tile => rfl
+
+private theorem mentsuChunks_tiles_length (mentsu : List MentsuCandidate) :
+    ((mentsu.map fun candidate => (Sum.inr candidate : TileChunk)).flatMap
+      TileChunk.tiles).length = mentsu.length * mentsuTileCount := by
+  induction mentsu with
+  | nil => rfl
+  | cons first rest inductionHypothesis =>
+      simp only [List.map_cons, List.flatMap_cons, List.length_append]
+      rw [mentsuChunk_tiles_length, inductionHypothesis]
+      simp [Nat.add_mul, Nat.add_comm]
+
+private theorem winningShape_tiles_length (shape : WinningShape n) :
+    shape.tiles.length = n * mentsuTileCount + 2 := by
+  have restLength := mentsuChunks_tiles_length (List.ofFn shape.mentsu)
+  simp only [WinningShape.tiles, WinningShape.chunks, List.flatMap_cons,
+    List.length_append]
+  rw [restLength]
+  simp [TileChunk.tiles, Toitsu.tiles, Nat.add_comm]
+
+private theorem winningShape_partition (shape : WinningShape n) :
+    WinningPartition shape.tiles shape.chunks := by
+  let rest : List TileChunk :=
+    (List.ofFn shape.mentsu).map fun candidate => (Sum.inr candidate : TileChunk)
+  have allMentsu : ∀ chunk ∈ rest, chunk ∈ mentsuChunkCandidates := by
+    intro chunk member
+    obtain ⟨candidate, _, rfl⟩ := List.mem_map.mp member
+    exact mentsu_mem_mentsuChunkCandidates candidate
+  have tail := mentsuPartition_flatMap rest allMentsu
+  have restLength : rest.length = n := by simp [rest]
+  have remainingLength :
+      (rest.flatMap TileChunk.tiles).length = n * mentsuTileCount := by
+    simpa [rest] using mentsuChunks_tiles_length (List.ofFn shape.mentsu)
+  rw [restLength] at tail
+  have fuelEq : (rest.flatMap TileChunk.tiles).length / mentsuTileCount = n := by
+    rw [remainingLength]
+    simp [mentsuTileCount]
+  rw [← fuelEq] at tail
+  have removePair :
+      removeTiles shape.tiles (TileChunk.tiles (.inl shape.pair)) =
+        some (rest.flatMap TileChunk.tiles) := by
+    simpa [WinningShape.tiles, WinningShape.chunks, rest] using
+      removeTiles_append_left (TileChunk.tiles (.inl shape.pair))
+        (rest.flatMap TileChunk.tiles)
+  exact .intro (.inl shape.pair) (pair_mem_pairChunkCandidates shape.pair)
+    removePair tail
+
+private theorem hasLegalTileCounts_of_valid (reading : Reading n) :
+    HasLegalTileCounts reading.1.shape.tiles := by
+  intro tile
+  have validParts :
+      (((componentKindWithoutWait reading.1.wait
+          (reading.1.shape.chunk reading.1.selected)).isSome = true ∧
+        hasLegalTileCounts reading.1.shape.tiles = true) ∧
+        mentsuCanonical reading.1.shape = true) ∧
+        selectedIsCanonical reading.1 = true := by
+    simpa only [Seed.valid, Bool.and_eq_true] using reading.2
+  have allCounts := List.all_eq_true.mp validParts.1.1.2 tile (Tile.mem_all tile)
+  simpa using allCounts
+
+private theorem reading_waitFor (reading : Reading n) (standard : n ≤ standardHandMentsuCount) :
+    IsWaitFor (hand reading) reading.1.wait := by
+  have permutation := wait_cons_hand_perm_winningShape reading
+  have partition : WinningPartition (reading.1.wait :: hand reading) reading.1.shape.chunks :=
+    (winningShape_partition reading.1.shape).of_perm permutation.symm
+  have partitionMember :=
+    (mem_winningPartitions_iff _ _).mpr partition
+  have shapeLegal := hasLegalTileCounts_of_valid reading
+  have countEq := permutation.count reading.1.wait
+  have lengthEq := permutation.length_eq
+  constructor
+  · constructor
+    · unfold IsTenpaiHandSize
+      rw [winningShape_tiles_length reading.1.shape] at lengthEq
+      simp only [List.length_cons] at lengthEq
+      simp [mentsuTileCount] at lengthEq
+      simp [standardHandMentsuCount] at standard
+      omega
+    · intro tile
+      have tileCountEq := permutation.count tile
+      have shapeCount := shapeLegal tile
+      by_cases same : tile = reading.1.wait
+      · subst tile
+        simp at tileCountEq
+        omega
+      · have reverseDifferent : reading.1.wait ≠ tile := Ne.symm same
+        have different : (reading.1.wait == tile) = false := by
+          simp [reverseDifferent]
+        simp only [List.count_cons, different] at tileCountEq
+        omega
+  · constructor
+    · have waitCount := shapeLegal reading.1.wait
+      simp only [List.count_cons, beq_self_eq_true, ite_true] at countEq
+      omega
+    · unfold IsStandardAgari isWinning
+      have nonempty : winningPartitions (reading.1.wait :: hand reading) ≠ [] :=
+        List.ne_nil_of_mem partitionMember
+      simp [nonempty]
+
 /-- Reading に対応する待ち牌と完成分割。既存の探索器と接続するための表示である。 -/
 def completion (reading : Reading n) : WaitCompletion :=
   { wait := reading.1.wait
     winningChunks := TileChunk.canonicalize reading.1.shape.chunks }
+
+/-- 通常手範囲の直接生成 Reading は、既存 Finder の出力に必ず現れる。 -/
+theorem completion_mem_findWaitCompletions (reading : Reading n)
+    (standard : n ≤ standardHandMentsuCount) :
+    completion reading ∈ findWaitCompletions (hand reading) := by
+  apply (mem_findWaitCompletions_iff _ _).mpr
+  exact .intro reading.1.wait reading.1.shape.chunks
+    (reading_waitFor reading standard)
+    ((winningShape_partition reading.1.shape).of_perm
+      (wait_cons_hand_perm_winningShape reading).symm)
+
+private theorem legal_cons_of_waitFor {tiles : List Tile} {wait : Tile}
+    (waitFor : IsWaitFor tiles wait) : HasLegalTileCounts (wait :: tiles) := by
+  intro tile
+  rcases waitFor with ⟨⟨_, legal⟩, waitCount, _⟩
+  by_cases same : tile = wait
+  · subst tile
+    simp
+    omega
+  · have reverseDifferent : wait ≠ tile := Ne.symm same
+    simp [reverseDifferent, legal tile]
+
+private theorem all_eq_true_of_perm {first second : List Tile}
+    (permutation : first.Perm second) (legal : HasLegalTileCounts second) :
+    hasLegalTileCounts first = true := by
+  apply List.all_eq_true.mpr
+  intro tile _
+  have countEq := permutation.count tile
+  simpa [countEq] using legal tile
+
+private theorem selectedCanonical_at_idxOf {candidate : MentsuCandidate}
+    {mentsu : List MentsuCandidate} (member : candidate ∈ mentsu) :
+    ((mentsu.take (mentsu.idxOf candidate)).all fun earlier => earlier != candidate) = true := by
+  apply List.all_eq_true.mpr
+  intro earlier earlierMember
+  have earlierNe : earlier ≠ candidate := by
+    intro equal
+    subst earlier
+    exact Nat.lt_irrefl _ ((List.mem_take_iff_idxOf_lt member).mp earlierMember)
+  simp [earlierNe]
+
+/--
+既存 Finder が返す各 completion には、それと同じ牌姿・待ち牌・正規化分割を持つ
+直接生成 Reading が存在する。面子数は Finder の分割から復元する。
+-/
+theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
+    {found : WaitCompletion} (member : found ∈ findWaitCompletions tiles) :
+    ∃ n, ∃ reading : Reading n,
+  n ≤ standardHandMentsuCount ∧
+  hand reading = canonicalTiles tiles ∧ completion reading = found := by
+  have completionFor := (mem_findWaitCompletions_iff tiles found).mp member
+  cases completionFor with
+  | intro wait rawChunks waitFor partition =>
+      cases partition with
+      | intro pairChunk pairCandidate removePair mentsuPartition =>
+        rename_i remaining rest
+        obtain ⟨pair, rfl⟩ := pair_of_mem_pairChunkCandidates pairCandidate
+        obtain ⟨rawMentsu, restEq⟩ := mentsuPartition.exists_candidates
+        subst rest
+        let sorted := canonicalMentsu rawMentsu
+        let shape : WinningShape sorted.length :=
+          { pair
+            mentsu := sorted.get }
+        have shapeMentsu : List.ofFn shape.mentsu = sorted := by
+          exact List.ofFn_get sorted
+        have sortedPerm : sorted.Perm rawMentsu :=
+          List.mergeSort_perm _ _
+        have chunksPerm : shape.chunks.Perm
+            (.inl pair :: rawMentsu.map fun candidate => (Sum.inr candidate : TileChunk)) := by
+          simp only [WinningShape.chunks, shapeMentsu]
+          exact List.Perm.cons (.inl pair)
+            (sortedPerm.map fun candidate => (Sum.inr candidate : TileChunk))
+        have rawTilesPerm :
+            ((.inl pair : TileChunk) :: rawMentsu.map fun candidate =>
+              (Sum.inr candidate : TileChunk)).flatMap TileChunk.tiles |>.Perm
+                (wait :: tiles) := by
+          have withPair := List.Perm.append_left (TileChunk.tiles (.inl pair))
+            mentsuPartition.tiles_perm
+          exact withPair.trans
+            ((exists_removeTiles_eq_some_iff_perm (wait :: tiles)
+              (TileChunk.tiles (.inl pair)) remaining).mp
+              ⟨remaining, removePair, .refl remaining⟩)
+        have shapeTilesPerm : shape.tiles.Perm (wait :: tiles) := by
+          exact (chunksPerm.flatMap fun _ _ => .refl _).trans rawTilesPerm
+        have shapeLegal : hasLegalTileCounts shape.tiles = true :=
+          all_eq_true_of_perm shapeTilesPerm (legal_cons_of_waitFor waitFor)
+        have standard : sorted.length ≤ standardHandMentsuCount := by
+          have legalSize := waitFor.1.1
+          have lengthEq := shapeTilesPerm.length_eq
+          rw [winningShape_tiles_length shape] at lengthEq
+          simp only [List.length_cons] at lengthEq
+          simp [mentsuTileCount, standardHandMentsuCount] at lengthEq ⊢
+          rcases legalSize with one | four | seven | ten | thirteen <;> omega
+        have waitInRaw : wait ∈
+            ((.inl pair : TileChunk) :: rawMentsu.map fun candidate =>
+              (Sum.inr candidate : TileChunk)).flatMap TileChunk.tiles :=
+          rawTilesPerm.mem_iff.mpr (by simp)
+        by_cases waitInPair : wait ∈ (TileChunk.tiles (.inl pair))
+        · let seed : Seed sorted.length :=
+            { shape
+              selected := .pair
+              wait }
+          have seedValid : seed.valid := by
+            simp only [Seed.valid, Bool.and_eq_true]
+            refine ⟨⟨⟨componentKind_isSome_of_wait_mem wait (.inl pair) waitInPair,
+              shapeLegal⟩, ?_⟩, rfl⟩
+            change mentsuCanonical shape = true
+            unfold mentsuCanonical
+            change keysNondecreasing
+              ((List.ofFn shape.mentsu).map fun candidate =>
+                TileChunk.orderKey (.inr candidate)) = true
+            rw [shapeMentsu]
+            exact canonicalMentsu_keysNondecreasing rawMentsu
+          let reading : Reading sorted.length := ⟨seed, seedValid⟩
+          refine ⟨sorted.length, reading, standard, ?_, ?_⟩
+          · apply canonicalTiles_eq_of_perm
+            exact (List.Perm.erase wait shapeTilesPerm).trans
+              (List.Perm.cons_inv (List.perm_cons_erase (by simp)).symm)
+          · unfold completion
+            congr 1
+            exact TileChunk.canonicalize_eq_of_perm chunksPerm
+        · have waitInMentsu : wait ∈
+              (rawMentsu.map fun candidate => (Sum.inr candidate : TileChunk)).flatMap
+                TileChunk.tiles := by
+            simpa [waitInPair] using waitInRaw
+          obtain ⟨chunk, chunkMember, waitInChunk⟩ := List.mem_flatMap.mp waitInMentsu
+          obtain ⟨candidate, candidateMember, chunkEq⟩ := List.mem_map.mp chunkMember
+          subst chunk
+          have candidateSorted : candidate ∈ sorted :=
+            List.mem_mergeSort.mpr candidateMember
+          let selectedValue : Nat := sorted.idxOf candidate
+          have selectedLt : selectedValue < sorted.length :=
+            List.idxOf_lt_length_iff.mpr candidateSorted
+          let selected : Fin sorted.length := ⟨selectedValue, selectedLt⟩
+          have selectedEq : shape.mentsu selected = candidate := by
+            exact List.getElem_idxOf selectedLt
+          let seed : Seed sorted.length :=
+            { shape
+              selected := .mentsu selected
+              wait }
+          have seedValid : seed.valid := by
+            simp only [Seed.valid, Bool.and_eq_true]
+            refine ⟨⟨⟨?_, shapeLegal⟩, ?_⟩, ?_⟩
+            · change (componentKindWithoutWait wait
+                (.inr (shape.mentsu selected))).isSome = true
+              rw [selectedEq]
+              exact componentKind_isSome_of_wait_mem wait (.inr candidate) waitInChunk
+            · change keysNondecreasing
+                ((List.ofFn shape.mentsu).map fun value =>
+                  TileChunk.orderKey (.inr value)) = true
+              rw [shapeMentsu]
+              exact canonicalMentsu_keysNondecreasing rawMentsu
+            · change selectedIsCanonical
+                { shape := shape, selected := .mentsu selected, wait := wait } = true
+              simp only [selectedIsCanonical]
+              rw [shapeMentsu, selectedEq]
+              change ((sorted.take (sorted.idxOf candidate)).all fun earlier =>
+                earlier != candidate) = true
+              exact selectedCanonical_at_idxOf candidateSorted
+          let reading : Reading sorted.length := ⟨seed, seedValid⟩
+          refine ⟨sorted.length, reading, standard, ?_, ?_⟩
+          · apply canonicalTiles_eq_of_perm
+            exact (List.Perm.erase wait shapeTilesPerm).trans
+              (List.Perm.cons_inv (List.perm_cons_erase (by simp)).symm)
+          · unfold completion
+            congr 1
+            exact TileChunk.canonicalize_eq_of_perm chunksPerm
+
+/--
+既存 Finder の出力と直接生成 Reading は、牌姿のリスト順を正規化すれば完全に同値である。
+
+右辺は牌姿全体を列挙せず、1つの Reading とその通常手範囲の証拠だけを要求する。
+-/
+theorem mem_findWaitCompletions_iff_exists_reading
+    (tiles : List Tile) (found : WaitCompletion) :
+    found ∈ findWaitCompletions tiles ↔
+      ∃ n, ∃ reading : Reading n,
+        n ≤ standardHandMentsuCount ∧
+        hand reading = canonicalTiles tiles ∧ completion reading = found := by
+  constructor
+  · exact exists_reading_of_mem_findWaitCompletions
+  · rintro ⟨n, reading, standard, handEq, rfl⟩
+    have generated := completion_mem_findWaitCompletions reading standard
+    have generatedMeaning := (mem_findWaitCompletions_iff _ _).mp generated
+    apply (mem_findWaitCompletions_iff _ _).mpr
+    apply generatedMeaning.of_perm
+    rw [handEq]
+    exact List.mergeSort_perm _ _
 
 /-- `n` 面子 Reading の総数。完全ハッシュで使える自然数の上限でもある。 -/
 abbrev readingCount (n : Nat) : Nat := Fintype.card (Reading n)

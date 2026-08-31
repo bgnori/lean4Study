@@ -23,9 +23,70 @@ def removeTiles : List Tile → List Tile → Option (List Tile)
       else
         none
 
+/--
+多重集合的な除去が `remaining` を返すことと、除去対象と残りを合わせた牌列が元の牌列の
+順列であることは同値。これにより、`removeTiles` の成否が入力リストの並び順に依存しない。
+-/
+theorem exists_removeTiles_eq_some_iff_perm (available wanted remaining : List Tile) :
+    (∃ output, removeTiles available wanted = some output ∧ output.Perm remaining) ↔
+      (wanted ++ remaining).Perm available := by
+  induction wanted generalizing available with
+  | nil =>
+      constructor
+      · rintro ⟨output, removed, permutation⟩
+        simp only [removeTiles, Option.some.injEq] at removed
+        subst output
+        exact permutation.symm
+      · intro permutation
+        exact ⟨available, rfl, permutation.symm⟩
+  | cons tile wanted inductionHypothesis =>
+      constructor
+      · rintro ⟨output, removed, outputPerm⟩
+        simp only [removeTiles] at removed
+        split at removed
+        · rename_i present
+          have member : tile ∈ available := by simpa using present
+          have tailPerm :=
+            (inductionHypothesis (available.erase tile)).mp
+              ⟨output, removed, outputPerm⟩
+          exact (tailPerm.cons tile).trans (List.perm_cons_erase member).symm
+        · simp at removed
+      · intro permutation
+        have member : tile ∈ available :=
+          permutation.mem_iff.mp (by simp)
+        have tailPerm : (wanted ++ remaining).Perm (available.erase tile) :=
+          (permutation.trans (List.perm_cons_erase member)).cons_inv
+        obtain ⟨output, removed, outputPerm⟩ :=
+          (inductionHypothesis (available.erase tile)).mpr tailPerm
+        refine ⟨output, ?_, outputPerm⟩
+        simp only [removeTiles]
+        rw [if_pos (by simpa using member)]
+        exact removed
+
+/-- 牌列の先頭に置いた牌群を除くと、後続部分がそのまま残る。 -/
+theorem removeTiles_append_left (wanted remaining : List Tile) :
+    removeTiles (wanted ++ remaining) wanted = some remaining := by
+  induction wanted with
+  | nil => rfl
+  | cons tile wanted inductionHypothesis =>
+      simp [removeTiles, inductionHypothesis]
+
 /-- 雀頭候補として使う全牌種の対子。 -/
 def pairChunkCandidates : List TileChunk :=
   Tile.all.map .pair
+
+/-- 任意の雀頭は雀頭候補リストに含まれる。 -/
+theorem pair_mem_pairChunkCandidates (pair : Toitsu) :
+    (Sum.inl pair : TileChunk) ∈ pairChunkCandidates := by
+  rcases pair with ⟨tile⟩
+  simp [pairChunkCandidates, Tile.mem_all tile, TileChunk.pair]
+
+/-- 雀頭候補リストの要素は必ず雀頭チャンクである。 -/
+theorem pair_of_mem_pairChunkCandidates {chunk : TileChunk}
+    (member : chunk ∈ pairChunkCandidates) :
+    ∃ pair : Toitsu, chunk = .inl pair := by
+  obtain ⟨tile, _, rfl⟩ := List.mem_map.mp member
+  exact ⟨.toitsu tile, rfl⟩
 
 /-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
 def mentsuChunkCandidates : List TileChunk :=
@@ -33,6 +94,30 @@ def mentsuChunkCandidates : List TileChunk :=
     List.ofFn fun start : ShuntsuStart =>
       TileChunk.shuntsu suit start) ++
   Tile.all.map .koutsu
+
+  /-- 任意の完成面子は完成面子候補リストに含まれる。 -/
+  theorem mentsu_mem_mentsuChunkCandidates (mentsu : MentsuCandidate) :
+    (Sum.inr mentsu : TileChunk) ∈ mentsuChunkCandidates := by
+    cases mentsu with
+    | shuntsu sequence =>
+      rcases sequence with ⟨suit, start⟩
+      simp only [mentsuChunkCandidates, List.mem_append, List.mem_flatMap]
+      left
+      refine ⟨suit, by cases suit <;> simp [Suit.all], ?_⟩
+      exact List.mem_ofFn.mpr ⟨start, rfl⟩
+    | koutsu tile =>
+      simp [mentsuChunkCandidates, Tile.mem_all tile, TileChunk.koutsu]
+
+  /-- 完成面子候補リストの要素は必ず面子チャンクである。 -/
+  theorem mentsu_of_mem_mentsuChunkCandidates {chunk : TileChunk}
+      (member : chunk ∈ mentsuChunkCandidates) :
+      ∃ mentsu : MentsuCandidate, chunk = .inr mentsu := by
+    rcases List.mem_append.mp member with sequenceMember | tripletMember
+    · obtain ⟨suit, _, sequenceMember⟩ := List.mem_flatMap.mp sequenceMember
+      obtain ⟨start, _, rfl⟩ := List.mem_ofFn.mp sequenceMember
+      exact ⟨.shuntsu (.shuntsu suit start), rfl⟩
+    · obtain ⟨tile, _, rfl⟩ := List.mem_map.mp tripletMember
+      exact ⟨.koutsu tile, rfl⟩
 
 /-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
 def decomposeMentsu : Nat → List Tile → List (List TileChunk)
@@ -45,6 +130,148 @@ def decomposeMentsu : Nat → List Tile → List (List TileChunk)
             (decomposeMentsu fuel remaining).map fun winningChunks => mentsu :: winningChunks
         | none => [])
 
+/--
+`tiles` をちょうど `fuel` 個の完成面子へ分解できることを表す宣言的な導出関係。
+
+列挙順序には依存せず、各段階で完成面子候補を選び、その牌を多重集合的に除いた残りを
+再帰的に分解する。`decomposeMentsu` の健全性・完全性を述べる基準になる。
+-/
+inductive MentsuPartition : Nat → List Tile → List TileChunk → Prop
+| done : MentsuPartition 0 [] []
+| next {fuel tiles remaining rest} (mentsu : TileChunk)
+    (candidate : mentsu ∈ mentsuChunkCandidates)
+    (remove : removeTiles tiles mentsu.tiles = some remaining)
+    (tail : MentsuPartition fuel remaining rest) :
+    MentsuPartition (fuel + 1) tiles (mentsu :: rest)
+
+/-- `decomposeMentsu` は宣言的な面子分解を過不足なく列挙する。 -/
+theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
+    (chunks : List TileChunk) :
+    chunks ∈ decomposeMentsu fuel tiles ↔ MentsuPartition fuel tiles chunks := by
+  induction fuel generalizing tiles chunks with
+  | zero =>
+      constructor
+      · intro member
+        simp only [decomposeMentsu] at member
+        split at member
+        · have tilesEmpty : tiles = [] := List.isEmpty_iff.mp ‹tiles.isEmpty = true›
+          subst tiles
+          simp only [List.mem_singleton] at member
+          subst chunks
+          exact .done
+        · simp at member
+      · intro partition
+        cases partition
+        simp [decomposeMentsu]
+  | succ fuel inductionHypothesis =>
+      constructor
+      · intro member
+        simp only [decomposeMentsu] at member
+        obtain ⟨generated, generatedMember, member⟩ := List.mem_flatten.mp member
+        obtain ⟨mentsu, candidate, rfl⟩ := List.mem_map.mp generatedMember
+        cases removeEq : removeTiles tiles mentsu.tiles with
+        | none => simp [removeEq] at member
+        | some remaining =>
+          rw [removeEq] at member
+          obtain ⟨rest, restMember, chunksEq⟩ := List.mem_map.mp member
+          exact chunksEq ▸
+            MentsuPartition.next mentsu candidate removeEq
+              ((inductionHypothesis remaining rest).mp restMember)
+      · intro partition
+        cases partition with
+        | next mentsu candidate remove tail =>
+            rename_i remaining rest
+            apply List.mem_flatten.mpr
+            refine ⟨(decomposeMentsu fuel remaining).map fun tail => mentsu :: tail, ?_, ?_⟩
+            · apply List.mem_map.mpr
+              exact ⟨mentsu, candidate, by simp [remove]⟩
+            · exact List.mem_map.mpr
+                ⟨rest, (inductionHypothesis remaining rest).mpr tail, rfl⟩
+
+/-- 面子分解の導出は入力牌列の並び替えに依存しない。 -/
+theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}
+    {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks)
+    (permutation : tiles.Perm other) : MentsuPartition fuel other chunks := by
+  induction partition generalizing other with
+  | done =>
+      have otherEmpty : other = [] := (List.Perm.nil_eq permutation).symm
+      subst other
+      exact .done
+  | next mentsu candidate remove tail inductionHypothesis =>
+      rename_i fuel tiles remaining rest
+      have removedPerm : (mentsu.tiles ++ remaining).Perm tiles :=
+        (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
+          ⟨remaining, remove, .refl remaining⟩
+      obtain ⟨output, removeOther, outputPerm⟩ :=
+        (exists_removeTiles_eq_some_iff_perm other mentsu.tiles remaining).mpr
+          (removedPerm.trans permutation)
+      exact .next mentsu candidate removeOther
+        (inductionHypothesis outputPerm.symm)
+
+/-- 面子分割の全チャンク牌は入力牌列と多重集合として一致する。 -/
+theorem MentsuPartition.tiles_perm {fuel : Nat} {tiles : List Tile}
+    {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
+    (chunks.flatMap TileChunk.tiles).Perm tiles := by
+  induction partition with
+  | done => exact .refl []
+  | next mentsu candidate remove tail inductionHypothesis =>
+      rename_i fuel tiles remaining rest
+      have removedPerm : (mentsu.tiles ++ remaining).Perm tiles :=
+        (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
+          ⟨remaining, remove, .refl remaining⟩
+      exact (List.Perm.append_left mentsu.tiles inductionHypothesis).trans removedPerm
+
+/-- 面子分割に現れる各チャンクは完成面子候補である。 -/
+theorem MentsuPartition.all_mentsu {fuel : Nat} {tiles : List Tile}
+    {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
+    ∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates := by
+  induction partition with
+  | done => simp
+  | next mentsu candidate remove tail inductionHypothesis =>
+      intro chunk member
+      rcases List.mem_cons.mp member with rfl | restMember
+      · exact candidate
+      · exact inductionHypothesis chunk restMember
+
+    /-- 面子分割のチャンク列は `MentsuCandidate` の列として復元できる。 -/
+    theorem MentsuPartition.exists_candidates {fuel : Nat} {tiles : List Tile}
+      {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
+      ∃ candidates : List MentsuCandidate,
+        chunks = candidates.map fun candidate => (Sum.inr candidate : TileChunk) := by
+      induction partition with
+      | done => exact ⟨[], rfl⟩
+      | next mentsu candidate remove tail inductionHypothesis =>
+        obtain ⟨first, rfl⟩ := mentsu_of_mem_mentsuChunkCandidates candidate
+        obtain ⟨rest, rfl⟩ := inductionHypothesis
+        exact ⟨first :: rest, rfl⟩
+
+  /-- 面子分割の `fuel` は生成される面子数に一致する。 -/
+  theorem MentsuPartition.chunks_length {fuel : Nat} {tiles : List Tile}
+      {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
+      chunks.length = fuel := by
+    induction partition with
+    | done => rfl
+    | next mentsu candidate remove tail inductionHypothesis =>
+        simp [inductionHypothesis]
+
+/-- 完成面子候補列を平坦化した牌列は、その面子列自身へ分解できる。 -/
+theorem mentsuPartition_flatMap (chunks : List TileChunk)
+    (allMentsu : ∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates) :
+    MentsuPartition chunks.length (chunks.flatMap TileChunk.tiles) chunks := by
+  induction chunks with
+  | nil => exact .done
+  | cons first rest inductionHypothesis =>
+      have firstCandidate := allMentsu first (by simp)
+      have restCandidates : ∀ chunk ∈ rest, chunk ∈ mentsuChunkCandidates := by
+        intro chunk member
+        exact allMentsu chunk (by simp [member])
+      have tail := inductionHypothesis restCandidates
+      have removeFirst :
+          removeTiles (first.tiles ++ rest.flatMap TileChunk.tiles) first.tiles =
+            some (rest.flatMap TileChunk.tiles) := by
+        exact removeTiles_append_left _ _
+      exact .next first firstCandidate removeFirst tail
+
 /-- 牌種リストを雀頭1つと完成面子列に分解する。 -/
 def winningPartitions (tiles : List Tile) : List (List TileChunk) :=
   List.flatten (pairChunkCandidates.map fun pairChunk =>
@@ -53,6 +280,72 @@ def winningPartitions (tiles : List Tile) : List (List TileChunk) :=
         (decomposeMentsu (remaining.length / mentsuTileCount) remaining).map fun winningChunks =>
           pairChunk :: winningChunks
     | none => [])
+
+/-- 雀頭1個を除き、残りを完成面子へ分解できる通常和了分割の宣言的仕様。 -/
+inductive WinningPartition (tiles : List Tile) : List TileChunk → Prop
+| intro {remaining rest} (pair : TileChunk)
+    (pairCandidate : pair ∈ pairChunkCandidates)
+    (removePair : removeTiles tiles pair.tiles = some remaining)
+    (mentsuPartition : MentsuPartition (remaining.length / mentsuTileCount) remaining rest) :
+    WinningPartition tiles (pair :: rest)
+
+/-- `winningPartitions` は通常和了分割の宣言的仕様を過不足なく列挙する。 -/
+theorem mem_winningPartitions_iff (tiles : List Tile) (chunks : List TileChunk) :
+    chunks ∈ winningPartitions tiles ↔ WinningPartition tiles chunks := by
+  constructor
+  · intro member
+    simp only [winningPartitions] at member
+    obtain ⟨generated, generatedMember, member⟩ := List.mem_flatten.mp member
+    obtain ⟨pair, pairCandidate, rfl⟩ := List.mem_map.mp generatedMember
+    cases removeEq : removeTiles tiles pair.tiles with
+    | none => simp [removeEq] at member
+    | some remaining =>
+      rw [removeEq] at member
+      obtain ⟨rest, restMember, chunksEq⟩ := List.mem_map.mp member
+      exact chunksEq ▸
+        WinningPartition.intro pair pairCandidate removeEq
+          ((mem_decomposeMentsu_iff _ _ _).mp restMember)
+  · intro partition
+    cases partition with
+    | intro pair pairCandidate removePair partition =>
+        rename_i remaining rest
+        apply List.mem_flatten.mpr
+        refine ⟨(decomposeMentsu (remaining.length / mentsuTileCount) remaining).map
+          fun chunks => pair :: chunks, ?_, ?_⟩
+        · apply List.mem_map.mpr
+          exact ⟨pair, pairCandidate, by simp [removePair]⟩
+        · exact List.mem_map.mpr
+            ⟨rest, (mem_decomposeMentsu_iff _ _ _).mpr partition, rfl⟩
+
+/-- 通常和了分割の導出は入力牌列の並び替えに依存しない。 -/
+theorem WinningPartition.of_perm {tiles other : List Tile} {chunks : List TileChunk}
+    (partition : WinningPartition tiles chunks) (permutation : tiles.Perm other) :
+    WinningPartition other chunks := by
+  cases partition with
+  | intro pair pairCandidate removePair mentsuPartition =>
+      rename_i remaining rest
+      have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
+        (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
+          ⟨remaining, removePair, .refl remaining⟩
+      obtain ⟨output, removeOther, outputPerm⟩ :=
+        (exists_removeTiles_eq_some_iff_perm other pair.tiles remaining).mpr
+          (removedPerm.trans permutation)
+      have sameLength : output.length = remaining.length := outputPerm.length_eq
+      rw [← sameLength] at mentsuPartition
+      exact .intro pair pairCandidate removeOther
+        (mentsuPartition.of_perm outputPerm.symm)
+
+/-- 通常和了分割の全チャンク牌は入力牌列と多重集合として一致する。 -/
+theorem WinningPartition.tiles_perm {tiles : List Tile} {chunks : List TileChunk}
+    (partition : WinningPartition tiles chunks) :
+    (chunks.flatMap TileChunk.tiles).Perm tiles := by
+  cases partition with
+  | intro pair pairCandidate removePair mentsuPartition =>
+      rename_i remaining rest
+      have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
+        (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
+          ⟨remaining, removePair, .refl remaining⟩
+      exact (List.Perm.append_left pair.tiles mentsuPartition.tiles_perm).trans removedPerm
 
 /-- 牌種リストが通常形の和了形として分解できるか。 -/
 def isWinning (tiles : List Tile) : Bool :=
@@ -90,6 +383,29 @@ def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
   IsLegalTenpaiHand tiles ∧
     tiles.count candidate < copiesPerTile ∧
     IsStandardAgari (candidate :: tiles)
+
+/-- 待ちの意味論は牌姿リストの並び順に依存しない。 -/
+theorem IsWaitFor.of_perm {tiles other : List Tile} {candidate : Tile}
+    (waitFor : IsWaitFor tiles candidate) (permutation : tiles.Perm other) :
+    IsWaitFor other candidate := by
+  rcases waitFor with ⟨⟨size, legal⟩, available, winning⟩
+  constructor
+  · constructor
+    · simpa [permutation.length_eq] using size
+    · intro tile
+      simpa [permutation.count tile] using legal tile
+  · constructor
+    · simpa [permutation.count candidate] using available
+    · unfold IsStandardAgari isWinning at winning ⊢
+      have nonempty : winningPartitions (candidate :: tiles) ≠ [] := by
+        simpa [List.isEmpty_iff] using winning
+      obtain ⟨chunks, chunksMember⟩ := List.exists_mem_of_ne_nil _ nonempty
+      have partition := (mem_winningPartitions_iff _ _).mp chunksMember
+      have otherMember := (mem_winningPartitions_iff _ _).mpr
+        (partition.of_perm (permutation.cons candidate))
+      have otherNonempty : winningPartitions (candidate :: other) ≠ [] :=
+        List.ne_nil_of_mem otherMember
+      simp [otherNonempty]
 
 /-- 牌種列が少なくとも1種類の通常形待ちを持つこと。 -/
 def IsTenpai (tiles : List Tile) : Prop :=
@@ -131,7 +447,48 @@ theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
 def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningPartitions (wait :: tiles)).map fun winningChunks =>
-      { wait, winningChunks := TileChunk.canonicalize winningChunks }).eraseDups
+      { wait, winningChunks := TileChunk.canonicalize winningChunks }).dedup
+
+/--
+`completion` が牌姿 `tiles` の待ちと和了分割を表すことの宣言的仕様。
+
+Finder が内部で見つける分割は雀頭を先頭に持つが、外部へ返す際にはチャンク順を正規化する。
+そのため仕様は、正規化前の `rawChunks` の存在として述べる。
+-/
+inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
+| intro (wait : Tile) (rawChunks : List TileChunk)
+    (waitFor : IsWaitFor tiles wait)
+    (partition : WinningPartition (wait :: tiles) rawChunks) :
+    CompletionFor tiles
+      { wait, winningChunks := TileChunk.canonicalize rawChunks }
+
+/-- completionの意味論は牌姿リストの並び順に依存しない。 -/
+theorem CompletionFor.of_perm {tiles other : List Tile} {completion : WaitCompletion}
+    (valid : CompletionFor tiles completion) (permutation : tiles.Perm other) :
+    CompletionFor other completion := by
+  cases valid with
+  | intro wait rawChunks waitFor partition =>
+      exact .intro wait rawChunks (waitFor.of_perm permutation)
+        (partition.of_perm (permutation.cons wait))
+
+/-- `findWaitCompletions` は宣言的な待ちと和了分割を過不足なく列挙する。 -/
+theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitCompletion) :
+    completion ∈ findWaitCompletions tiles ↔ CompletionFor tiles completion := by
+  rw [findWaitCompletions, List.mem_dedup]
+  constructor
+  · intro member
+    obtain ⟨wait, waitMember, completionMember⟩ := List.mem_flatMap.mp member
+    obtain ⟨rawChunks, partitionMember, completionEq⟩ := List.mem_map.mp completionMember
+    rw [← completionEq]
+    exact .intro wait rawChunks ((mem_waitingTiles_iff tiles wait).mp waitMember)
+      ((mem_winningPartitions_iff _ _).mp partitionMember)
+  · intro valid
+    cases valid with
+    | intro wait rawChunks waitFor partition =>
+        apply List.mem_flatMap.mpr
+        refine ⟨wait, (mem_waitingTiles_iff tiles wait).mpr waitFor, ?_⟩
+        exact List.mem_map.mpr
+          ⟨rawChunks, (mem_winningPartitions_iff _ _).mpr partition, rfl⟩
 
 /-!
 ## 分解に関する既約性

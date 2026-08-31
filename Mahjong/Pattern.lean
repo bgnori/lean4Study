@@ -113,7 +113,7 @@ end Taats
 /-- 対子。同じ牌種2枚からなる。 -/
 inductive Toitsu
 | toitsu  (t: Tile)
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Toitsu
 
@@ -163,7 +163,7 @@ end Tanki
 /-- 順子。数牌の同一スートで、連続する3ランクからなる。 -/
 inductive Shuntsu
 | shuntsu (suit : Suit) (start : ShuntsuStart)
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Shuntsu
 
@@ -190,7 +190,7 @@ end Shuntsu
 inductive MentsuCandidate
 | shuntsu (shuntsu : Shuntsu)
 | koutsu (t: Tile)
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace MentsuCandidate
 
