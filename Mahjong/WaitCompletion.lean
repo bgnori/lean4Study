@@ -4,9 +4,9 @@ import Mahjong.Pattern
 /-!
 # 待ちと和了分割
 
-`Decomposition` は、1つの待ち牌と、その牌を加えたときの通常形の和了分割を表す。
-牌列から `Decomposition` を見つける処理は `DecompositionFinder`、見つかった形の符号化は
-`DecompositionCode` が担当する。
+`WaitCompletion` は、1つの待ち牌と、その牌を加えたときの通常形の和了分割を表す。
+牌列から `WaitCompletion` を見つける処理は `WaitCompletionFinder`、見つかった形の符号化は
+`WaitReadingCode` が担当する。
 -/
 
 namespace TileChunk
@@ -18,13 +18,13 @@ private def orderKey : TileChunk → Nat
   | .inr (.koutsu tile) => Tile.count + Suit.count * shuntsuStartCount + tile.orderKey
 
 /-- 分割内の部品順を一意にする。 -/
-def canonicalize (chunks : List TileChunk) : List TileChunk :=
-  chunks.mergeSort fun first second => orderKey first ≤ orderKey second
+def canonicalize (winningChunks : List TileChunk) : List TileChunk :=
+  winningChunks.mergeSort fun first second => orderKey first ≤ orderKey second
 
 end TileChunk
 
 /-- 1つの待ち牌と、その牌を加えた和了形の1つの分割。 -/
-structure Decomposition where
+structure WaitCompletion where
   wait : Tile
-  chunks : List TileChunk
+  winningChunks : List TileChunk
 deriving BEq, DecidableEq, Repr

@@ -59,7 +59,7 @@ end Hand
 -/
 inductive HandExtraction
 | tanki (tanki : Tanki) (taken : List PhysicalTile)
-| wait (extraction : WaitExtraction) (taken : List PhysicalTile)
+| wait (extraction : WaitPattern) (taken : List PhysicalTile)
 | mentsuThen (mentsu : MentsuCandidate) (taken : List PhysicalTile)
     (remaining : HandExtraction)
 deriving Repr
@@ -81,7 +81,7 @@ private noncomputable def tankiTerminals (tiles : Finset PhysicalTile) : List Ha
     some (.tanki tanki taken)
 
 private noncomputable def waitTerminals (tiles : Finset PhysicalTile) : List HandExtraction :=
-  WaitExtraction.all.filterMap fun extraction => do
+  WaitPattern.all.filterMap fun extraction => do
     let taken ← takeExact tiles extraction.tiles
     some (.wait extraction taken)
 
@@ -151,7 +151,7 @@ private theorem mem_waitTerminals_iff (tiles : Finset PhysicalTile)
         simp [take] at result
         exact ⟨extraction, taken, take, result.symm⟩
   · rintro ⟨extraction, taken, take, rfl⟩
-    exact ⟨extraction, by simp [WaitExtraction.all], by simp [take]⟩
+    exact ⟨extraction, by simp [WaitPattern.all], by simp [take]⟩
 
 private theorem mem_mentsuExtractions_iff (fuel : Nat) (tiles : Finset PhysicalTile)
     (result : HandExtraction) :

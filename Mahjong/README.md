@@ -21,7 +21,7 @@ This directory contains the Mahjong wait-classification formalization used as th
    - A broad `HasNobetanReading` alias separated from narrow whole-profile classification.
 
 5. `Wait/Analysis.lean`
-   - Observation of profiles from standard-form winning decompositions.
+   - Observation of profiles from standard-form wait completions.
    - The executable classifier and its soundness/completeness theorems.
    - Evidence-indexed reducibility computation for concrete tenpai hands.
 
@@ -29,18 +29,18 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Hand sizes used in the study project.
    - Verified enumeration of exact physical-tile extractions.
 
-7. `Decomposition.lean`
-   - The `Decomposition` data type: one wait tile and one completed decomposition.
+7. `WaitCompletion.lean`
+   - The `WaitCompletion` data type: one wait tile and one winning partition.
    - Completed chunk types and canonical ordering.
 
-8. `DecompositionFinder.lean`
+8. `WaitCompletionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
    - Legal tenpai sizes and physical copy-count validation.
-   - `DecompositionFinder.find`, executable decomposition discovery, and evidence-indexed irreducibility.
+   - `WaitCompletionFinder.findWaitCompletions`, executable completion discovery, and evidence-indexed irreducibility.
 
-9. `DecompositionCode.lean`
-   - Codes already-found `List Decomposition` values without performing discovery.
-   - `find...` convenience functions explicitly compose `DecompositionFinder` with coding.
+9. `WaitReadingCode.lean`
+   - Codes already-found `List WaitCompletion` values without performing discovery.
+   - `find...` convenience functions explicitly compose `WaitCompletionFinder` with coding.
    - The 53 one-suit irreducible seven-tile examples.
 
 10. `Tenpai.lean`
@@ -58,8 +58,8 @@ For focused work, import the smallest module that contains the definitions you n
 
 ```lean
 import Mahjong.Wait
-import Mahjong.DecompositionFinder
-import Mahjong.DecompositionCode
+import Mahjong.WaitCompletionFinder
+import Mahjong.WaitReadingCode
 ```
 
 ## Validation
@@ -91,7 +91,7 @@ lake build fourTileReport
 For a single file:
 
 ```bash
-lake env lean Mahjong/DecompositionFinder.lean
+lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
 ## Documentation Style

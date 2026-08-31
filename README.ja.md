@@ -26,9 +26,9 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── Wait/Specification.lean
 │   ├── Wait/Analysis.lean
 │   ├── Hand.lean
-│   ├── Decomposition.lean
-│   ├── DecompositionFinder.lean
-│   ├── DecompositionCode.lean
+│   ├── WaitCompletion.lean
+│   ├── WaitCompletionFinder.lean
+│   ├── WaitReadingCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
 ```
@@ -50,7 +50,7 @@ lake build Mahjong
 単一ファイルを直接確認する場合:
 
 ```bash
-lake env lean Mahjong/DecompositionFinder.lean
+lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
 ## ドキュメント方針

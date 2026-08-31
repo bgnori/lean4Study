@@ -1,20 +1,20 @@
 import Mahjong.Basic
 import Mahjong.Pattern
-import Mahjong.DecompositionFinder
+import Mahjong.WaitCompletionFinder
 
 /-!
-# 発見済みDecompositionの部品種別コード
+# 発見済みWaitCompletionの待ち読みコード
 
-`DecompositionFinder.find` が発見した `Decomposition` を入力とし、牌の位置を忘れて、
+`WaitCompletionFinder.findWaitCompletions` が発見した `WaitCompletion` を入力とし、牌の位置を忘れて、
 待ち牌を除いた各分割を部品種別の多重集合として扱う。
 異なる部品種別に異なる素数を割り当て、その積を代表元とする。
 -/
-namespace DecompositionCode
+namespace WaitReadingCode
 
-open DecompositionFinder
+open WaitCompletionFinder
 
 /-- 待ち牌を除いた後に見える部品種別。 -/
-inductive DecompositionComponent
+inductive WaitReadingComponentKind
 | tanki
 | toitsu
 | ryanmen
@@ -24,17 +24,17 @@ inductive DecompositionComponent
 | koutsu
 deriving BEq, DecidableEq, Repr
 
-namespace DecompositionComponent
+namespace WaitReadingComponentKind
 
 /-- すべての部品種別。キーの基数を部品数から導くためにも使う。 -/
-def all : List DecompositionComponent :=
+def all : List WaitReadingComponentKind :=
   [.tanki, .toitsu, .ryanmen, .kanchan, .penchan, .shuntsu, .koutsu]
 
 /-- 部品種別の数。 -/
 def count : Nat := all.length
 
 /-- 部品種別に割り当てる素数。積をとることで多重集合の代表コードにする。 -/
-def prime : DecompositionComponent → Nat
+def prime : WaitReadingComponentKind → Nat
   | .tanki => 2
   | .toitsu => 3
   | .ryanmen => 5
@@ -43,33 +43,33 @@ def prime : DecompositionComponent → Nat
   | .shuntsu => 13
   | .koutsu => 17
 
-end DecompositionComponent
+end WaitReadingComponentKind
 
 /-- 具体的な牌種列を保持した部品。 -/
-structure ConcreteDecompositionComponent where
-  kind : DecompositionComponent
+structure ConcreteWaitReadingComponent where
+  kind : WaitReadingComponentKind
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
 /-- 1つの待ち牌に対する、具体牌つきの形抽出。 -/
-structure ConcreteDecompositionExtraction where
+structure ConcreteWaitReading where
   wait : Tile
-  components : List ConcreteDecompositionComponent
+  components : List ConcreteWaitReadingComponent
 deriving BEq, DecidableEq, Repr
 
 /-- 牌の位置を忘れ、部品種別だけを残した形抽出。 -/
-structure AbstractDecompositionExtraction where
+structure AbstractWaitReading where
   wait : Tile
-  components : List DecompositionComponent
+  components : List WaitReadingComponentKind
 deriving BEq, DecidableEq, Repr
 
 /-- 待ち牌ごとの抽象形コード。 -/
-structure DecompositionCodeEntry where
+structure WaitReadingCodeEntry where
   wait : Tile
   code : Nat
 deriving BEq, DecidableEq, Repr
 
-private def completeComponent (chunk : TileChunk) : ConcreteDecompositionComponent :=
+private def completeComponent (chunk : TileChunk) : ConcreteWaitReadingComponent :=
   { kind := match chunk with
       | .inl _ => .toitsu
       | .inr (.shuntsu _) => .shuntsu
@@ -77,7 +77,7 @@ private def completeComponent (chunk : TileChunk) : ConcreteDecompositionCompone
     tiles := chunk.tiles }
 
 private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
-    Option ConcreteDecompositionComponent :=
+  Option ConcreteWaitReadingComponent :=
   let incompleteTiles := chunk.tiles.erase wait
   let result kind := some { kind, tiles := incompleteTiles }
   match chunk with
@@ -98,119 +98,119 @@ private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
             result (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
           else none
 
-private def componentProduct (components : List DecompositionComponent) : Nat :=
+private def componentProduct (components : List WaitReadingComponentKind) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
 
 private def keyDigitOffset : Nat := 1
 private def tileKeyBase : Nat := Tile.count + keyDigitOffset
 private def maxComponentTiles : Nat := mentsuTileCount
-private def maxDecompositionComponents : Nat := standardHandMentsuCount + standardHandPairCount
+private def maxWaitReadingComponents : Nat := standardHandMentsuCount + standardHandPairCount
 private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
-private def extractionComponentKeyStride : Nat := DecompositionComponent.count * componentTileKeyStride
-private def extractionWaitKeyStride : Nat := extractionComponentKeyStride ^ maxDecompositionComponents
-private def abstractComponentKeyBase : Nat := DecompositionComponent.count + keyDigitOffset
+private def readingComponentKeyStride : Nat := WaitReadingComponentKind.count * componentTileKeyStride
+private def readingWaitKeyStride : Nat := readingComponentKeyStride ^ maxWaitReadingComponents
+private def abstractComponentKeyBase : Nat := WaitReadingComponentKind.count + keyDigitOffset
 private def waitKeyStride : Nat := Tile.count
 
-private def decompositionComponentKey (component : DecompositionComponent) : Nat :=
-  DecompositionComponent.all.idxOf component
+private def waitReadingComponentKey (component : WaitReadingComponentKind) : Nat :=
+  WaitReadingComponentKind.all.idxOf component
 
-private def concreteComponentKey (component : ConcreteDecompositionComponent) : Nat :=
-  decompositionComponentKey component.kind * componentTileKeyStride +
+private def concreteComponentKey (component : ConcreteWaitReadingComponent) : Nat :=
+  waitReadingComponentKey component.kind * componentTileKeyStride +
     component.tiles.foldl
       (fun key tile => key * tileKeyBase + tile.orderKey + keyDigitOffset) 0
 
-private def canonicalizeDecompositionExtraction
-    (components : List ConcreteDecompositionComponent) : List ConcreteDecompositionComponent :=
+private def canonicalizeWaitReading
+  (components : List ConcreteWaitReadingComponent) : List ConcreteWaitReadingComponent :=
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
-private def concreteDecompositionExtractionKey (extraction : ConcreteDecompositionExtraction) : Nat :=
-  extraction.wait.orderKey * extractionWaitKeyStride +
-    extraction.components.foldl
-      (fun key component => key * extractionComponentKeyStride + concreteComponentKey component) 0
+private def concreteWaitReadingKey (reading : ConcreteWaitReading) : Nat :=
+  reading.wait.orderKey * readingWaitKeyStride +
+    reading.components.foldl
+      (fun key component => key * readingComponentKeyStride + concreteComponentKey component) 0
 
-private def abstractDecompositionExtractionKey (extraction : AbstractDecompositionExtraction) : Nat :=
-  extraction.components.foldl
+private def abstractWaitReadingKey (reading : AbstractWaitReading) : Nat :=
+  reading.components.foldl
     (fun key component =>
-      key * abstractComponentKeyBase + decompositionComponentKey component + keyDigitOffset) 0 *
+      key * abstractComponentKeyBase + waitReadingComponentKey component + keyDigitOffset) 0 *
       waitKeyStride +
-    extraction.wait.orderKey
+    reading.wait.orderKey
 
-private def decompositionCodeEntryKey (entry : DecompositionCodeEntry) : Nat :=
+  private def waitReadingCodeEntryKey (entry : WaitReadingCodeEntry) : Nat :=
   entry.code * waitKeyStride + entry.wait.orderKey
 
 private def deduplicateAndSortBy {α : Type} [BEq α]
     (key : α → Nat) (values : List α) : List α :=
   values.eraseDups.mergeSort fun first second => key first ≤ key second
 
-private def decompositionExtractions (decomposition : Decomposition) :
-    List (List ConcreteDecompositionComponent) :=
-  let rec selectCompletedChunk : List TileChunk → List (List ConcreteDecompositionComponent)
+private def waitReadings (completion : WaitCompletion) :
+    List (List ConcreteWaitReadingComponent) :=
+  let rec selectCompletedChunk : List TileChunk → List (List ConcreteWaitReadingComponent)
     | [] => []
     | chunk :: rest =>
         let later := (selectCompletedChunk rest).map fun extraction =>
           completeComponent chunk :: extraction
-        match componentWithoutWait decomposition.wait chunk with
+        match componentWithoutWait completion.wait chunk with
         | some incomplete =>
             (incomplete :: rest.map completeComponent) :: later
         | none => later
-  selectCompletedChunk decomposition.chunks
+  selectCompletedChunk completion.winningChunks
 
 /-- 発見済みの待ちと分割から、待ち牌ごとの具体的な分解抽出を列挙する。 -/
-def concreteDecompositionExtractions
-    (decompositions : List Decomposition) : List ConcreteDecompositionExtraction :=
-  let entries := decompositions.flatMap fun decomposition =>
-      (decompositionExtractions decomposition).map fun extraction =>
-        { wait := decomposition.wait
-          components := canonicalizeDecompositionExtraction extraction }
-  deduplicateAndSortBy concreteDecompositionExtractionKey entries
+def concreteWaitReadings
+    (completions : List WaitCompletion) : List ConcreteWaitReading :=
+  let entries := completions.flatMap fun completion =>
+      (waitReadings completion).map fun reading =>
+        { wait := completion.wait
+          components := canonicalizeWaitReading reading }
+  deduplicateAndSortBy concreteWaitReadingKey entries
 
-/-- 発見済みDecompositionから牌位置を忘れ、部品種別だけの抽出へ変換する。 -/
-def abstractDecompositionExtractions
-    (decompositions : List Decomposition) : List AbstractDecompositionExtraction :=
-  concreteDecompositionExtractions decompositions
-    |>.map (fun extraction =>
-      { wait := extraction.wait
-        components := extraction.components.map (fun component => component.kind) })
-    |> deduplicateAndSortBy abstractDecompositionExtractionKey
+/-- 発見済みWaitCompletionから牌位置を忘れ、部品種別だけの読みへ変換する。 -/
+def abstractWaitReadings
+    (completions : List WaitCompletion) : List AbstractWaitReading :=
+  concreteWaitReadings completions
+    |>.map (fun reading =>
+      { wait := reading.wait
+        components := reading.components.map (fun component => component.kind) })
+    |> deduplicateAndSortBy abstractWaitReadingKey
 
-/-- 発見済みDecompositionを、待ち牌ごとの素数積コードへ変換する。 -/
-def decompositionCodeEntries
-    (decompositions : List Decomposition) : List DecompositionCodeEntry :=
-  abstractDecompositionExtractions decompositions
-    |>.map (fun extraction =>
-      { wait := extraction.wait
-        code := componentProduct extraction.components })
-    |> deduplicateAndSortBy decompositionCodeEntryKey
+/-- 発見済みWaitCompletionを、待ち牌ごとの素数積コードへ変換する。 -/
+def waitReadingCodeEntries
+    (completions : List WaitCompletion) : List WaitReadingCodeEntry :=
+  abstractWaitReadings completions
+    |>.map (fun reading =>
+      { wait := reading.wait
+        code := componentProduct reading.components })
+    |> deduplicateAndSortBy waitReadingCodeEntryKey
 
-/-- 発見済みDecompositionから計算した、待ち牌を残す抽象形コード。 -/
-def abstractDecompositionCodeWithWait
-    (decompositions : List Decomposition) : List (Nat × Tile) :=
-  decompositionCodeEntries decompositions
+/-- 発見済みWaitCompletionから計算した、待ち牌を残す抽象形コード。 -/
+def abstractWaitReadingCodeWithWait
+    (completions : List WaitCompletion) : List (Nat × Tile) :=
+  waitReadingCodeEntries completions
     |>.map fun entry => (entry.code, entry.wait)
 
-/-- 発見済みDecompositionから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
-def abstractDecompositionCode (decompositions : List Decomposition) : List Nat :=
-  decompositionCodeEntries decompositions
+/-- 発見済みWaitCompletionから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
+def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
+  waitReadingCodeEntries completions
     |>.map (fun entry => entry.code)
     |> deduplicateAndSortBy id
 
 /-! ## 牌列から探索して符号化する便利関数 -/
 
-def findConcreteDecompositionExtractions (tiles : List Tile) : List ConcreteDecompositionExtraction :=
-  concreteDecompositionExtractions (DecompositionFinder.find tiles)
+def findConcreteWaitReadings (tiles : List Tile) : List ConcreteWaitReading :=
+  concreteWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findAbstractDecompositionExtractions (tiles : List Tile) : List AbstractDecompositionExtraction :=
-  abstractDecompositionExtractions (DecompositionFinder.find tiles)
+def findAbstractWaitReadings (tiles : List Tile) : List AbstractWaitReading :=
+  abstractWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findDecompositionCodeEntries (tiles : List Tile) : List DecompositionCodeEntry :=
-  decompositionCodeEntries (DecompositionFinder.find tiles)
+def findWaitReadingCodeEntries (tiles : List Tile) : List WaitReadingCodeEntry :=
+  waitReadingCodeEntries (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findAbstractDecompositionCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
-  abstractDecompositionCodeWithWait (DecompositionFinder.find tiles)
+def findAbstractWaitReadingCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  abstractWaitReadingCodeWithWait (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findAbstractDecompositionCode (tiles : List Tile) : List Nat :=
-  abstractDecompositionCode (DecompositionFinder.find tiles)
+def findAbstractWaitReadingCode (tiles : List Tile) : List Nat :=
+  abstractWaitReadingCode (WaitCompletionFinder.findWaitCompletions tiles)
 
 /--
 The 53 irreducible seven-tile waits using one numbered suit, normalized so the
@@ -272,17 +272,17 @@ def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
    ("1111333m", manzu [0, 0, 0, 0, 2, 2, 2]),
    ("1111222m", manzu [0, 0, 0, 0, 1, 1, 1])]
 
-private def insertAbstractDecompositionClass (entry : String × List Nat) :
+private def insertAbstractWaitReadingClass (entry : String × List Nat) :
   List (List Nat × List String) → List (List Nat × List String)
   | [] => [(entry.2, [entry.1])]
   | current :: rest =>
       if current.1 == entry.2 then
         (current.1, current.2 ++ [entry.1]) :: rest
       else
-        current :: insertAbstractDecompositionClass entry rest
+        current :: insertAbstractWaitReadingClass entry rest
 
-def irreducibleSevenTileAbstractDecompositionClasses : List (List Nat × List String) :=
+      def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-    insertAbstractDecompositionClass (entry.1, findAbstractDecompositionCode entry.2) classes) []
+          insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
 
-end DecompositionCode
+      end WaitReadingCode

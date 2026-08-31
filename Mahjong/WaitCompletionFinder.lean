@@ -1,18 +1,18 @@
-import Mahjong.Decomposition
+import Mahjong.WaitCompletion
 
 /-!
 # 待ちと和了分割の探索
 
 `IsStandardAgari`、`IsWaitFor`、`IsTenpai` が通常形の意味論を定め、
 `Wait tiles` が聴牌牌列 `tiles` に結び付いた待ちの証拠を表す。
-`waitingTiles` は実際の待ち牌を計算する決定手続きであり、`find` は、
+`waitingTiles` は実際の待ち牌を計算する決定手続きであり、`findWaitCompletions` は、
 待ち牌を加えた和了形をチャンクへ分解して得られる集合に対して正規化を行う。
 
 このモジュールは物理牌ではなく、牌種 `Tile` のリストを対象にする。重複はリスト内の
 出現回数で表す。`waitingTiles` は手牌枚数を1、4、7、10、13枚に限定し、
 すべての牌種が4枚以下であることを確認してから探索する。
 -/
-namespace DecompositionFinder
+namespace WaitCompletionFinder
 
 /-- `available` から `wanted` の牌種列を多重集合的に取り除く。 -/
 def removeTiles : List Tile → List Tile → Option (List Tile)
@@ -42,21 +42,21 @@ def decomposeMelds : Nat → List Tile → List (List TileChunk)
       List.flatten (meldChunkCandidates.map fun meld =>
         match removeTiles tiles meld.tiles with
         | some remaining =>
-            (decomposeMelds fuel remaining).map fun chunks => meld :: chunks
+            (decomposeMelds fuel remaining).map fun winningChunks => meld :: winningChunks
         | none => [])
 
 /-- 牌種リストを雀頭1つと完成面子列に分解する。 -/
-def winningDecompositions (tiles : List Tile) : List (List TileChunk) :=
+def winningPartitions (tiles : List Tile) : List (List TileChunk) :=
   List.flatten (pairChunkCandidates.map fun pairChunk =>
     match removeTiles tiles pairChunk.tiles with
     | some remaining =>
-        (decomposeMelds (remaining.length / mentsuTileCount) remaining).map fun chunks =>
-          pairChunk :: chunks
+        (decomposeMelds (remaining.length / mentsuTileCount) remaining).map fun winningChunks =>
+          pairChunk :: winningChunks
     | none => [])
 
 /-- 牌種リストが通常形の和了形として分解できるか。 -/
 def isWinning (tiles : List Tile) : Bool :=
-  !(winningDecompositions tiles).isEmpty
+  !(winningPartitions tiles).isEmpty
 
 /-- 通常形聴牌として扱う手牌枚数。 -/
 def IsTenpaiHandSize (size : Nat) : Prop :=
@@ -128,20 +128,20 @@ theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
     simp [empty] at member
 
 /-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
-def find (tiles : List Tile) : List Decomposition :=
+def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
   ((waitingTiles tiles).flatMap fun wait =>
-    (winningDecompositions (wait :: tiles)).map fun chunks =>
-      { wait, chunks := TileChunk.canonicalize chunks }).eraseDups
+    (winningPartitions (wait :: tiles)).map fun winningChunks =>
+      { wait, winningChunks := TileChunk.canonicalize winningChunks }).eraseDups
 
 /-!
 ## 分解に関する既約性
 
-`decompositionCount` は待ち牌と和了形の組を数える。メンツを1つ除いた
+`waitCompletionCount` は待ち牌と和了形の組を数える。メンツを1つ除いた
 聴牌形が同じ個数の分解を持つなら、その手牌はメンツ除去により可約である。
 待ちでない牌列を既約とは扱わない。
 -/
-def decompositionCount (tiles : List Tile) : Nat :=
-  (find tiles).length
+def waitCompletionCount (tiles : List Tile) : Nat :=
+  (findWaitCompletions tiles).length
 
 instance decidableIsTenpai (tiles : List Tile) : Decidable (IsTenpai tiles) := by
   rw [← waitingTiles_ne_nil_iff]
@@ -157,7 +157,7 @@ def CanReduceMentsu (tiles : List Tile) : Prop :=
   1 < tiles.length ∧ IsTenpai tiles ∧
     (mentsuReductions tiles).any (fun remaining =>
       !(waitingTiles remaining).isEmpty &&
-        decompositionCount remaining == decompositionCount tiles) = true
+        waitCompletionCount remaining == waitCompletionCount tiles) = true
 
 instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMentsu tiles) := by
   unfold CanReduceMentsu
@@ -190,4 +190,4 @@ def manzu (ranks : List Rank) : List Tile :=
 def souzu (ranks : List Rank) : List Tile :=
   Tile.numberedTiles .Souzu ranks
 
-end DecompositionFinder
+end WaitCompletionFinder

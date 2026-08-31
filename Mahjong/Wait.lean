@@ -3,13 +3,13 @@ import Mahjong.Pattern
 /-!
 # 通常形聴牌の待ち分類
 
-このモジュールでは、通常形聴牌をどの未完成部品として読むかを `WaitExtraction`、
+このモジュールでは、通常形聴牌をどの未完成部品として読むかを `WaitPattern`、
 麻雀上の分類語彙を `WaitKind` として表す。実際に待ちであることは
-`DecompositionFinder.IsWaitFor` が定め、分類は `Decomposition` の解析結果から計算する。
+`WaitCompletionFinder.IsWaitFor` が定め、分類は `WaitCompletion` の解析結果から計算する。
 -/
 
 /-- 待ちの終端を、単騎+完成面子または対子+ターツとして取り出す方法。 -/
-inductive WaitExtraction
+inductive WaitPattern
 | tanki (tanki : Tanki) (mentsu : MentsuCandidate)
 | toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : RyanmenStart)
 | toitsuKanchan (toitsu : Toitsu) (suit : Suit) (start : ShuntsuStart)
@@ -17,28 +17,28 @@ inductive WaitExtraction
 | shanpon (first second : Toitsu)
 deriving BEq, DecidableEq, Repr, Fintype
 
-namespace WaitExtraction
+namespace WaitPattern
 
 /-- 有限型として列挙できるすべての抽出候補。 -/
-noncomputable def all : List WaitExtraction :=
-  (Finset.univ : Finset WaitExtraction).toList
+noncomputable def all : List WaitPattern :=
+  (Finset.univ : Finset WaitPattern).toList
 
 /-- 抽出候補が要求する牌種列。 -/
-def tiles : WaitExtraction → List Tile
+def tiles : WaitPattern → List Tile
   | .tanki single mentsu => single.tiles ++ mentsu.tiles
   | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taats.ryanmen suit start).tiles
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taats.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taats.penchan suit high).tiles
   | .shanpon first second => first.tiles ++ second.tiles
 
-instance : HasTilePattern WaitExtraction where
-  tiles := WaitExtraction.tiles
+instance : HasTilePattern WaitPattern where
+  tiles := WaitPattern.tiles
 
-noncomputable def take (extraction : WaitExtraction) (chunk : Chunk) :
+noncomputable def take (extraction : WaitPattern) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
   HasTilePattern.take extraction chunk
 
-end WaitExtraction
+end WaitPattern
 
 /-- 通常形聴牌で現れる待ちの種類。 -/
 inductive WaitKind

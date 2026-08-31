@@ -26,9 +26,9 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── Wait/Specification.lean
 │   ├── Wait/Analysis.lean
 │   ├── Hand.lean
-│   ├── Decomposition.lean
-│   ├── DecompositionFinder.lean
-│   ├── DecompositionCode.lean
+│   ├── WaitCompletion.lean
+│   ├── WaitCompletionFinder.lean
+│   ├── WaitReadingCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
 ├── MahjongComputations/   # Explicitly-built expensive/exhaustive computations
@@ -65,7 +65,7 @@ The report is written to `reports/four-tile-report.txt`.
 To check a single file directly:
 
 ```bash
-lake env lean Mahjong/DecompositionFinder.lean
+lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
 ## Documentation Style

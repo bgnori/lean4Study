@@ -10,8 +10,8 @@ studying one-mentsu standard-form tenpai shapes.
 
 namespace MahjongComputations.FourTile
 
-open DecompositionCode
-open DecompositionFinder
+open WaitReadingCode
+open WaitCompletionFinder
 
 /-- A computed summary for one four-tile shape. -/
 structure FourTileShapeReport where
@@ -20,7 +20,7 @@ structure FourTileShapeReport where
   kind : Option WaitKind
   candidateKinds : List WaitKind
   reducibility : Option WaitReducibility
-  decompositionCodes : List Nat
+  waitReadingCodes : List Nat
 deriving BEq, DecidableEq, Repr
 
 private def legalTileMultisetsOfLength (length : Nat) : List Tile → List (List Tile)
@@ -43,7 +43,7 @@ def report (tiles : List Tile) : FourTileShapeReport :=
     kind := WaitAnalysis.classifyWait tiles
     candidateKinds := WaitAnalysis.candidateWaitKinds tiles
     reducibility := WaitAnalysis.determineReducibility tiles
-    decompositionCodes := findAbstractDecompositionCode tiles }
+    waitReadingCodes := findAbstractWaitReadingCode tiles }
 
 /-- Exhaustive four-tile tenpai reports. -/
 def tenpaiReports : List FourTileShapeReport :=
@@ -58,7 +58,7 @@ def tenpaiReports : List FourTileShapeReport :=
           kind := WaitAnalysis.classifyWait tiles
           candidateKinds := WaitAnalysis.candidateWaitKinds tiles
           reducibility := WaitAnalysis.determineReducibility tiles
-          decompositionCodes := findAbstractDecompositionCode tiles }
+          waitReadingCodes := findAbstractWaitReadingCode tiles }
 
 /-- Exhaustive four-tile reports whose classified wait kind is `kind`. -/
 def reportsOfKind (kind : WaitKind) : List FourTileShapeReport :=

@@ -60,7 +60,7 @@ private def reportLine (report : FourTileShapeReport) : String :=
     optionWaitKindName report.kind,
     formatKinds report.candidateKinds,
     reducibilityName report.reducibility,
-    toString report.decompositionCodes
+    toString report.waitReadingCodes
   ]
 
 private def countLine (entry : WaitKind × Nat) : String :=
@@ -93,7 +93,7 @@ private def reportText : String :=
     ([1, 2, 3, 4].map waitCountLine) ++
     ["",
      "## Tenpai reports",
-     "tiles\twaits\trepresentativeKind\tcandidateKinds\treducibility\tdecompositionCodes"] ++
+    "tiles\twaits\trepresentativeKind\tcandidateKinds\treducibility\twaitReadingCodes"] ++
     tenpaiReports.map reportLine ++
     [""]
 
