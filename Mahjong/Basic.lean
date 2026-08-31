@@ -52,7 +52,7 @@ end Rank
  | Manzu
  | Pinzu
  | Souzu
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Suit
 
@@ -81,7 +81,7 @@ end Suit
  | White
  | Green
  | Red
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Honor
 
@@ -104,7 +104,7 @@ end Honor
  inductive Tile
  | numbered(suit : Suit) (rank : Rank )
  | honor(h : Honor )
-deriving BEq, DecidableEq, Repr, Fintype
+deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Tile
 

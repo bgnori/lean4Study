@@ -28,21 +28,21 @@ def pairChunkCandidates : List TileChunk :=
   Tile.all.map .pair
 
 /-- 完成面子候補。全順子候補と全刻子候補を含む。 -/
-def meldChunkCandidates : List TileChunk :=
+def mentsuChunkCandidates : List TileChunk :=
   (Suit.all.flatMap fun suit =>
     List.ofFn fun start : ShuntsuStart =>
       TileChunk.shuntsu suit start) ++
   Tile.all.map .koutsu
 
 /-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
-def decomposeMelds : Nat → List Tile → List (List TileChunk)
+def decomposeMentsu : Nat → List Tile → List (List TileChunk)
   | 0, tiles =>
       if tiles.isEmpty then [[]] else []
   | fuel + 1, tiles =>
-      List.flatten (meldChunkCandidates.map fun meld =>
-        match removeTiles tiles meld.tiles with
+      List.flatten (mentsuChunkCandidates.map fun mentsu =>
+        match removeTiles tiles mentsu.tiles with
         | some remaining =>
-            (decomposeMelds fuel remaining).map fun winningChunks => meld :: winningChunks
+            (decomposeMentsu fuel remaining).map fun winningChunks => mentsu :: winningChunks
         | none => [])
 
 /-- 牌種リストを雀頭1つと完成面子列に分解する。 -/
@@ -50,7 +50,7 @@ def winningPartitions (tiles : List Tile) : List (List TileChunk) :=
   List.flatten (pairChunkCandidates.map fun pairChunk =>
     match removeTiles tiles pairChunk.tiles with
     | some remaining =>
-        (decomposeMelds (remaining.length / mentsuTileCount) remaining).map fun winningChunks =>
+        (decomposeMentsu (remaining.length / mentsuTileCount) remaining).map fun winningChunks =>
           pairChunk :: winningChunks
     | none => [])
 
@@ -149,7 +149,7 @@ instance decidableIsTenpai (tiles : List Tile) : Decidable (IsTenpai tiles) := b
 
 /-- `tiles` から完成面子を1つ取り除いて得られる牌種リストの候補。 -/
 def mentsuReductions (tiles : List Tile) : List (List Tile) :=
-  meldChunkCandidates.filterMap fun mentsu =>
+  mentsuChunkCandidates.filterMap fun mentsu =>
     removeTiles tiles mentsu.tiles
 
 /-- 完成面子を1つ除いても同じ分解数の聴牌形が残るなら可約とする。 -/
