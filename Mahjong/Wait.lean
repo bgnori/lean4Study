@@ -42,8 +42,7 @@ end WaitExtraction
 
 /-- 通常形聴牌で現れる待ちの種類。 -/
 inductive WaitKind
-| tankiShuntsu
-| tankiKoutsu
+| tanki
 | toitsuRyanmen
 | toitsuKanchan
 | toitsuPenchan
@@ -58,8 +57,7 @@ namespace WaitKind
 
 /-- `WaitKind` の明示的な列挙。ドキュメント上の分類表としても使う。 -/
 def all : List WaitKind :=
-  [.tankiShuntsu,
-   .tankiKoutsu,
+  [.tanki,
    .toitsuRyanmen,
    .toitsuKanchan,
    .toitsuPenchan,
@@ -94,10 +92,8 @@ deriving BEq, DecidableEq, Repr
 
 /-- 待ちの分類語彙に対応する性質。 -/
 def WaitKind.classification : WaitKind → WaitClassification
-  | .tankiShuntsu =>
-    ⟨.tankiShuntsu, .noAmbiguity⟩
-  | .tankiKoutsu =>
-    ⟨.tankiKoutsu, .noAmbiguity⟩
+  | .tanki =>
+    ⟨.tanki, .noAmbiguity⟩
   | .toitsuRyanmen =>
     ⟨.toitsuRyanmen, .noAmbiguity⟩
   | .toitsuKanchan =>

@@ -58,9 +58,9 @@ theorem classifyFourTile_iff (tiles : List Tile) (kind : FourTileWaitKind) :
   ⟨classifyFourTile_sound, classifyFourTile_complete⟩
 
 example : classifyFourTile (Tile.numberedTiles .Manzu [0, 1, 2, 4]) =
-    some .tankiShuntsu := by native_decide
+  some .tanki := by native_decide
 example : classifyFourTile (Tile.numberedTiles .Manzu [0, 0, 0, 4]) =
-    some .tankiKoutsu := by native_decide
+  some .tanki := by native_decide
 example : classifyFourTile
     (Tile.numberedTiles .Manzu [2, 3] ++ Tile.numberedTiles .Pinzu [4, 4]) =
     some .toitsuRyanmen := by

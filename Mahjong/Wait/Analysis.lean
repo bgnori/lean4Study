@@ -15,8 +15,8 @@ open DecompositionCode
 /-- 形部品列から観測できる待ち基本形を列挙する。 -/
 def waitProfilesOfComponents (components : List DecompositionComponent) : List WaitProfile :=
   let has component := components.contains component
-  (if has .tanki && has .shuntsu then [WaitProfile.tankiShuntsu] else []) ++
-  (if has .tanki && has .koutsu then [WaitProfile.tankiKoutsu] else []) ++
+  (if has .tanki && has .shuntsu then [WaitProfile.tanki .shuntsu] else []) ++
+  (if has .tanki && has .koutsu then [WaitProfile.tanki .koutsu] else []) ++
   (if has .toitsu && has .ryanmen then [WaitProfile.toitsuRyanmen] else []) ++
   (if has .toitsu && has .kanchan then [WaitProfile.toitsuKanchan] else []) ++
   (if has .toitsu && has .penchan then [WaitProfile.toitsuPenchan] else []) ++

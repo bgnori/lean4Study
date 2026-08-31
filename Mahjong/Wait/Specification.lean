@@ -3,15 +3,20 @@ import Mahjong.Wait
 /-!
 # 待ち分類の仕様
 
-解析器が牌列から観測する基本形を `WaitProfile` とし、その観測列がどの
-`WaitKind` に属するかを命題 `Classifies` で宣言的に定める。
+解析器が牌列から観測する内部基本形を `WaitProfile` とし、その観測列がどの
+公開分類 `WaitKind` に属するかを命題 `Classifies` で宣言的に定める。
 このモジュールは和了分解の列挙方法や分類アルゴリズムには依存しない。
 -/
 
-/-- 1つの和了分解から観測される待ちの基本形。 -/
+/-- 単騎読みと一緒に現れる完成面子の種類。 -/
+inductive WaitProfileMentsu
+| shuntsu
+| koutsu
+deriving BEq, DecidableEq, Repr
+
+/-- 1つの和了分解から観測される内部基本形。くっつきやノベタン判定に必要な差は引数に残す。 -/
 inductive WaitProfile
-| tankiShuntsu
-| tankiKoutsu
+| tanki (mentsu : WaitProfileMentsu)
 | toitsuRyanmen
 | toitsuKanchan
 | toitsuPenchan
@@ -22,7 +27,7 @@ namespace WaitSpecification
 
 /-- 刻子を伴う単騎と、指定した対子+ターツの読みが共存すること。 -/
 def HasKuttsuki (profiles : List WaitProfile) (taatsuProfile : WaitProfile) : Prop :=
-  profiles.contains .tankiKoutsu = true ∧ profiles.contains taatsuProfile = true
+  profiles.contains (.tanki .koutsu) = true ∧ profiles.contains taatsuProfile = true
 
 instance (profiles : List WaitProfile) (taatsuProfile : WaitProfile) :
     Decidable (HasKuttsuki profiles taatsuProfile) := by
@@ -48,7 +53,7 @@ abbrev HasKuttsukiPenchan (profiles : List WaitProfile) : Prop :=
 存在しても、単騎+順子の読みが2つ以上あれば成立する。
 -/
 def HasNobetanReading (profiles : List WaitProfile) : Prop :=
-  2 ≤ profiles.count .tankiShuntsu
+  2 ≤ profiles.count (.tanki .shuntsu)
 
 instance (profiles : List WaitProfile) : Decidable (HasNobetanReading profiles) := by
   unfold HasNobetanReading
@@ -56,7 +61,7 @@ instance (profiles : List WaitProfile) : Decidable (HasNobetanReading profiles) 
 
 /-- 牌姿全体をノベタンと分類するための、単騎+順子だけからなる狭義の条件。 -/
 def IsNobetan (profiles : List WaitProfile) : Prop :=
-  HasNobetanReading profiles ∧ ∀ profile ∈ profiles, profile = .tankiShuntsu
+  HasNobetanReading profiles ∧ ∀ profile ∈ profiles, profile = .tanki .shuntsu
 
 instance (profiles : List WaitProfile) : Decidable (IsNobetan profiles) := by
   unfold IsNobetan
@@ -84,18 +89,12 @@ inductive Classifies : List WaitProfile → WaitKind → Prop
     (noKanchan : ¬HasKuttsukiKanchan profiles)
     (noPenchan : ¬HasKuttsukiPenchan profiles)
     (has : IsNobetan profiles) : Classifies profiles .nobetan
-| tankiShuntsu {rest}
-    (noRyanmen : ¬HasKuttsukiRyanmen (.tankiShuntsu :: rest))
-    (noKanchan : ¬HasKuttsukiKanchan (.tankiShuntsu :: rest))
-    (noPenchan : ¬HasKuttsukiPenchan (.tankiShuntsu :: rest))
-    (noNobetan : ¬IsNobetan (.tankiShuntsu :: rest)) :
-    Classifies (.tankiShuntsu :: rest) .tankiShuntsu
-  | tankiKoutsu {rest}
-    (noRyanmen : ¬HasKuttsukiRyanmen (.tankiKoutsu :: rest))
-    (noKanchan : ¬HasKuttsukiKanchan (.tankiKoutsu :: rest))
-    (noPenchan : ¬HasKuttsukiPenchan (.tankiKoutsu :: rest))
-    (noNobetan : ¬IsNobetan (.tankiKoutsu :: rest)) :
-    Classifies (.tankiKoutsu :: rest) .tankiKoutsu
+| tanki {mentsu rest}
+  (noRyanmen : ¬HasKuttsukiRyanmen (WaitProfile.tanki mentsu :: rest))
+  (noKanchan : ¬HasKuttsukiKanchan (WaitProfile.tanki mentsu :: rest))
+  (noPenchan : ¬HasKuttsukiPenchan (WaitProfile.tanki mentsu :: rest))
+  (noNobetan : ¬IsNobetan (WaitProfile.tanki mentsu :: rest)) :
+  Classifies (WaitProfile.tanki mentsu :: rest) WaitKind.tanki
   | toitsuRyanmen {rest}
     (noRyanmen : ¬HasKuttsukiRyanmen (.toitsuRyanmen :: rest))
     (noKanchan : ¬HasKuttsukiKanchan (.toitsuRyanmen :: rest))
@@ -138,8 +137,7 @@ def expectedKind (profiles : List WaitProfile) : Option WaitKind :=
     some WaitKind.nobetan
   else match profiles with
     | [] => none
-    | WaitProfile.tankiShuntsu :: _ => some WaitKind.tankiShuntsu
-    | WaitProfile.tankiKoutsu :: _ => some WaitKind.tankiKoutsu
+    | WaitProfile.tanki _ :: _ => some WaitKind.tanki
     | WaitProfile.toitsuRyanmen :: _ => some WaitKind.toitsuRyanmen
     | WaitProfile.toitsuKanchan :: _ => some WaitKind.toitsuKanchan
     | WaitProfile.toitsuPenchan :: _ => some WaitKind.toitsuPenchan
@@ -167,8 +165,7 @@ theorem expectedKind_iff (profiles : List WaitProfile) (kind : WaitKind) :
             | nil => simp at result
             | cons profile rest =>
                 cases profile <;> cases result
-                · exact .tankiShuntsu kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
-                · exact .tankiKoutsu kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
+                · exact .tanki kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
                 · exact .toitsuRyanmen kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
                 · exact .toitsuKanchan kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
                 · exact .toitsuPenchan kuttsukiRyanmen kuttsukiKanchan kuttsukiPenchan nobetan
@@ -176,11 +173,11 @@ theorem expectedKind_iff (profiles : List WaitProfile) (kind : WaitKind) :
   · intro classified
     cases classified <;> simp_all [expectedKind]
 
-example : HasNobetanReading [.tankiShuntsu, .tankiShuntsu] := by decide
+example : HasNobetanReading [.tanki .shuntsu, .tanki .shuntsu] := by decide
 
 -- ほかの読みと共存しても、「ノベタン読みを含む」という別名は利用できる。
-example : HasNobetanReading [.tankiShuntsu, .shanpon, .tankiShuntsu] := by decide
+example : HasNobetanReading [.tanki .shuntsu, .shanpon, .tanki .shuntsu] := by decide
 
-example : ¬IsNobetan [.tankiShuntsu, .shanpon, .tankiShuntsu] := by decide
+example : ¬IsNobetan [.tanki .shuntsu, .shanpon, .tanki .shuntsu] := by decide
 
 end WaitSpecification
