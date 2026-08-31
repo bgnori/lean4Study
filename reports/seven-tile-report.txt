@@ -1,0 +1,85 @@
+# Seven-tile direct Reading wait report
+
+allSevenTileShapes: 18623330
+enumeratedReadings: 224502
+tenpaiReports: 148809
+
+## Reducibility
+
+### Reducible
+count: 146763
+
+### Irreducible
+count: 2046
+
+#### Groups by waitReadingCodes
+waitReadingCodes	count	representativeTiles	representativeWaits
+[561]	12	1111222m	3m
+[357]	42	1111333m	2m
+[117, 255, 357, 578]	36	1112223m	1234m
+[153, 195, 338]	36	1112233m	1234m
+[255, 273, 429, 442]	6	1112234m	235m
+[117, 255, 561, 578]	6	1112333m	1234m
+[195, 273, 357, 442]	30	1112334m	235m
+[117, 255, 442]	36	1112344m	14m
+[195, 429, 442]	18	1112345m	2356m
+[273, 442]	48	1112346m	56m
+[117, 255]	1080	1112355m	145m
+[357, 561, 578]	6	1112444m	23m
+[255, 273, 442]	60	1113345m	236m
+[255, 357, 578]	30	1113444m	235m
+[357, 578]	15	1113555m	234m
+[255, 429, 442]	6	1122223m	134m
+[153, 273, 338]	21	1122233m	123m
+[153, 338, 429]	6	1122333m	123m
+[195, 338]	81	1122334m	14m
+[273, 429]	6	1122344m	3m
+[195, 273]	30	1123344m	25m
+[195]	243	1134567m	258m
+[273, 429, 442]	6	1222234m	134m
+[117, 357, 561, 578]	6	1222333m	123m
+[195, 273, 442]	30	1233334m	1245m
+[338]	9	1234567m	147m
+[255]	36	2222333m	14m
+[195, 255, 273, 442]	24	2223345m	1346m
+[117, 255, 578]	15	2223444m	12345m
+[195, 442]	36	2223456m	13467m
+[195, 255, 442]	30	2233334m	1245m
+
+## Wait tile count distribution
+1 wait tile kinds: 84180
+2 wait tile kinds: 61131
+3 wait tile kinds: 3273
+4 wait tile kinds: 192
+5 wait tile kinds: 33
+6 wait tile kinds: 0
+7 wait tile kinds: 0
+8 wait tile kinds: 0
+9 wait tile kinds: 0
+10 wait tile kinds: 0
+11 wait tile kinds: 0
+12 wait tile kinds: 0
+13 wait tile kinds: 0
+14 wait tile kinds: 0
+15 wait tile kinds: 0
+16 wait tile kinds: 0
+17 wait tile kinds: 0
+18 wait tile kinds: 0
+19 wait tile kinds: 0
+20 wait tile kinds: 0
+21 wait tile kinds: 0
+22 wait tile kinds: 0
+23 wait tile kinds: 0
+24 wait tile kinds: 0
+25 wait tile kinds: 0
+26 wait tile kinds: 0
+27 wait tile kinds: 0
+28 wait tile kinds: 0
+29 wait tile kinds: 0
+30 wait tile kinds: 0
+31 wait tile kinds: 0
+32 wait tile kinds: 0
+33 wait tile kinds: 0
+34 wait tile kinds: 0
+
+calculationElapsedMs: 0

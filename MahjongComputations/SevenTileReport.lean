@@ -43,9 +43,10 @@ private def waitCountLine (distribution : List (Nat × Nat)) (count : Nat) : Str
 
 private def reportBody (summary : SevenTileSummary) : String :=
   String.intercalate newline <|
-    ["# Seven-tile exhaustive wait report",
+    ["# Seven-tile direct Reading wait report",
      "",
      s!"allSevenTileShapes: {summary.allSevenTileShapes}",
+     s!"enumeratedReadings: {summary.enumeratedReadings}",
      s!"tenpaiReports: {summary.tenpaiReports}",
      "",
      "## Reducibility",
@@ -64,9 +65,9 @@ private def reportBody (summary : SevenTileSummary) : String :=
     ((List.range Tile.count).map (fun index => waitCountLine summary.waitTileCountDistribution (index + 1))) ++
     [""]
 
-private def reportText (elapsedMs : Nat) (summary : SevenTileSummary) : String :=
+private def reportText (elapsedMs : Nat) (body : String) : String :=
   String.intercalate newline [
-    reportBody summary,
+    body,
     s!"calculationElapsedMs: {elapsedMs}",
     ""
   ]
@@ -77,11 +78,13 @@ def run (args : List String) : IO UInt32 := do
   if let some parent := path.parent then
     IO.FS.createDirAll parent
   let started ← IO.monoMsNow
-  let computedSummary := summary
+  let computedSummary := summary ()
   let body := reportBody computedSummary
-  let _ := body.utf8ByteSize
+  let bodySize := body.utf8ByteSize
+  if bodySize == 0 then
+    throw (IO.userError "empty seven-tile report body")
   let finished ← IO.monoMsNow
-  IO.FS.writeFile path (reportText (finished - started) computedSummary)
+  IO.FS.writeFile path (reportText (finished - started) body)
   IO.println s!"wrote {path}"
   return 0
 

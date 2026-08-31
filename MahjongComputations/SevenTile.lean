@@ -1,14 +1,18 @@
+import Mahjong.DirectWaitReading
 import Mahjong.Wait.Analysis
 
 /-!
-# Exhaustive seven-tile wait computation
+# Seven-tile wait computation from direct Readings
 
-This module enumerates legal seven-tile multisets and folds them directly into
-summary data, avoiding materializing all shapes at once.
+This module enumerates valid two-mentsu Readings, projects them to seven-tile
+hands, and folds the resulting tenpai hands into summary data.  The total number
+of legal seven-tile multisets is counted separately, without materializing the
+non-tenpai shapes.
 -/
 
 namespace MahjongComputations.SevenTile
 
+open DirectWaitReading
 open WaitCompletionFinder
 open WaitReadingCode
 
@@ -23,6 +27,7 @@ deriving BEq, DecidableEq, Repr
 /-- Aggregated exhaustive report data for seven-tile shapes. -/
 structure SevenTileSummary where
   allSevenTileShapes : Nat
+  enumeratedReadings : Nat
   tenpaiReports : Nat
   reducibleReports : Nat
   irreducibleReports : Nat
@@ -32,6 +37,7 @@ deriving BEq, DecidableEq, Repr
 
 private def emptySummary : SevenTileSummary :=
   { allSevenTileShapes := 0
+    enumeratedReadings := 0
     tenpaiReports := 0
     reducibleReports := 0
     irreducibleReports := 0
@@ -55,21 +61,60 @@ private def addWaitReadingCodeGroup
       else
         group :: addWaitReadingCodeGroup codes tiles waits rest
 
-private def foldLegalTileMultisetsOfLength {α : Type}
-    (length : Nat) (step : List Tile → α → α) (init : α) : α :=
-  let rec go (remaining : Nat) (tiles : List Tile) (selectedTiles : List Tile) (acc : α) : α :=
-    match tiles with
-    | [] =>
-        if remaining == 0 then
-          step selectedTiles.reverse acc
-        else
-          acc
-    | tile :: rest =>
-        (List.range (Nat.min copiesPerTile remaining + 1)).foldl
-          (fun acc copies =>
-            go (remaining - copies) rest (List.replicate copies tile ++ selectedTiles) acc)
-          acc
-  go length Tile.all [] init
+private def countLegalTileMultisetsOfLength : Nat → List Tile → Nat
+  | length, [] =>
+      if length == 0 then 1 else 0
+  | length, _ :: rest =>
+      (List.range (Nat.min copiesPerTile length + 1)).foldl
+        (fun total copies => total + countLegalTileMultisetsOfLength (length - copies) rest)
+        0
+termination_by _ tiles => tiles.length
+
+private def allSevenTileShapeCount (_ : Unit) : Nat :=
+  countLegalTileMultisetsOfLength 7 Tile.all
+
+private def tileMultisetKey (tiles : List Tile) : Nat :=
+  Tile.all.foldl (fun key tile => key * (copiesPerTile + 1) + tiles.count tile) 0
+
+private structure ReadingEntry where
+  key : Nat
+  tiles : List Tile
+  completion : WaitCompletion
+deriving BEq, DecidableEq, Repr
+
+private structure SevenTileShapeReport where
+  key : Nat
+  tiles : List Tile
+  completions : List WaitCompletion
+deriving BEq, DecidableEq, Repr
+
+private def readingEntry (reading : Reading 2) : ReadingEntry :=
+  let tiles := hand reading
+  { key := tileMultisetKey tiles
+    tiles
+    completion := completion reading }
+
+private def readingEntryKeyLE (first second : ReadingEntry) : Bool :=
+  decide (first.key ≤ second.key)
+
+private def insertCompletion (completion : WaitCompletion) (completions : List WaitCompletion) :
+    List WaitCompletion :=
+  if completions.contains completion then completions else completion :: completions
+
+private def groupSortedReadingEntry (groups : List SevenTileShapeReport) (entry : ReadingEntry) :
+    List SevenTileShapeReport :=
+  match groups with
+  | [] => [{ key := entry.key, tiles := entry.tiles, completions := [entry.completion] }]
+  | group :: rest =>
+      if group.key == entry.key then
+        { group with completions := insertCompletion entry.completion group.completions } :: rest
+      else
+        { key := entry.key, tiles := entry.tiles, completions := [entry.completion] } :: groups
+
+private def sevenTileShapeReports (_ : Unit) : List SevenTileShapeReport :=
+  (directReadings 2).map readingEntry
+    |>.mergeSort readingEntryKeyLE
+    |>.foldl groupSortedReadingEntry []
 
 private def canReduceMentsuWithCompletionCount (tiles : List Tile) (completionCount : Nat) : Bool :=
   1 < tiles.length &&
@@ -80,27 +125,26 @@ private def canReduceMentsuWithCompletionCount (tiles : List Tile) (completionCo
 private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
 
-private def addShape (tiles : List Tile) (summary : SevenTileSummary) : SevenTileSummary :=
-  let summary := { summary with allSevenTileShapes := summary.allSevenTileShapes + 1 }
-  let completions := findWaitCompletions tiles
-  if completions.isEmpty then
-    summary
+private def addShapeReport (report : SevenTileShapeReport) (summary : SevenTileSummary) :
+    SevenTileSummary :=
+  let completions := report.completions
+  let waits := waitsFromCompletions completions
+  let codes := abstractWaitReadingCode completions
+  let summary :=
+    { summary with
+      tenpaiReports := summary.tenpaiReports + 1
+      waitTileCountDistribution := incrementAssoc waits.length summary.waitTileCountDistribution }
+  if canReduceMentsuWithCompletionCount report.tiles completions.length then
+    { summary with reducibleReports := summary.reducibleReports + 1 }
   else
-    let waits := waitsFromCompletions completions
-    let codes := abstractWaitReadingCode completions
-    let summary :=
-      { summary with
-        tenpaiReports := summary.tenpaiReports + 1
-        waitTileCountDistribution := incrementAssoc waits.length summary.waitTileCountDistribution }
-    if canReduceMentsuWithCompletionCount tiles completions.length then
-      { summary with reducibleReports := summary.reducibleReports + 1 }
-    else
-      { summary with
-        irreducibleReports := summary.irreducibleReports + 1
-        irreducibleGroups := addWaitReadingCodeGroup codes tiles waits summary.irreducibleGroups }
+    { summary with
+      irreducibleReports := summary.irreducibleReports + 1
+      irreducibleGroups := addWaitReadingCodeGroup codes report.tiles waits summary.irreducibleGroups }
 
 /-- Exhaustive seven-tile aggregate summary. -/
-def summary : SevenTileSummary :=
-  foldLegalTileMultisetsOfLength 7 addShape emptySummary
+def summary (_ : Unit) : SevenTileSummary :=
+  { (sevenTileShapeReports ()).foldl (fun summary report => addShapeReport report summary) emptySummary with
+    allSevenTileShapes := allSevenTileShapeCount ()
+    enumeratedReadings := (directReadings 2).length }
 
 end MahjongComputations.SevenTile
