@@ -25,16 +25,12 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── Wait.lean
 │   ├── Wait/Specification.lean
 │   ├── Wait/Analysis.lean
-│   ├── FourTileWait.lean
-│   ├── FourTileWait/Specification.lean
-│   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
 │   ├── Decomposition.lean
 │   ├── DecompositionFinder.lean
 │   ├── DecompositionCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
-└── mj.lean                # Compatibility import for older notes
 ```
 
 ## Build

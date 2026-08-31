@@ -25,28 +25,25 @@ This directory contains the Mahjong wait-classification formalization used as th
    - The executable classifier and its soundness/completeness theorems.
    - Evidence-indexed reducibility computation for concrete tenpai hands.
 
-6. `FourTileWait.lean` and `FourTileWait/`
-   - Four-tile constants, compatibility names, and checked examples for all ten named classifications.
-
-7. `Hand.lean`
+6. `Hand.lean`
    - Hand sizes used in the study project.
    - Verified enumeration of exact physical-tile extractions.
 
-8. `Decomposition.lean`
+7. `Decomposition.lean`
    - The `Decomposition` data type: one wait tile and one completed decomposition.
    - Completed chunk types and canonical ordering.
 
-9. `DecompositionFinder.lean`
+8. `DecompositionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
    - Legal tenpai sizes and physical copy-count validation.
    - `DecompositionFinder.find`, executable decomposition discovery, and evidence-indexed irreducibility.
 
-10. `DecompositionCode.lean`
+9. `DecompositionCode.lean`
    - Codes already-found `List Decomposition` values without performing discovery.
    - `find...` convenience functions explicitly compose `DecompositionFinder` with coding.
    - The 53 one-suit irreducible seven-tile examples.
 
-11. `Tenpai.lean`
+10. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points
@@ -64,8 +61,6 @@ import Mahjong.Wait
 import Mahjong.DecompositionFinder
 import Mahjong.DecompositionCode
 ```
-
-The old `mj.lean` file is kept only as a compatibility import for older notes.
 
 ## Validation
 

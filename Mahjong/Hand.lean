@@ -1,4 +1,4 @@
-import Mahjong.FourTileWait
+import Mahjong.Wait
 
 /-!
 # 手牌と抽出列挙
@@ -17,6 +17,9 @@ abbrev tenTileHandSize : Nat := thirteenTileHandSize - mentsuTileCount
 
 /-- 2面子を除去できる手牌サイズ。 -/
 abbrev sevenTileHandSize : Nat := tenTileHandSize - mentsuTileCount
+
+/-- 1面子を含む通常形聴牌の手牌枚数。 -/
+abbrev fourTileHandSize : Nat := standardTenpaiHandSize 1
 
 /-- 単騎だけの最小手牌サイズ。 -/
 abbrev oneTileHandSize : Nat := fourTileHandSize - mentsuTileCount

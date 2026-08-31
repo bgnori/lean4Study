@@ -25,16 +25,12 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── Wait.lean
 │   ├── Wait/Specification.lean
 │   ├── Wait/Analysis.lean
-│   ├── FourTileWait.lean
-│   ├── FourTileWait/Specification.lean
-│   ├── FourTileWait/Analysis.lean
 │   ├── Hand.lean
 │   ├── Decomposition.lean
 │   ├── DecompositionFinder.lean
 │   ├── DecompositionCode.lean
 │   ├── Tenpai.lean
 │   └── README.md
-└── mj.lean                # 旧メモ向けの互換 import
 ```
 
 ## ビルド
