@@ -8,10 +8,9 @@ import Mahjong.Pattern
 `DecompositionFinder.IsWaitFor` が定め、分類は `Decomposition` の解析結果から計算する。
 -/
 
-/-- 待ちの終端を、単騎+面子または対子+ターツとして取り出す方法。 -/
+/-- 待ちの終端を、単騎+完成面子または対子+ターツとして取り出す方法。 -/
 inductive WaitExtraction
-| tankiShuntsu (tanki : Tanki) (shuntsu : Shuntsu)
-| tankiKoutsu (tanki : Tanki) (tile : Tile)
+| tanki (tanki : Tanki) (mentsu : MentsuCandidate)
 | toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : RyanmenStart)
 | toitsuKanchan (toitsu : Toitsu) (suit : Suit) (start : ShuntsuStart)
 | toitsuPenchan (toitsu : Toitsu) (suit : Suit) (high : Bool)
@@ -26,8 +25,7 @@ noncomputable def all : List WaitExtraction :=
 
 /-- 抽出候補が要求する牌種列。 -/
 def tiles : WaitExtraction → List Tile
-  | .tankiShuntsu tanki shuntsu => tanki.tiles ++ shuntsu.tiles
-  | .tankiKoutsu tanki tile => tanki.tiles ++ (MentsuCandidate.koutsu tile).tiles
+  | .tanki single mentsu => single.tiles ++ mentsu.tiles
   | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taats.ryanmen suit start).tiles
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taats.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taats.penchan suit high).tiles
