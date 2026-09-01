@@ -194,6 +194,18 @@ structure Chunk where
 
 namespace Chunk
 
+/-!
+## `Chunk.take` の基本仕様
+
+`Chunk.take` は、空でない牌集合 `chunk` から、そこに含まれることが分かっている物理牌
+`tile` を1枚取り出す。返り値は `(取り出した牌, 残りの牌集合)` というペアである。
+
+この仕様は、次の2つの定理で確認する。
+
+- `take_fst`: 返り値の1番目は、指定した `tile` そのものである。
+- `take_snd_not_mem`: 返り値の2番目、つまり残りの集合には、取り出した牌はもう含まれない。
+-/
+
 /-- `chunk` から指定した物理牌を1枚取り出し、取り出した牌と残りを返す。 -/
 def take (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     PhysicalTile × Finset PhysicalTile :=
@@ -202,15 +214,21 @@ def take (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
 /--
 `chunk.take tile` の返り値の1番目は、指定した `tile` そのものである。
 
-この定理は、牌を1枚取り出す処理が「取り出した牌」と「残りの集合」を正しい順序で返すことを保証する。
 証明は `take` の定義をそのまま見ると左右が同じ形になるため、`rfl` で終わる。
 
-読むためのLean語彙: `structure`, 部分型, `×`, `.1`, `@[simp]`, `theorem`, `rfl`。
+読むためのLean語彙: `.1`, `@[simp]`, `theorem`, `rfl`。
 -/
 @[simp]
 theorem take_fst (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     (chunk.take tile).1 = tile := rfl
 
+/--
+`chunk.take tile` の返り値の2番目には、指定した `tile` は含まれない。
+
+証明は `take` の定義を展開し、有限集合から要素を消す `erase` の性質で確認する。
+
+読むためのLean語彙: `.1`, `.2`, `∉`, `@[simp]`, `theorem`, `simp`, `[...]`。
+-/
 @[simp]
 theorem take_snd_not_mem (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     tile.1 ∉ (chunk.take tile).2 := by
