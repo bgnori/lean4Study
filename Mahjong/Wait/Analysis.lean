@@ -12,15 +12,16 @@ namespace WaitAnalysis
 
 open WaitReadingCode
 
-/-- 形部品列から観測できる待ち基本形を列挙する。 -/
-def waitProfilesOfComponents (components : List WaitReadingComponentKind) : List WaitProfile :=
-  let has component := components.contains component
+/-- 部品種別列から観測できる待ち基本形を列挙する。 -/
+def waitProfilesOfComponentKinds
+    (componentKinds : List WaitReadingComponentKind) : List WaitProfile :=
+  let has componentKind := componentKinds.contains componentKind
   (if has .tanki && has .shuntsu then [WaitProfile.tanki .shuntsu] else []) ++
   (if has .tanki && has .koutsu then [WaitProfile.tanki .koutsu] else []) ++
   (if has .toitsu && has .ryanmen then [WaitProfile.toitsuRyanmen] else []) ++
   (if has .toitsu && has .kanchan then [WaitProfile.toitsuKanchan] else []) ++
   (if has .toitsu && has .penchan then [WaitProfile.toitsuPenchan] else []) ++
-  (if 2 ≤ (components.filter (fun component => component == .toitsu)).length then
+  (if 2 ≤ (componentKinds.filter (fun componentKind => componentKind == .toitsu)).length then
     [WaitProfile.shanpon]
   else
     [])
@@ -28,7 +29,7 @@ def waitProfilesOfComponents (components : List WaitReadingComponentKind) : List
 /-- 通常形の和了分解から得られる待ち基本形の正規化済み観測列。 -/
 def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
   (findAbstractWaitReadings tiles).flatMap fun reading =>
-    waitProfilesOfComponents reading.components
+    waitProfilesOfComponentKinds reading.components
 
 /-- 純粋な分類仕様を実行する、基本形列上の決定手続き。 -/
 def classifyWaitProfiles (profiles : List WaitProfile) : Option WaitKind :=

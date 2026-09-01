@@ -75,23 +75,6 @@ structure Seed (n : Nat) where
   wait : Tile
 deriving BEq, DecidableEq, Fintype
 
-private def componentKindWithoutWait (wait : Tile) : TileChunk → Option WaitReadingComponentKind
-  | .inl (.toitsu tile) =>
-      if tile == wait then some .tanki else none
-  | .inr (.koutsu tile) =>
-      if tile == wait then some .toitsu else none
-  | .inr (.shuntsu (.shuntsu suit start)) =>
-      match wait with
-      | .honor _ => none
-      | .numbered waitSuit rank =>
-          if waitSuit != suit then none
-          else if rank == start.firstRank then
-            some (if start.isLast then .penchan else .ryanmen)
-          else if rank == start.middleRank then some .kanchan
-          else if rank == start.lastRank then
-            some (if start.isFirst then .penchan else .ryanmen)
-          else none
-
 private def keysNondecreasing : List Nat → Bool
   | [] | [_] => true
   | first :: second :: rest => first ≤ second && keysNondecreasing (second :: rest)
@@ -152,7 +135,7 @@ private def hasLegalTileCounts (tiles : List Tile) : Bool :=
 生成元を、別 Reading と誤って数えないために必要である。
 -/
 def Seed.valid (seed : Seed n) : Bool :=
-  (componentKindWithoutWait seed.wait (seed.shape.chunk seed.selected)).isSome &&
+  (componentKindAfterRemovingWait seed.wait (seed.shape.chunk seed.selected)).isSome &&
   hasLegalTileCounts seed.shape.tiles &&
   mentsuCanonical seed.shape &&
   selectedIsCanonical seed
@@ -162,11 +145,11 @@ abbrev Reading (n : Nat) := { seed : Seed n // seed.valid }
 
 private theorem wait_mem_chunk_of_componentKind_isSome
     (wait : Tile) (chunk : TileChunk)
-    (valid : (componentKindWithoutWait wait chunk).isSome = true) :
+    (valid : (componentKindAfterRemovingWait wait chunk).isSome = true) :
     wait ∈ chunk.tiles := by
   rcases chunk with pair | mentsu
   · rcases pair with ⟨tile⟩
-    simp only [componentKindWithoutWait] at valid
+    simp only [componentKindAfterRemovingWait] at valid
     split at valid
     · have tileEq : tile = wait := by simpa using ‹(tile == wait) = true›
       subst tile
@@ -175,7 +158,7 @@ private theorem wait_mem_chunk_of_componentKind_isSome
   · rcases mentsu with shuntsuPattern | tile
     · rcases shuntsuPattern with ⟨suit, start⟩
       cases wait with
-      | honor honor => simp [componentKindWithoutWait] at valid
+      | honor honor => simp [componentKindAfterRemovingWait] at valid
       | numbered waitSuit rank =>
           by_cases sameSuit : waitSuit = suit
           · subst waitSuit
@@ -188,9 +171,9 @@ private theorem wait_mem_chunk_of_componentKind_isSome
               · by_cases last : rank = start.lastRank
                 · subst rank
                   simp [TileChunk.tiles, MentsuCandidate.tiles, Shuntsu.tiles]
-                · simp [componentKindWithoutWait, first, middle, last] at valid
-          · simp [componentKindWithoutWait, sameSuit] at valid
-    · simp only [componentKindWithoutWait] at valid
+                · simp [componentKindAfterRemovingWait, first, middle, last] at valid
+          · simp [componentKindAfterRemovingWait, sameSuit] at valid
+    · simp only [componentKindAfterRemovingWait] at valid
       split at valid
       · have tileEq : tile = wait := by simpa using ‹(tile == wait) = true›
         subst tile
@@ -199,12 +182,12 @@ private theorem wait_mem_chunk_of_componentKind_isSome
 
 private theorem componentKind_isSome_of_wait_mem
     (wait : Tile) (chunk : TileChunk) (member : wait ∈ chunk.tiles) :
-    (componentKindWithoutWait wait chunk).isSome = true := by
+    (componentKindAfterRemovingWait wait chunk).isSome = true := by
   rcases chunk with pair | mentsu
   · rcases pair with ⟨tile⟩
     simp [TileChunk.tiles, Toitsu.tiles] at member
     subst tile
-    simp [componentKindWithoutWait]
+    simp [componentKindAfterRemovingWait]
   · rcases mentsu with shuntsuPattern | tile
     · rcases shuntsuPattern with ⟨suit, start⟩
       cases wait with
@@ -216,18 +199,18 @@ private theorem componentKind_isSome_of_wait_mem
           · injection first with suitEq rankEq
             subst waitSuit
             subst rank
-            simp [componentKindWithoutWait]
+            simp [componentKindAfterRemovingWait]
           · injection middle with suitEq rankEq
             subst waitSuit
             subst rank
-            simp only [componentKindWithoutWait]
+            simp only [componentKindAfterRemovingWait]
             rw [show (suit != suit) = false by simp]
             simp only [Bool.false_eq_true, ↓reduceIte]
             split <;> simp
           · injection last with suitEq rankEq
             subst waitSuit
             subst rank
-            simp only [componentKindWithoutWait]
+            simp only [componentKindAfterRemovingWait]
             rw [show (suit != suit) = false by simp]
             simp only [Bool.false_eq_true, ↓reduceIte]
             split
@@ -236,7 +219,7 @@ private theorem componentKind_isSome_of_wait_mem
           · contradiction
     · simp [TileChunk.tiles, MentsuCandidate.tiles] at member
       subst tile
-      simp [componentKindWithoutWait]
+      simp [componentKindAfterRemovingWait]
 
 /-!
 ## 直接生成器
@@ -316,14 +299,14 @@ theorem directSeeds_sound {seed : Seed n} (member : seed ∈ directSeeds n) :
 theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
     seed ∈ directSeeds n := by
   have validParts :
-      (((componentKindWithoutWait seed.wait
+      (((componentKindAfterRemovingWait seed.wait
           (seed.shape.chunk seed.selected)).isSome = true ∧
         hasLegalTileCounts seed.shape.tiles = true) ∧
         mentsuCanonical seed.shape = true) ∧
         selectedIsCanonical seed = true := by
     simpa only [Seed.valid, Bool.and_eq_true] using valid
   have componentValid :
-      (componentKindWithoutWait seed.wait
+      (componentKindAfterRemovingWait seed.wait
         (seed.shape.chunk seed.selected)).isSome = true := by
     exact validParts.1.1.1
   have waitMember := wait_mem_chunk_of_componentKind_isSome
@@ -445,7 +428,7 @@ private theorem mem_shape_tiles_of_mem_chunk
 theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
     (reading.1.wait :: hand reading).Perm reading.1.shape.tiles := by
   have validParts :
-      (((componentKindWithoutWait reading.1.wait
+      (((componentKindAfterRemovingWait reading.1.wait
           (reading.1.shape.chunk reading.1.selected)).isSome = true ∧
         hasLegalTileCounts reading.1.shape.tiles = true) ∧
         mentsuCanonical reading.1.shape = true) ∧
@@ -515,7 +498,7 @@ private theorem hasLegalTileCounts_of_valid (reading : Reading n) :
     HasLegalTileCounts reading.1.shape.tiles := by
   intro tile
   have validParts :
-      (((componentKindWithoutWait reading.1.wait
+      (((componentKindAfterRemovingWait reading.1.wait
           (reading.1.shape.chunk reading.1.selected)).isSome = true ∧
         hasLegalTileCounts reading.1.shape.tiles = true) ∧
         mentsuCanonical reading.1.shape = true) ∧
@@ -710,7 +693,7 @@ theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
           have seedValid : seed.valid := by
             simp only [Seed.valid, Bool.and_eq_true]
             refine ⟨⟨⟨?_, shapeLegal⟩, ?_⟩, ?_⟩
-            · change (componentKindWithoutWait wait
+            · change (componentKindAfterRemovingWait wait
                 (.inr (shape.mentsu selected))).isSome = true
               rw [selectedEq]
               exact componentKind_isSome_of_wait_mem wait (.inr candidate) waitInChunk

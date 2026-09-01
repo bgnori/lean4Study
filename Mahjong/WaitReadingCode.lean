@@ -51,13 +51,13 @@ structure ConcreteWaitReadingComponent where
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
-/-- 1つの待ち牌に対する、具体牌つきの形抽出。 -/
+/-- 1つの待ち牌に対する、具体牌付きの待ち読み。 -/
 structure ConcreteWaitReading where
   wait : Tile
   components : List ConcreteWaitReadingComponent
 deriving BEq, DecidableEq, Repr
 
-/-- 牌の位置を忘れ、部品種別だけを残した形抽出。 -/
+/-- 牌の位置を忘れ、部品種別だけを残した待ち読み。 -/
 structure AbstractWaitReading where
   wait : Tile
   components : List WaitReadingComponentKind
@@ -76,27 +76,31 @@ private def completeComponent (chunk : TileChunk) : ConcreteWaitReadingComponent
       | .inr (.koutsu _) => .koutsu
     tiles := chunk.tiles }
 
-private def componentWithoutWait (wait : Tile) (chunk : TileChunk) :
-  Option ConcreteWaitReadingComponent :=
-  let incompleteTiles := chunk.tiles.erase wait
-  let result kind := some { kind, tiles := incompleteTiles }
+/-- 完成部品から指定した待ち牌を除いたときに生じる不完全部品の種別。 -/
+def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
+    Option WaitReadingComponentKind :=
   match chunk with
     | .inl (.toitsu tile) =>
-      if tile == wait then result .tanki else none
+      if tile == wait then some .tanki else none
     | .inr (.koutsu tile) =>
-      if tile == wait then result .toitsu else none
+      if tile == wait then some .toitsu else none
     | .inr (.shuntsu (.shuntsu suit start)) =>
       match wait with
       | .honor _ => none
       | .numbered waitSuit rank =>
           if waitSuit != suit then none
           else if rank == ShuntsuStart.firstRank start then
-            result (if ShuntsuStart.isLast start then .penchan else .ryanmen)
+            some (if ShuntsuStart.isLast start then .penchan else .ryanmen)
           else if rank == ShuntsuStart.middleRank start then
-            result .kanchan
+            some .kanchan
           else if rank == ShuntsuStart.lastRank start then
-            result (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
+            some (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
           else none
+
+private def componentAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
+    Option ConcreteWaitReadingComponent :=
+  (componentKindAfterRemovingWait wait chunk).map fun kind =>
+    { kind, tiles := chunk.tiles.erase wait }
 
 private def componentProduct (components : List WaitReadingComponentKind) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
@@ -136,7 +140,7 @@ private def abstractWaitReadingKey (reading : AbstractWaitReading) : Nat :=
       waitKeyStride +
     reading.wait.orderKey
 
-  private def waitReadingCodeEntryKey (entry : WaitReadingCodeEntry) : Nat :=
+private def waitReadingCodeEntryKey (entry : WaitReadingCodeEntry) : Nat :=
   entry.code * waitKeyStride + entry.wait.orderKey
 
 private def deduplicateAndSortBy {α : Type} [BEq α]
@@ -150,13 +154,13 @@ private def waitReadings (completion : WaitCompletion) :
     | chunk :: rest =>
         let later := (selectCompletedChunk rest).map fun extraction =>
           completeComponent chunk :: extraction
-        match componentWithoutWait completion.wait chunk with
+        match componentAfterRemovingWait completion.wait chunk with
         | some incomplete =>
             (incomplete :: rest.map completeComponent) :: later
         | none => later
   selectCompletedChunk completion.winningChunks
 
-/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な分解抽出を列挙する。 -/
+/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な待ち読みを列挙する。 -/
 def concreteWaitReadings
     (completions : List WaitCompletion) : List ConcreteWaitReading :=
   let entries := completions.flatMap fun completion =>
@@ -165,7 +169,7 @@ def concreteWaitReadings
           components := canonicalizeWaitReading reading }
   deduplicateAndSortBy concreteWaitReadingKey entries
 
-/-- 発見済みWaitCompletionから牌位置を忘れ、部品種別だけの読みへ変換する。 -/
+/-- 発見済み `WaitCompletion` から牌位置を忘れ、部品種別だけの待ち読みへ変換する。 -/
 def abstractWaitReadings
     (completions : List WaitCompletion) : List AbstractWaitReading :=
   concreteWaitReadings completions
@@ -213,9 +217,9 @@ def findAbstractWaitReadingCode (tiles : List Tile) : List Nat :=
   abstractWaitReadingCode (WaitCompletionFinder.findWaitCompletions tiles)
 
 /--
-The 53 irreducible seven-tile waits using one numbered suit, normalized so the
-lowest rank is 1.  Replacing `m` with `p` or `s`, or translating a pattern
-without leaving ranks 1--9, gives equivalent concrete examples.
+数牌1スートの既約な7枚待ち53形。最小ランクが1になるよう正規化している。
+`m` を `p` や `s` に置き換えるか、ランク1--9を外れない範囲で平行移動しても、
+同値な具体例が得られる。
 -/
 def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
   [("1345666m", manzu [0, 2, 3, 4, 5, 5, 5]),
@@ -281,8 +285,8 @@ private def insertAbstractWaitReadingClass (entry : String × List Nat) :
       else
         current :: insertAbstractWaitReadingClass entry rest
 
-      def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
+    def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-          insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
+      insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
 
-      end WaitReadingCode
+    end WaitReadingCode

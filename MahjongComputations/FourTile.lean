@@ -111,7 +111,7 @@ private def waitsFromCompletions (completions : List WaitCompletion) : List Tile
 
 private def waitProfilesFromCompletions (completions : List WaitCompletion) : List WaitProfile :=
   (abstractWaitReadings completions).flatMap fun reading =>
-    WaitAnalysis.waitProfilesOfComponents reading.components
+    WaitAnalysis.waitProfilesOfComponentKinds reading.components
 
 private def canReduceMentsuWithCompletionCount (tiles : List Tile) (completionCount : Nat) : Bool :=
   1 < tiles.length &&
