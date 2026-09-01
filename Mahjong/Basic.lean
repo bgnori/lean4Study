@@ -170,7 +170,15 @@ abbrev PhysicalTile := Tile × Fin copiesPerTile
 def deck : Finset PhysicalTile :=
   Finset.univ
 
-/-- 麻雀牌の山は各牌種を `copiesPerTile` 枚ずつ含む。 -/
+/--
+麻雀牌の山は `deckSize` 枚、つまり34種類それぞれを `copiesPerTile` 枚ずつ含む。
+
+この定理は、物理牌として扱う山の枚数が通常の麻雀牌の総数と一致することを保証する。
+証明では `deck` の定義を展開し、有限型 `PhysicalTile` 全体の個数が `Tile.count * copiesPerTile`
+になることを確認する。
+
+読むためのLean語彙: `abbrev`, `Finset`, `.card`, `theorem`, `simp`, `rfl`。
+-/
 theorem deck_cardinality : deck.card = deckSize := by
   simp [deck]
   rfl
