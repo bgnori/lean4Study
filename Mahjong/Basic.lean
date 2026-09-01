@@ -199,6 +199,14 @@ def take (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     PhysicalTile × Finset PhysicalTile :=
   (tile, chunk.tiles.erase tile)
 
+/--
+`chunk.take tile` の返り値の1番目は、指定した `tile` そのものである。
+
+この定理は、牌を1枚取り出す処理が「取り出した牌」と「残りの集合」を正しい順序で返すことを保証する。
+証明は `take` の定義をそのまま見ると左右が同じ形になるため、`rfl` で終わる。
+
+読むためのLean語彙: `structure`, 部分型, `×`, `.1`, `@[simp]`, `theorem`, `rfl`。
+-/
 @[simp]
 theorem take_fst (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ chunk.tiles }) :
     (chunk.take tile).1 = tile := rfl
