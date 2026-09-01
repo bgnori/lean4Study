@@ -67,6 +67,14 @@ def all : List WaitKind :=
    .kuttsukiKanchan,
    .kuttsukiPenchan]
 
+/--
+すべての待ち分類名は標準列挙 `WaitKind.all` に含まれる。
+
+この定理は、通常形聴牌で使う分類語彙の一覧に抜けがないことを保証する。
+証明は `WaitKind` の各分類名に場合分けし、それぞれが明示的な一覧に含まれることを示す。
+
+読むためのLean語彙: `namespace`, `theorem`, `cases`, `<;>`, `simp`, `[...]`, `∈`。
+-/
 theorem exhaustive (kind : WaitKind) : kind ∈ all := by
   cases kind <;> simp [all]
 
