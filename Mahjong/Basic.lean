@@ -273,11 +273,27 @@ noncomputable def takeTiles (chunk : Chunk) (wanted : List Tile) :
 
 end Chunk
 
-/-- 「この型の値は、対応する牌種列を持つ」ことを表す型クラス。 -/
+/--
+「この型の値は、対応する牌種列を持つ」ことを表す型クラス。
+
+`WaitPattern` や面子候補のように、具体的な型は違っても「必要な牌種列」を取り出せるものを、
+同じ物理牌取り出し処理に渡すための小さな共通インターフェースである。
+
+読むためのLean語彙: `class`, 型引数, 型クラス引数。
+-/
 class HasTilePattern (α : Type) where
   tiles : α → List Tile
 
 namespace HasTilePattern
+
+/-!
+## 牌種パターンから物理牌を取り出す共通処理
+
+`HasTilePattern` のインスタンスを持つ型なら、`HasTilePattern.tiles` で牌種列を取り出せる。
+`HasTilePattern.take` は、その牌種列を `Chunk.takeTiles` に渡して、対応する物理牌を取り出す。
+
+`namespace HasTilePattern` の内側で定義することで、この処理を `HasTilePattern.take` という名前で参照できる。
+-/
 
 noncomputable def take {α : Type} [HasTilePattern α] (pattern : α) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=

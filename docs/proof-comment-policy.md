@@ -142,3 +142,33 @@
 ```
 
 この例では、定理がまだない処理群も読解単位としてまとめる。
+
+## `HasTilePattern` の抽象化ブロック例
+
+よい粒度の例:
+
+```lean
+/--
+「この型の値は、対応する牌種列を持つ」ことを表す型クラス。
+
+`WaitPattern` や面子候補のように、具体的な型は違っても「必要な牌種列」を取り出せるものを、
+同じ物理牌取り出し処理に渡すための小さな共通インターフェースである。
+
+読むためのLean語彙: `class`, 型引数, 型クラス引数。
+-/
+class HasTilePattern (α : Type) where
+  tiles : α → List Tile
+
+namespace HasTilePattern
+
+/-!
+## 牌種パターンから物理牌を取り出す共通処理
+
+`HasTilePattern` のインスタンスを持つ型なら、`HasTilePattern.tiles` で牌種列を取り出せる。
+`HasTilePattern.take` は、その牌種列を `Chunk.takeTiles` に渡して、対応する物理牌を取り出す。
+
+`namespace HasTilePattern` の内側で定義することで、この処理を `HasTilePattern.take` という名前で参照できる。
+-/
+```
+
+この例では、証明ではなく抽象化の意図を説明する。どの具体型に使うか、どの既存処理へ接続するかを明示する。

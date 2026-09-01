@@ -104,3 +104,25 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `takeTiles`: `Chunk` に対する入口として `takeTilesFrom` を呼ぶ。
 
 このまとまりには、まだ仕様定理は付いていない。まずは「どの入力から何を探し、失敗時にどう表すか」を読む。
+
+## 牌種列を持つ型を共通に扱う
+
+次のまとまりは、`HasTilePattern` と `HasTilePattern.take` である。
+
+読む前に知る語彙:
+
+- `class`
+- 型引数
+- 型クラス引数
+- `namespace`
+- `noncomputable def`
+- `Option`
+
+`Chunk.takeTiles` は、牌種列 `List Tile` を直接渡す処理だった。
+`HasTilePattern` は、具体的な型が何であっても「その値に対応する牌種列」を取り出せるなら、
+同じ取り出し処理に渡せるようにする共通インターフェースである。
+
+- `HasTilePattern`: 値から牌種列を取り出せる型であることを表す。
+- `HasTilePattern.take`: `HasTilePattern.tiles` で牌種列を取り出し、`Chunk.takeTiles` に渡す。
+
+ここから先のモジュールでは、待ちパターンや面子候補のような具体的な型が、この共通インターフェースに乗る。
