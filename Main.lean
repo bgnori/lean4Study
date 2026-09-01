@@ -2,10 +2,14 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+import Hammer
 
 
 def main : IO Unit :=
   IO.println "Hello, Lean 4!"
+
+example : True := by
+  hammer
 
 -- Example: Simple theorem proving (commutativity of addition)
 theorem add_comm_example (a b : Nat) : a + b = b + a := by

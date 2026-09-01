@@ -7,6 +7,9 @@ package «lean4-project» where
     ⟨`autoImplicit, false⟩
   ]
 
+require Hammer from git
+  "https://github.com/JOSHCLUNE/LeanHammer" @ "v4.28.0"
+
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git" @ "v4.28.0"
 
