@@ -10,10 +10,17 @@
 `namespace Tile` から `end Tile` までの内側では、名前が `Tile` の文脈に入る。
 そのため、内側で単に `all` と書かれている場合、文脈上は `Tile.all` を指す。
 名前空間は、`Tile.all`、`Suit.all`、`Honor.all` のように、同じ短い名前を安全に使い分けるための仕組みである。
+同じ仕組みで、`namespace Chunk` の内側では `take` は `Chunk.take` を指す。
 
 ### def
 
 `def` は定義を作る。たとえば `Tile.all` は、34種類すべての牌種を標準順に並べたリストとして定義される。
+
+### noncomputable def
+
+`noncomputable def` は、数学的には定義できるが、Leanが通常の実行用プログラムとして直接扱うとは限らない定義である。
+ここでは、有限集合 `Finset` をリストに変換して探索する処理に使われている。
+性質を述べたり証明したりするためには使えるが、通常の実行用関数とは区別して読む。
 
 ### abbrev
 
@@ -40,6 +47,17 @@
 
 `A × B` は、A型の値とB型の値をペアで持つ型である。
 `PhysicalTile × Finset PhysicalTile` は、取り出した物理牌と、残りの物理牌集合をまとめて返す型である。
+
+### Option
+
+`Option A` は、A型の値が得られた場合と、得られなかった場合を表す型である。
+`some value` は成功して値があること、`none` は失敗して値がないことを表す。
+`takeTileFrom` では、指定した牌種の物理牌が見つかれば `some`、見つからなければ `none` を返す。
+
+### match
+
+`match` は、値の形によって処理を分ける構文である。
+`match ... with | some tile => ... | none => ...` は、探索に成功した場合と失敗した場合を分けている。
 
 ### `.1`
 

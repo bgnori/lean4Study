@@ -234,6 +234,20 @@ theorem take_snd_not_mem (chunk : Chunk) (tile : { pt : PhysicalTile // pt ∈ c
     tile.1 ∉ (chunk.take tile).2 := by
   simp [take]
 
+/-!
+## 牌種列から物理牌を取り出す処理
+
+`Chunk.take` は、すでに `chunk.tiles` に含まれると分かっている物理牌を1枚取り出した。
+ここからは、牌種 `Tile` を指定して、それに対応する物理牌を探して取り出す。
+
+- `takeTileFrom`: 有限集合から、指定した牌種を持つ物理牌を1枚探して取り出す。
+- `takeTilesFrom`: 牌種列を順に処理し、対応する物理牌列を取り出す。
+- `takeTiles`: `Chunk` に対する薄い入口。
+
+これらは `noncomputable def` である。数学的な定義として使えるが、Leanが通常の実行用コードとして
+扱う計算可能な定義とは区別して読む。
+-/
+
 noncomputable def takeTileFrom (tiles : Finset PhysicalTile) (wanted : Tile) :
     Option (PhysicalTile × Finset PhysicalTile) :=
   match tiles.toList.find? (fun tile => tile.1 == wanted) with
