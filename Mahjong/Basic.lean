@@ -124,7 +124,15 @@ def all : List Tile :=
     List.ofFn fun rank : Rank => Tile.numbered suit rank) ++
   Honor.all.map .honor
 
-/-- すべての牌種は標準列挙に含まれる。 -/
+/--
+すべての牌種は標準列挙 `Tile.all` に含まれる。
+
+この定理は、以降の網羅的な探索や分類が参照する「34種類の牌の一覧」に
+抜けがないことを保証する小さな土台である。証明は `Tile` を数牌と字牌に分け、
+それぞれが対応する一覧に含まれることを示す。
+
+読むためのLean語彙: `namespace`, `theorem`, `cases`, `simp`, `left`, `exact`, `∈`。
+-/
 theorem mem_all (tile : Tile) : tile ∈ all := by
   cases tile with
   | numbered suit rank =>
