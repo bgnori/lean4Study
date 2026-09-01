@@ -302,10 +302,15 @@ noncomputable def take {α : Type} [HasTilePattern α] (pattern : α) (chunk : C
 end HasTilePattern
 
 /-!
- # 麻雀牌の表記
- a) unicode で表す
- b) mpsz
- -/
+# 麻雀牌の表記
+
+ここでは、Lean上の牌種 `Tile` を読者が見慣れた文字列へ変換する。
+
+- `unicode`: 麻雀牌のUnicode文字で表す。
+- `mpsz`: `1m`、`9p`、`5z` のような牌譜でよく使われる表記で表す。
+
+後続の `Pattern.lean` では、ターツや順子がどの牌種列に対応するかを `mpsz` 表記で確認する。
+-/
 
 /-- 牌の表示形式。`mpsz` は `123m55p` のような牌譜でよく使われる表記。 -/
 inductive TileFormat

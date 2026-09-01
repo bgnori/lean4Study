@@ -41,6 +41,11 @@
 まだ仕様定理がない処理群でも、読者が処理のまとまりを理解するために section comment を置いてよい。
 その場合は「どの入力から何を探すか」「失敗をどう表すか」「どの関数が入口か」を優先して書く。
 
+麻雀上の概念とLean上のデータ構造の対応が前提になる箇所では、定理より先に概念対応の section comment を置く。
+その場合は「麻雀での意味」「Leanでの型」「共通インターフェースへの接続」を優先して書く。
+読者が牌姿を具体的に見たほうが理解しやすい箇所では、`Tile.format .mpsz` を使った `example` を添える。
+この `example` は説明用サンプルであると同時に、Leanが検査する小さな仕様として扱う。
+
 ## `Tile.mem_all` の粒度例
 
 よい粒度の例:
@@ -172,3 +177,53 @@ namespace HasTilePattern
 ```
 
 この例では、証明ではなく抽象化の意図を説明する。どの具体型に使うか、どの既存処理へ接続するかを明示する。
+
+## `MentsuCandidate.mem_candidates` の粒度例
+
+この定理を読む前に、`Pattern.lean` の小部品が何を表すかを section comment で説明する。
+
+```lean
+/-!
+## 待ち分類で使う小さな牌パターン
+
+ここからは、麻雀上の部品をLeanのデータ構造として定義する。
+
+- `Taatsu`: 両面・嵌張・辺張のような、完成まであと1枚の2枚組。
+- `Toitsu`: 同じ牌種2枚からなる対子。
+- `Tanki`: 単騎待ちの核になる1枚。
+- `Shuntsu`: 同じスートで連続する3枚からなる順子。
+- `MentsuCandidate`: 通常形で完成面子として扱う候補。順子または刻子。
+
+これらは後で物理牌を取り出せるように、それぞれ `tiles` で必要な牌種列を返し、
+`HasTilePattern` のインスタンスを持つ。
+-/
+```
+
+ターツ、対子、単騎、順子、刻子のように具体例が有効な定義では、`Tile.format .mpsz` を使った `example` を近くに置く。
+
+```lean
+example : (Taatsu.ryanmen .Manzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["2m", "3m"] := rfl
+example : (Taatsu.kanchan .Pinzu ⟨2, by decide⟩).tiles.map (Tile.format .mpsz) = ["3p", "5p"] := rfl
+example : (Taatsu.penchan .Souzu false).tiles.map (Tile.format .mpsz) = ["1s", "2s"] := rfl
+example : (Taatsu.penchan .Souzu true).tiles.map (Tile.format .mpsz) = ["8s", "9s"] := rfl
+example : (Toitsu.toitsu (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
+example : (Tanki.tanki (.numbered .Pinzu 2)).tiles.map (Tile.format .mpsz) = ["3p"] := rfl
+example : (Shuntsu.shuntsu .Souzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["1s", "2s", "3s"] := rfl
+example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .mpsz) = ["7p", "7p", "7p"] := rfl
+```
+
+よい粒度の例:
+
+```lean
+/--
+任意の完成面子候補は、実行用候補列 `MentsuCandidate.candidates` に含まれる。
+
+この定理は、完成面子候補を列挙して調べる処理が、順子候補と刻子候補を取りこぼさないことを保証する。
+証明では候補を順子の場合と刻子の場合に分ける。順子の場合はスートと開始位置から作った順子候補列に
+含まれることを示し、刻子の場合は `Tile.mem_all` を使って、刻子に使う牌種が標準牌種列に含まれることを示す。
+
+読むためのLean語彙: `inductive`, `namespace`, `theorem`, `cases`, `rcases`, `simp`, `left`, `refine`, `?_`, `exact`, `∈`。
+-/
+```
+
+この例では、以前に説明した列挙網羅性の定理 `Tile.mem_all` が、より大きな候補列の網羅性に使われることを明示する。

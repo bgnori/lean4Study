@@ -76,6 +76,21 @@ def isLast (start : ShuntsuStart) : Bool :=
 
 end ShuntsuStart
 
+/-!
+## 待ち分類で使う小さな牌パターン
+
+ここからは、麻雀上の部品をLeanのデータ構造として定義する。
+
+- `Taatsu`: 両面・嵌張・辺張のような、完成まであと1枚の2枚組。
+- `Toitsu`: 同じ牌種2枚からなる対子。
+- `Tanki`: 単騎待ちの核になる1枚。
+- `Shuntsu`: 同じスートで連続する3枚からなる順子。
+- `MentsuCandidate`: 通常形で完成面子として扱う候補。順子または刻子。
+
+これらは後で物理牌を取り出せるように、それぞれ `tiles` で必要な牌種列を返し、
+`HasTilePattern` のインスタンスを持つ。
+-/
+
 /--
 ターツ。常に同じスートの数牌2枚で構成する。
 
@@ -90,6 +105,14 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace Taatsu
 
+/-!
+## ターツと牌種列
+
+`Taatsu.tiles` は、両面・嵌張・辺張それぞれに必要な2枚の牌種列を返す。
+`HasTilePattern` のインスタンスにより、`Taatsu.take` は共通処理 `HasTilePattern.take` を使って
+対応する物理牌を `Chunk` から取り出せる。
+-/
+
 /-- ターツを構成する2枚の牌種列。 -/
 def tiles : Taatsu → List Tile
   | .ryanmen suit start =>
@@ -100,6 +123,11 @@ def tiles : Taatsu → List Tile
        .numbered suit start.lastRank]
   | .penchan suit false => [.numbered suit Rank.first, .numbered suit Rank.second]
   | .penchan suit true => [.numbered suit Rank.penultimate, .numbered suit Rank.last]
+
+example : (Taatsu.ryanmen .Manzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["2m", "3m"] := rfl
+example : (Taatsu.kanchan .Pinzu ⟨2, by decide⟩).tiles.map (Tile.format .mpsz) = ["3p", "5p"] := rfl
+example : (Taatsu.penchan .Souzu false).tiles.map (Tile.format .mpsz) = ["1s", "2s"] := rfl
+example : (Taatsu.penchan .Souzu true).tiles.map (Tile.format .mpsz) = ["8s", "9s"] := rfl
 
 instance : HasTilePattern Taatsu where
   tiles := Taatsu.tiles
@@ -117,9 +145,19 @@ deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Toitsu
 
+/-!
+## 対子と牌種列
+
+`Toitsu.tiles` は、同じ牌種を2回並べた牌種列を返す。
+`HasTilePattern` のインスタンスにより、対子もターツと同じ取り出し処理に渡せる。
+-/
+
 /-- 対子を構成する2枚の牌種列。 -/
 def tiles : Toitsu → List Tile
   | .toitsu tile => [tile, tile]
+
+example : (Toitsu.toitsu (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
+example : (Toitsu.toitsu (.honor .White)).tiles.map (Tile.format .mpsz) = ["5z", "5z"] := rfl
 
 instance : HasTilePattern Toitsu where
   tiles := Toitsu.tiles
@@ -137,9 +175,19 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace Tanki
 
+/-!
+## 単騎と牌種列
+
+`Tanki.tiles` は、単騎待ちの核になる1枚の牌種列を返す。
+`Tanki.Matches` は、物理牌の牌種がその単騎と一致することを表す。
+-/
+
 /-- 単騎を構成する1枚の牌種列。 -/
 def tiles : Tanki → List Tile
   | .tanki tile => [tile]
+
+example : (Tanki.tanki (.numbered .Pinzu 2)).tiles.map (Tile.format .mpsz) = ["3p"] := rfl
+example : (Tanki.tanki (.honor .Red)).tiles.map (Tile.format .mpsz) = ["7z"] := rfl
 
 instance : HasTilePattern Tanki where
   tiles := Tanki.tiles
@@ -167,12 +215,22 @@ deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace Shuntsu
 
+/-!
+## 順子と牌種列
+
+`Shuntsu.tiles` は、開始位置から先頭・中央・終端の3ランクを計算し、
+同じスートの連続する3枚の牌種列を返す。
+-/
+
 /-- 順子を構成する3枚の牌種列。 -/
 def tiles : Shuntsu → List Tile
   | .shuntsu suit start =>
       [.numbered suit start.firstRank,
        .numbered suit start.middleRank,
        .numbered suit start.lastRank]
+
+example : (Shuntsu.shuntsu .Souzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["1s", "2s", "3s"] := rfl
+example : (Shuntsu.shuntsu .Manzu ⟨6, by decide⟩).tiles.map (Tile.format .mpsz) = ["7m", "8m", "9m"] := rfl
 
 instance : HasTilePattern Shuntsu where
   tiles := Shuntsu.tiles
@@ -194,6 +252,14 @@ deriving BEq, ReflBEq, LawfulBEq, DecidableEq, Repr, Fintype
 
 namespace MentsuCandidate
 
+/-!
+## 完成面子候補と列挙
+
+`MentsuCandidate` は、通常形で完成面子として扱う候補を順子または刻子として表す。
+`candidates` は実行用に全順子候補と全刻子候補を並べ、`mem_candidates` がその列挙に
+取りこぼしがないことを確認する。
+-/
+
 /-- 有限型として列挙できるすべての完成面子候補。 -/
 noncomputable def all : List MentsuCandidate :=
   (Finset.univ : Finset MentsuCandidate).toList
@@ -204,7 +270,15 @@ def candidates : List MentsuCandidate :=
     List.ofFn fun start : ShuntsuStart => MentsuCandidate.shuntsu (.shuntsu suit start)) ++
   Tile.all.map MentsuCandidate.koutsu
 
-/-- 任意の完成面子は実行用候補列に含まれる。 -/
+/--
+任意の完成面子候補は、実行用候補列 `MentsuCandidate.candidates` に含まれる。
+
+この定理は、完成面子候補を列挙して調べる処理が、順子候補と刻子候補を取りこぼさないことを保証する。
+証明では候補を順子の場合と刻子の場合に分ける。順子の場合はスートと開始位置から作った順子候補列に
+含まれることを示し、刻子の場合は `Tile.mem_all` を使って、刻子に使う牌種が標準牌種列に含まれることを示す。
+
+読むためのLean語彙: `inductive`, `namespace`, `theorem`, `cases`, `rcases`, `simp`, `left`, `refine`, `?_`, `exact`, `∈`。
+-/
 theorem mem_candidates (mentsu : MentsuCandidate) :
     mentsu ∈ candidates := by
   cases mentsu with
@@ -221,6 +295,9 @@ theorem mem_candidates (mentsu : MentsuCandidate) :
 def tiles : MentsuCandidate → List Tile
   | .shuntsu shuntsuPattern => shuntsuPattern.tiles
   | .koutsu tile => [tile, tile, tile]
+
+example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .mpsz) = ["7p", "7p", "7p"] := rfl
+example : (MentsuCandidate.koutsu (.honor .East)).tiles.map (Tile.format .mpsz) = ["1z", "1z", "1z"] := rfl
 
 instance : HasTilePattern MentsuCandidate where
   tiles := MentsuCandidate.tiles

@@ -126,3 +126,73 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `HasTilePattern.take`: `HasTilePattern.tiles` で牌種列を取り出し、`Chunk.takeTiles` に渡す。
 
 ここから先のモジュールでは、待ちパターンや面子候補のような具体的な型が、この共通インターフェースに乗る。
+
+## 牌の表示形式を読む
+
+次のまとまりは、`Basic.lean` の `TileFormat` と `Tile.format` である。
+
+読む前に知る語彙:
+
+- `inductive`
+- `def`
+- `match`
+- `example`
+- `rfl`
+
+`Tile.format` は、Lean上の牌種 `Tile` を読者が見慣れた文字列へ変換する。
+`unicode` は麻雀牌のUnicode文字、`mpsz` は `1m`、`9p`、`5z` のような牌譜表記である。
+
+この表示形式を先に読むと、次のターツや順子の例で、Lean上の牌種列が実際の牌姿としてどう見えるかを確認しやすくなる。
+
+## 麻雀の小部品とデータ構造を読む
+
+次のまとまりは、`Pattern.lean` の `Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` である。
+
+読む前に知る語彙:
+
+- `inductive`
+- `namespace`
+- `def`
+- `instance`
+- `HasTilePattern`
+- `List Tile`
+- `example`
+- `rfl`
+
+ここでは、麻雀上の概念とLean上のデータ構造の対応を先に押さえる。
+
+- `Taatsu`: 両面・嵌張・辺張のような、完成まであと1枚の2枚組。
+- `Toitsu`: 同じ牌種2枚からなる対子。
+- `Tanki`: 単騎待ちの核になる1枚。
+- `Shuntsu`: 同じスートで連続する3枚からなる順子。
+- `MentsuCandidate`: 通常形で完成面子として扱う候補。順子または刻子。
+
+それぞれの `tiles` は、その部品を構成する牌種列を返す。`HasTilePattern` のインスタンスにより、
+これらの具体的な型は共通の物理牌取り出し処理に渡せる。
+`Tile.format .mpsz` を使った `example` により、ターツ、対子、単騎、順子、刻子が実際の牌姿としてどう見えるかを確認する。
+たとえば、両面 `23m`、嵌張 `35p`、辺張 `12s` と `89s`、対子 `55m`、単騎 `3p`、順子 `123s`、刻子 `777p` を確認する。
+
+## 完成面子候補の列挙を読む
+
+次の実例は、`MentsuCandidate.candidates` と `MentsuCandidate.mem_candidates` である。
+
+読む前に知る語彙:
+
+- `inductive`
+- `namespace`
+- `theorem`
+- `cases`
+- `rcases`
+- `simp`
+- `left`
+- `refine`
+- `?_`
+- `exact`
+- `∈`
+
+`MentsuCandidate` は、通常形で完成面子として扱う候補を、順子または刻子として表す。
+`MentsuCandidate.candidates` は、実行用に全順子候補と全刻子候補を並べたリストである。
+`MentsuCandidate.mem_candidates` は、任意の完成面子候補がそのリストに含まれることを確認する。
+
+この定理は、後で完成面子候補を列挙して探索するとき、列挙リストに取りこぼしがないことを支える。
+刻子の場合には、すでに読んだ `Tile.mem_all` が使われる。
