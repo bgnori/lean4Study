@@ -1,5 +1,6 @@
 import Mahjong.DirectWaitReading
 import Mahjong.Wait.Analysis
+import MahjongComputations.Common
 
 /-!
 # Seven-tile wait computation from direct Readings
@@ -72,9 +73,6 @@ termination_by _ tiles => tiles.length
 
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
-
-private def tileMultisetKey (tiles : List Tile) : Nat :=
-  Tile.all.foldl (fun key tile => key * (copiesPerTile + 1) + tiles.count tile) 0
 
 private structure ReadingEntry where
   key : Nat

@@ -285,8 +285,8 @@ private def insertAbstractWaitReadingClass (entry : String × List Nat) :
       else
         current :: insertAbstractWaitReadingClass entry rest
 
-    def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
+def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-      insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
+    insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
 
-    end WaitReadingCode
+end WaitReadingCode

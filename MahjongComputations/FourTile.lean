@@ -1,5 +1,6 @@
 import Mahjong.DirectWaitReading
 import Mahjong.Wait.Analysis
+import MahjongComputations.Common
 
 /-!
 # Exhaustive four-tile wait computation
@@ -61,9 +62,6 @@ def tenpaiReports : List FourTileShapeReport :=
           candidateKinds := WaitAnalysis.candidateWaitKinds tiles
           reducibility := WaitAnalysis.determineReducibility tiles
           waitReadingCodes := findAbstractWaitReadingCode tiles }
-
-private def tileMultisetKey (tiles : List Tile) : Nat :=
-  Tile.all.foldl (fun key tile => key * (copiesPerTile + 1) + tiles.count tile) 0
 
 private structure DirectReadingEntry where
   key : Nat

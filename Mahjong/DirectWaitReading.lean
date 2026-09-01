@@ -124,9 +124,6 @@ private def selectedIsCanonical (seed : Seed n) : Bool :=
       ((List.ofFn seed.shape.mentsu).take selected.val).all fun earlier =>
         earlier != seed.shape.mentsu selected
 
-private def hasLegalTileCounts (tiles : List Tile) : Bool :=
-  Tile.all.all fun tile => tiles.count tile ≤ copiesPerTile
-
 /--
 直接生成パラメータの妥当性。
 
@@ -136,7 +133,7 @@ private def hasLegalTileCounts (tiles : List Tile) : Bool :=
 -/
 def Seed.valid (seed : Seed n) : Bool :=
   (componentKindAfterRemovingWait seed.wait (seed.shape.chunk seed.selected)).isSome &&
-  hasLegalTileCounts seed.shape.tiles &&
+  decide (HasLegalTileCounts seed.shape.tiles) &&
   mentsuCanonical seed.shape &&
   selectedIsCanonical seed
 
@@ -301,7 +298,7 @@ theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
   have validParts :
       (((componentKindAfterRemovingWait seed.wait
           (seed.shape.chunk seed.selected)).isSome = true ∧
-        hasLegalTileCounts seed.shape.tiles = true) ∧
+        decide (HasLegalTileCounts seed.shape.tiles) = true) ∧
         mentsuCanonical seed.shape = true) ∧
         selectedIsCanonical seed = true := by
     simpa only [Seed.valid, Bool.and_eq_true] using valid
@@ -430,7 +427,7 @@ theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
   have validParts :
       (((componentKindAfterRemovingWait reading.1.wait
           (reading.1.shape.chunk reading.1.selected)).isSome = true ∧
-        hasLegalTileCounts reading.1.shape.tiles = true) ∧
+        decide (HasLegalTileCounts reading.1.shape.tiles) = true) ∧
         mentsuCanonical reading.1.shape = true) ∧
         selectedIsCanonical reading.1 = true := by
     simpa only [Seed.valid, Bool.and_eq_true] using reading.2
@@ -496,16 +493,14 @@ private theorem winningShape_partition (shape : WinningShape n) :
 
 private theorem hasLegalTileCounts_of_valid (reading : Reading n) :
     HasLegalTileCounts reading.1.shape.tiles := by
-  intro tile
   have validParts :
       (((componentKindAfterRemovingWait reading.1.wait
           (reading.1.shape.chunk reading.1.selected)).isSome = true ∧
-        hasLegalTileCounts reading.1.shape.tiles = true) ∧
+        decide (HasLegalTileCounts reading.1.shape.tiles) = true) ∧
         mentsuCanonical reading.1.shape = true) ∧
         selectedIsCanonical reading.1 = true := by
     simpa only [Seed.valid, Bool.and_eq_true] using reading.2
-  have allCounts := List.all_eq_true.mp validParts.1.1.2 tile (Tile.mem_all tile)
-  simpa using allCounts
+  exact of_decide_eq_true validParts.1.1.2
 
 private theorem reading_waitFor (reading : Reading n) (standard : n ≤ standardHandMentsuCount) :
     IsWaitFor (hand reading) reading.1.wait := by
@@ -572,13 +567,12 @@ private theorem legal_cons_of_waitFor {tiles : List Tile} {wait : Tile}
   · have reverseDifferent : wait ≠ tile := Ne.symm same
     simp [reverseDifferent, legal tile]
 
-private theorem all_eq_true_of_perm {first second : List Tile}
+private theorem legalTileCounts_decide_eq_true_of_perm {first second : List Tile}
     (permutation : first.Perm second) (legal : HasLegalTileCounts second) :
-    hasLegalTileCounts first = true := by
-  apply List.all_eq_true.mpr
-  intro tile _
-  have countEq := permutation.count tile
-  simpa [countEq] using legal tile
+    decide (HasLegalTileCounts first) = true := by
+  apply decide_eq_true
+  intro tile
+  simpa [permutation.count tile] using legal tile
 
 private theorem selectedCanonical_at_idxOf {candidate : MentsuCandidate}
     {mentsu : List MentsuCandidate} (member : candidate ∈ mentsu) :
@@ -634,8 +628,9 @@ theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
               ⟨remaining, removePair, .refl remaining⟩)
         have shapeTilesPerm : shape.tiles.Perm (wait :: tiles) := by
           exact (chunksPerm.flatMap fun _ _ => .refl _).trans rawTilesPerm
-        have shapeLegal : hasLegalTileCounts shape.tiles = true :=
-          all_eq_true_of_perm shapeTilesPerm (legal_cons_of_waitFor waitFor)
+        have shapeLegal : decide (HasLegalTileCounts shape.tiles) = true :=
+          legalTileCounts_decide_eq_true_of_perm shapeTilesPerm
+            (legal_cons_of_waitFor waitFor)
         have standard : sorted.length ≤ standardHandMentsuCount := by
           have legalSize := waitFor.1.1
           have lengthEq := shapeTilesPerm.length_eq

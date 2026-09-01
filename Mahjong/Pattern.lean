@@ -4,7 +4,7 @@ import Mahjong.Basic
 # 牌パターン
 
 このモジュールでは、待ち分類を構成する小さな部品を定義する。
-`Taats`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` はいずれも
+`Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` はいずれも
 `HasTilePattern` インスタンスを持ち、必要な牌種列を共通の方法で取り出せる。
 完成部品 `TileChunk` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
@@ -82,16 +82,16 @@ end ShuntsuStart
 ランクは0始まりで扱う。`ryanmen` は実際の2--7始まり、`kanchan` は1--7始まり、
 `penchan` は1--2または8--9を表す。
 -/
-inductive Taats
+inductive Taatsu
 | ryanmen (suit : Suit) (start : RyanmenStart)
 | kanchan (suit : Suit) (start : ShuntsuStart)
 | penchan (suit : Suit) (high : Bool)
 deriving BEq, DecidableEq, Repr, Fintype
 
-namespace Taats
+namespace Taatsu
 
 /-- ターツを構成する2枚の牌種列。 -/
-def tiles : Taats → List Tile
+def tiles : Taatsu → List Tile
   | .ryanmen suit start =>
       [.numbered suit start.lowerRank,
        .numbered suit start.upperRank]
@@ -101,14 +101,14 @@ def tiles : Taats → List Tile
   | .penchan suit false => [.numbered suit Rank.first, .numbered suit Rank.second]
   | .penchan suit true => [.numbered suit Rank.penultimate, .numbered suit Rank.last]
 
-instance : HasTilePattern Taats where
-  tiles := Taats.tiles
+instance : HasTilePattern Taatsu where
+  tiles := Taatsu.tiles
 
-noncomputable def take (taats : Taats) (chunk : Chunk) :
+noncomputable def take (taatsu : Taatsu) (chunk : Chunk) :
     Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take taats chunk
+  HasTilePattern.take taatsu chunk
 
-end Taats
+end Taatsu
 
 /-- 対子。同じ牌種2枚からなる。 -/
 inductive Toitsu

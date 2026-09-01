@@ -26,9 +26,9 @@ noncomputable def all : List WaitPattern :=
 /-- 抽出候補が要求する牌種列。 -/
 def tiles : WaitPattern → List Tile
   | .tanki single mentsu => single.tiles ++ mentsu.tiles
-  | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taats.ryanmen suit start).tiles
-  | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taats.kanchan suit start).tiles
-  | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taats.penchan suit high).tiles
+  | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taatsu.ryanmen suit start).tiles
+  | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taatsu.kanchan suit start).tiles
+  | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taatsu.penchan suit high).tiles
   | .shanpon first second => first.tiles ++ second.tiles
 
 instance : HasTilePattern WaitPattern where
