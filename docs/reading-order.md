@@ -144,6 +144,21 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 この表示形式を先に読むと、次のターツや順子の例で、Lean上の牌種列が実際の牌姿としてどう見えるかを確認しやすくなる。
 
+## 通常形のサイズと開始位置を読む
+
+次のまとまりは、`Pattern.lean` 冒頭の手牌サイズ、`RyanmenStart`、`ShuntsuStart` である。
+
+読む前に知る語彙:
+
+- `abbrev`
+- `def`
+- `Fin`
+- `Bool`
+
+ここでは、通常形の手牌枚数や、順子・ターツの開始位置を表す補助定義を読む。
+開始位置を `Fin` で表すことで、存在しない開始位置を型で除外している。
+`RyanmenStart.lowerRank` と `upperRank` は両面ターツの2枚を、`ShuntsuStart.firstRank`、`middleRank`、`lastRank` は順子の3枚を計算する。
+
 ## 麻雀の小部品とデータ構造を読む
 
 次のまとまりは、`Pattern.lean` の `Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` である。
@@ -216,3 +231,26 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 麻雀上、順子は同じスートの連続する数牌だけからなる。Lean上では、`Shuntsu.tiles` が数牌だけを返すため、
 字牌が含まれるという仮定と両立しないことを `simp` で確認している。
+
+## 雀頭と完成面子を同じ完成部品として読む
+
+次のまとまりは、`TileChunk` と `TileChunk.tiles` である。
+
+読む前に知る語彙:
+
+- 直和 `⊕`
+- `.inl`
+- `.inr`
+- `def`
+- `instance`
+- `example`
+
+通常形の和了分割では、雀頭と完成面子をどちらも完成した部品として並べて扱う。
+`TileChunk` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
+
+- `TileChunk.pair`: 雀頭を完成部品として作る。
+- `TileChunk.shuntsu`: 順子を完成部品として作る。
+- `TileChunk.koutsu`: 刻子を完成部品として作る。
+- `TileChunk.tiles`: 完成部品を構成する牌種列を返す。
+
+ここでも `Tile.format .mpsz` を使った `example` により、雀頭 `55m`、順子 `456p`、刻子 `777z` を確認する。

@@ -62,6 +62,11 @@
 `α` は、具体的な型をあとから入れるための名前である。`{α : Type}` は、`α` が型であることを表す。
 波括弧 `{...}` で囲まれているため、多くの場合はLeanが文脈から自動で補う。
 
+### Fin
+
+`Fin n` は、`0` 以上 `n` 未満の自然数を表す型である。
+開始位置を `Fin` で持つと、順子や両面ターツで存在しない開始位置を型で除外できる。
+
 ### 型クラス引数 `[HasTilePattern α]`
 
 角括弧 `[HasTilePattern α]` は、型 `α` が `HasTilePattern` のインターフェースを持っていることを要求する。
@@ -76,6 +81,21 @@
 
 `List Tile` は、牌種 `Tile` の列を表す型である。
 ターツ、対子、順子のような部品は、それぞれを構成する牌種列として `List Tile` に変換される。
+
+### Bool
+
+`Bool` は、`true` または `false` のどちらかを持つ型である。
+`Taatsu.penchan` では、`false` が低い側の辺張、`true` が高い側の辺張を表す。
+
+### 直和 `⊕`
+
+`A ⊕ B` は、A型の値またはB型の値のどちらかを持つ型である。
+`TileChunk := Toitsu ⊕ MentsuCandidate` は、完成部品が雀頭または完成面子候補のどちらかであることを表す。
+
+### `.inl` と `.inr`
+
+`.inl value` は直和 `A ⊕ B` の左側、`.inr value` は右側に値を入れる。
+`TileChunk.pair` は雀頭を `.inl` に入れ、`TileChunk.shuntsu` と `TileChunk.koutsu` は完成面子候補を `.inr` に入れる。
 
 ### 部分型 `{ x : α // 条件 }`
 
