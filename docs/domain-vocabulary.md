@@ -3,6 +3,21 @@
 この文書は、麻雀の一般語彙と、このプロジェクト内で使う説明語彙を管理する。
 Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に置き、ここでは麻雀待ち分類の概念を扱う。
 
+## Reading
+
+このプロジェクトでの `Reading` は、麻雀一般でいう「相手の待ちを推測する待ち読み」ではない。
+1つの待ち牌に対して、待ち牌を除いた和了分割の部品がどのような種別として見えるかを表す観測結果である。
+
+コード上の対応:
+
+- `ConcreteWaitReading`: 待ち牌と、具体牌付きの部品列を持つ観測結果。
+- `AbstractWaitReading`: 待ち牌と、牌種列を忘れた部品種別列を持つ観測結果。
+- `IrreducibleWaitReading`: 完成面子を核成分列から分離した観測結果。
+- `DirectWaitReading.Reading`: 完成形から待ち牌を1枚取り除く生成元を、物理的に合法で正規化済みのものに限った値。
+
+`Reading` は、待ちを人間が推測する行為ではなく、すでに見つかった待ち牌と和了分割から得られる構造的な見え方を指す。
+日本語本文では、混乱を避けるため、必要に応じて「観測結果」や「生成元」と補って説明する。
+
 ## 待ち核
 
 待ち核は、このプロジェクトで「1つの待ち牌」と「完成面子を除いたあとに残る核成分列」の組を指す説明語彙である。
@@ -85,6 +100,9 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 - `WaitSpecification.Classifies`: 観測基本形の列がどの名前付き分類に属するかを定める宣言的仕様。
 - `WaitSpecification.expectedKind`: 同じ規則を実行できる形にした参照実装。
 - `WaitSpecification.expectedKind_iff`: 宣言的仕様と参照実装が一致することを示す定理。
+- `WaitAnalysis.observedWaitProfiles`: 牌列から観測基本形の列を作る入口。
+- `WaitAnalysis.classifyWait`: 牌列から名前付き分類を計算する入口。
+- `WaitAnalysis.classifyWait_iff`: 牌列に対する分類結果と宣言的仕様が一致することを示す定理。
 
 ## 可約と既約
 

@@ -12,9 +12,19 @@
 名前空間は、`Tile.all`、`Suit.all`、`Honor.all` のように、同じ短い名前を安全に使い分けるための仕組みである。
 同じ仕組みで、`namespace Chunk` の内側では `take` は `Chunk.take` を指す。
 
+### open
+
+`open WaitReadingCode` は、`WaitReadingCode` 名前空間の中にある名前を短く書けるようにする。
+たとえば `WaitReadingCode.findIrreducibleWaitReadings` を、文脈によっては `findIrreducibleWaitReadings` と書ける。
+
 ### def
 
 `def` は定義を作る。たとえば `Tile.all` は、34種類すべての牌種を標準順に並べたリストとして定義される。
+
+### let
+
+`let name := value` は、式の途中で一時的な名前を付ける構文である。
+`waitProfilesOfIrreducibleReading` では、核成分列の種類を `coreKinds`、除去した面子の種類を `removedKinds` として使う。
 
 ### noncomputable def
 
@@ -128,6 +138,21 @@
 
 `match` は、値の形によって処理を分ける構文である。
 `match ... with | some tile => ... | none => ...` は、探索に成功した場合と失敗した場合を分けている。
+
+### if
+
+`if condition then a else b` は、条件が成り立つかどうかで返す値を分ける構文である。
+`waitProfilesOfIrreducibleReading` では、特定の部品種別が含まれるかどうかで、観測基本形を追加するか空リストにする。
+
+### filter
+
+`xs.filter p` は、リスト `xs` のうち条件 `p` を満たす要素だけを残す。
+`coreKinds.filter ...` は、核成分列の中に特定の部品種別がいくつあるかを数えるために使われる。
+
+### flatMap
+
+`xs.flatMap f` は、リストの各要素に `f` を適用してリストを作り、それらを1つにつなげる。
+`observedWaitProfiles` では、各待ち核から得られる観測基本形列をまとめて1つの列にする。
 
 ### `.1`
 

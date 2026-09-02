@@ -3,7 +3,11 @@ import Mahjong.Pattern
 import Mahjong.WaitCompletionFinder
 
 /-!
-# 発見済みWaitCompletionの待ち読みコード
+# 発見済みWaitCompletionのReadingコード
+
+このモジュールでいう `Reading` は、麻雀一般の「相手の待ちを推測する待ち読み」ではない。
+1つの待ち牌に対して、待ち牌を除いた和了分割の部品がどのような種別として見えるかを表す
+観測結果である。
 
 `WaitCompletionFinder.findWaitCompletions` が発見した `WaitCompletion` を入力とし、牌の位置を忘れて、
 待ち牌を除いた各分割を部品種別の多重集合として扱う。
@@ -51,13 +55,13 @@ structure ConcreteWaitReadingComponent where
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
-/-- 1つの待ち牌に対する、具体牌付きの待ち読み。 -/
+/-- 1つの待ち牌に対する、具体牌付きのReading。 -/
 structure ConcreteWaitReading where
   wait : Tile
   components : List ConcreteWaitReadingComponent
 deriving BEq, DecidableEq, Repr
 
-/-- 完成面子を除いた核成分列と、除去した面子を分けて保持する待ち読み。 -/
+/-- 完成面子を除いた核成分列と、除去した面子を分けて保持するReading。 -/
 structure IrreducibleWaitReading where
   wait : Tile
   core : List ConcreteWaitReadingComponent
@@ -76,7 +80,7 @@ structure WaitCore where
   components : List ConcreteWaitReadingComponent
 deriving BEq, DecidableEq, Repr
 
-/-- 牌の位置を忘れ、部品種別だけを残した待ち読み。 -/
+/-- 牌の位置を忘れ、部品種別だけを残したReading。 -/
 structure AbstractWaitReading where
   wait : Tile
   components : List WaitReadingComponentKind
@@ -184,7 +188,7 @@ private def waitReadings (completion : WaitCompletion) :
         | none => later
   selectCompletedChunk completion.winningChunks
 
-/-- 発見済みの待ちと分割から、待ち牌ごとの具体的な待ち読みを列挙する。 -/
+/-- 発見済みの待ちと分割から、待ち牌ごとの具体的なReadingを列挙する。 -/
 def concreteWaitReadings
     (completions : List WaitCompletion) : List ConcreteWaitReading :=
   let entries := completions.flatMap fun completion =>
@@ -196,24 +200,24 @@ def concreteWaitReadings
 private def isCompletedMentsu (component : ConcreteWaitReadingComponent) : Bool :=
   component.kind == .shuntsu || component.kind == .koutsu
 
-/-- 1つの待ち読みから完成面子を除き、比較対象となる核成分列を得る。 -/
+/-- 1つのReadingから完成面子を除き、比較対象となる核成分列を得る。 -/
 def reduceWaitReading (reading : ConcreteWaitReading) : IrreducibleWaitReading :=
   { wait := reading.wait
     core := reading.components.filter fun component => !isCompletedMentsu component
     removedMentsu := reading.components.filter isCompletedMentsu }
 
-/-- 発見済みの待ち読みを、完成面子を除いた待ち核へ正規化する。 -/
+/-- 発見済みのReadingを、完成面子を除いた待ち核へ正規化する。 -/
 def irreducibleWaitReadings
     (completions : List WaitCompletion) : List IrreducibleWaitReading :=
   (concreteWaitReadings completions).map reduceWaitReading
 
-/-- 発見済みの全readingを待ち核集合へ正規化する。 -/
+/-- 発見済みの全Readingを待ち核集合へ正規化する。 -/
 def waitCores (completions : List WaitCompletion) : List WaitCore :=
   irreducibleWaitReadings completions
     |>.map (fun reading => { wait := reading.wait, components := reading.core })
     |> deduplicateAndSortBy waitCoreKey
 
-/-- 発見済み `WaitCompletion` から牌位置を忘れ、部品種別だけの待ち読みへ変換する。 -/
+/-- 発見済み `WaitCompletion` から牌位置を忘れ、部品種別だけのReadingへ変換する。 -/
 def abstractWaitReadings
     (completions : List WaitCompletion) : List AbstractWaitReading :=
   concreteWaitReadings completions

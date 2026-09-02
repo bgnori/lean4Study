@@ -339,3 +339,26 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `expectedKind` は同じ規則を実行できる形にした参照実装で、`expectedKind_iff` が両者の一致を保証する。
 `expectedKind_iff` の左から右は「参照実装が返した分類には仕様上の理由がある」という健全性、
 右から左は「仕様上分類できるものは参照実装も返す」という完全性に対応する。
+
+## 牌列から名前付き分類へ接続する解析器を読む
+
+次のまとまりは、`Wait/Analysis.lean` の `observedWaitProfiles`、`classifyWaitProfiles_iff`、`classifyWait`、`classifyWait_iff` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」を読む。
+
+読む前に知る語彙:
+
+- `open`
+- `let`
+- `if`
+- `filter`
+- `flatMap`
+- `theorem`
+- `↔`
+- `exact`
+
+`observedWaitProfiles` は、牌列から待ち核集合を求め、名前付き分類に必要な観測基本形の列へ変換する。
+`classifyWaitProfiles` は、その観測基本形列を `WaitSpecification.expectedKind` へ渡す。
+
+`classifyWaitProfiles_iff` は、観測基本形上の解析器が `WaitSpecification.Classifies` と一致することを示す。
+`classifyWait_iff` は、実際の牌列に対する分類結果が、牌列に対する名前付き分類仕様と一致することを示す。

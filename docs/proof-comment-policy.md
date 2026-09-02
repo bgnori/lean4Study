@@ -362,3 +362,23 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 読むためのLean語彙: `theorem`, `↔`, `constructor`, `intro`, `unfold`, `split`, `cases`, `exact`, `simp_all`。
 -/
 ```
+
+## `WaitAnalysis` の読解ブロック例
+
+解析器に入る箇所では、「牌列から観測基本形を作る処理」と「観測基本形を仕様へ接続する定理」を分けて説明する。
+
+```lean
+/-!
+## 牌列から観測基本形を作る
+
+`WaitReadingCode.findIrreducibleWaitReadings` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
+`waitProfilesOfIrreducibleReading` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
+
+`observedWaitProfiles` は、牌列に対してこの変換をまとめて行う入口である。
+その後、`classifyWaitProfiles` が `WaitSpecification.expectedKind` を呼び、
+観測基本形の列を `WellKnownWaitKind` へ分類する。
+
+このファイルの健全性・完全性定理は、実際の牌列から得た分類結果が、
+`WaitSpecification.Classifies` で定めた宣言的仕様と一致することを示す。
+-/
+```

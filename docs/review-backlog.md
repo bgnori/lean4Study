@@ -46,7 +46,7 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 - `WaitPattern` の説明では、原則として「読み」ではなく「抽出パターン」または「終端抽出」を使う。
 - `HasNobetanReading` の名前に残る `Reading` が、プロジェクト内技術語や麻雀一般語彙と衝突しないか確認する。
-- `Reading` 系のモジュールを説明するときに、プロジェクト内の `Reading` が何を意味するかを改めて定義する。
+- `Reading` 系のモジュールを説明するときは、[domain-vocabulary.md](domain-vocabulary.md) の `Reading` 定義へ導く。
 - 麻雀一般の「待ち読み」と違う意味であることを、初出時に明示する。
 
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている

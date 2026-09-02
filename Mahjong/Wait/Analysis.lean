@@ -12,6 +12,20 @@ namespace WaitAnalysis
 
 open WaitReadingCode
 
+/-!
+## 牌列から観測基本形を作る
+
+`WaitReadingCode.findIrreducibleWaitReadings` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
+`waitProfilesOfIrreducibleReading` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
+
+`observedWaitProfiles` は、牌列に対してこの変換をまとめて行う入口である。
+その後、`classifyWaitProfiles` が `WaitSpecification.expectedKind` を呼び、
+観測基本形の列を `WellKnownWaitKind` へ分類する。
+
+このファイルの健全性・完全性定理は、実際の牌列から得た分類結果が、
+`WaitSpecification.Classifies` で定めた宣言的仕様と一致することを示す。
+-/
+
 /-- 部品種別列から観測できる待ち基本形を列挙する。 -/
 def waitProfilesOfComponentKinds
     (componentKinds : List WaitReadingComponentKind) : List WaitProfile :=
@@ -47,7 +61,7 @@ def waitProfilesOfIrreducibleReading
   else
     [])
 
-/-- 通常形の和了分解から得られる待ち基本形の正規化済み観測列。 -/
+/-- 牌列から得られる待ち核集合を、名前付き分類に必要な観測基本形の列へ変換する。 -/
 def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
   (findIrreducibleWaitReadings tiles).flatMap waitProfilesOfIrreducibleReading
 
@@ -77,7 +91,14 @@ def candidateWellKnownWaitKindsOfProfiles (profiles : List WaitProfile) : List W
     (if WaitSpecification.HasKuttsukiPenchan profiles then [.kuttsukiPenchan] else [])
   (basicKinds ++ aliasKinds).eraseDups
 
-/-- 基本形上の解析器は宣言的な分類仕様に対して健全かつ完全である。 -/
+/--
+観測基本形上の解析器 `classifyWaitProfiles` は、宣言的仕様 `Classifies` と一致する。
+
+この定理は、`Specification.lean` で示した `expectedKind_iff` を、このファイルの入口名に付け替える橋渡しである。
+左から右は健全性、右から左は完全性に対応する。
+
+読むためのLean語彙: `theorem`, `↔`, `exact`。
+-/
 theorem classifyWaitProfiles_iff (profiles : List WaitProfile)
     (kind : WellKnownWaitKind) :
     classifyWaitProfiles profiles = some kind ↔
@@ -110,7 +131,12 @@ theorem classifyWait_complete {tiles : List Tile} {kind : WellKnownWaitKind}
   unfold classifyWait HasWellKnownWaitKind at *
   simpa [classifyWaitProfiles_iff] using specified
 
-/-- 健全性と完全性をまとめた特徴付け。 -/
+/--
+牌列に対する分類結果と、牌列が名前付き分類の仕様を満たすことは同値である。
+
+この定理により、`classifyWait` が返す分類は、牌列から観測した基本形列に対する宣言的仕様と一致する。
+左から右は `classifyWait_sound`、右から左は `classifyWait_complete` が担う。
+-/
 theorem classifyWait_iff (tiles : List Tile) (kind : WellKnownWaitKind) :
     classifyWait tiles = some kind ↔ HasWellKnownWaitKind tiles kind :=
   ⟨classifyWait_sound, classifyWait_complete⟩
