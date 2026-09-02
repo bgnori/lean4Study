@@ -60,5 +60,6 @@ lake env lean Mahjong/WaitCompletionFinder.lean
 - [docs/reading-order.md](docs/reading-order.md): Lean未経験者向けの読む順番。
 - [docs/lean-vocabulary.md](docs/lean-vocabulary.md): `namespace`、`theorem`、`cases`、`simp` などの初出説明。
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): 定義・定理コメントに書くことと、語彙ページへ逃がすことの切り分け。
+- [docs/review-backlog.md](docs/review-backlog.md): ドキュメント整備後に検討する設計・命名課題。
 
 Lean ソース内の module doc comment と doc comment は、定義や定理が麻雀待ち分類の中で何を意味するかに集中します。一般的なLean構文やタクティクの説明は `docs/lean-vocabulary.md` に集約します。
