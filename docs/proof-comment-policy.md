@@ -227,3 +227,21 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 ```
 
 この例では、以前に説明した列挙網羅性の定理 `Tile.mem_all` が、より大きな候補列の網羅性に使われることを明示する。
+
+## `MentsuCandidate.honor_not_in_shuntsu` の粒度例
+
+よい粒度の例:
+
+```lean
+/--
+字牌を含む完成面子候補は順子ではない。
+
+この定理は、順子が同じスートの連続する数牌だけからなる、という麻雀上の制約をLean上の
+`MentsuCandidate` に対して確認する。候補が刻子なら順子ではない。候補が順子なら、
+`Shuntsu.tiles` は数牌だけを返すため、字牌が含まれるという仮定と矛盾する。
+
+読むためのLean語彙: `Prop`, `theorem`, `∈`, `¬`, `cases`, `simp`, `at`。
+-/
+```
+
+この例では、麻雀上の制約がLean上のデータ構造ではどの定義に現れているかを明示する。

@@ -302,11 +302,20 @@ example : (MentsuCandidate.koutsu (.honor .East)).tiles.map (Tile.format .mpsz) 
 instance : HasTilePattern MentsuCandidate where
   tiles := MentsuCandidate.tiles
 
+/-- 完成面子候補が順子であることを表す述語。 -/
 def IsShuntsu : MentsuCandidate → Prop
   | .shuntsu _ => True
   | _ => False
 
-/-- 字牌を含む完成面子候補は順子ではない。 -/
+/--
+字牌を含む完成面子候補は順子ではない。
+
+この定理は、順子が同じスートの連続する数牌だけからなる、という麻雀上の制約をLean上の
+`MentsuCandidate` に対して確認する。候補が刻子なら順子ではない。候補が順子なら、
+`Shuntsu.tiles` は数牌だけを返すため、字牌が含まれるという仮定と矛盾する。
+
+読むためのLean語彙: `Prop`, `theorem`, `∈`, `¬`, `cases`, `simp`, `at`。
+-/
 theorem honor_not_in_shuntsu (candidate : MentsuCandidate) (honor : Honor)
     (honor_mem : Tile.honor honor ∈ candidate.tiles) : ¬candidate.IsShuntsu := by
   cases candidate with

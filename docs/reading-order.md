@@ -196,3 +196,23 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 この定理は、後で完成面子候補を列挙して探索するとき、列挙リストに取りこぼしがないことを支える。
 刻子の場合には、すでに読んだ `Tile.mem_all` が使われる。
+
+## 字牌を含む候補が順子ではないことを読む
+
+次の実例は、`MentsuCandidate.IsShuntsu` と `MentsuCandidate.honor_not_in_shuntsu` である。
+
+読む前に知る語彙:
+
+- `Prop`
+- `theorem`
+- `∈`
+- `¬`
+- `cases`
+- `simp`
+- `at`
+
+`MentsuCandidate.IsShuntsu` は、完成面子候補が順子であることを表す述語である。
+`honor_not_in_shuntsu` は、字牌を含む完成面子候補が順子ではないことを確認する。
+
+麻雀上、順子は同じスートの連続する数牌だけからなる。Lean上では、`Shuntsu.tiles` が数牌だけを返すため、
+字牌が含まれるという仮定と両立しないことを `simp` で確認している。
