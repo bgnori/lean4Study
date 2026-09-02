@@ -42,6 +42,11 @@
 `Prop` は、真か偽かを持つ命題の型である。
 `MentsuCandidate.IsShuntsu : MentsuCandidate → Prop` は、完成面子候補が順子である、という命題を返す。
 
+### Decidable
+
+`Decidable P` は、命題 `P` が成り立つかどうかをLeanが判定できることを表す。
+`instance ... : Decidable (...)` は、その命題を条件分岐や計算で使えるようにするための登録である。
+
 ### example
 
 `example` は、名前を付けずにLeanへ確認させる小さな主張である。
@@ -224,6 +229,11 @@
 
 `tile ∈ all` は、`tile` がリストや集合 `all` に含まれる、という意味である。
 `Tile.mem_all` の主張 `tile ∈ all` は、任意の牌種 `tile` が標準列挙 `Tile.all` に含まれることを表す。
+
+### `↔`
+
+`P ↔ Q` は、命題 `P` と命題 `Q` が同値であることを表す。
+`expectedKind_iff` では、参照実装 `expectedKind profiles = some kind` と、宣言的仕様 `Classifies profiles kind` が同値であることを示す。
 
 ### `¬`
 

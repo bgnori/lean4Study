@@ -57,6 +57,35 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 この曖昧性は、完成面子を取り除けるかどうかを表す可約・既約とは別の概念である。
 `WellKnownWaitKind.classification` は、分類名からこの曖昧性ラベルを決める。
 
+## 観測基本形
+
+観測基本形は、待ち核集合から名前付き分類に必要な情報だけを取り出した内部表現である。
+コード上では `WaitProfile` に対応する。
+
+- `WaitProfile.tanki`: 単騎核。分離された完成面子の文脈を `WaitProfileMentsu` として持つ。
+- `WaitProfile.toitsuRyanmen`: 対子と両面ターツからなる核成分列。
+- `WaitProfile.toitsuKanchan`: 対子と嵌張ターツからなる核成分列。
+- `WaitProfile.toitsuPenchan`: 対子と辺張ターツからなる核成分列。
+- `WaitProfile.shanpon`: 2つの対子からなる核成分列。
+
+`WaitProfileMentsu.none` は単騎核に分離済み完成面子の文脈がないこと、
+`shuntsu` と `koutsu` は分離された完成面子が順子または刻子だったことを表す。
+
+## 名前付き分類
+
+名前付き分類は、待ち核集合や観測基本形の列に対して、人間向けの分類名を与える層である。
+コード上では `WellKnownWaitKind` に対応する。
+
+名前付き分類は、待ちの数学的定義そのものではない。実際に待ちであることは
+`WaitCompletionFinder.IsWaitFor` や `WaitCompletion` 側で扱い、名前付き分類はその結果を
+単騎、両面、嵌張、辺張、双碰、ノベタン、くっつきのような語彙に写す。
+
+対応するコード:
+
+- `WaitSpecification.Classifies`: 観測基本形の列がどの名前付き分類に属するかを定める宣言的仕様。
+- `WaitSpecification.expectedKind`: 同じ規則を実行できる形にした参照実装。
+- `WaitSpecification.expectedKind_iff`: 宣言的仕様と参照実装が一致することを示す定理。
+
 ## 可約と既約
 
 可約とは、完成面子を取り除いても待ち核集合が変わらないことを指す。

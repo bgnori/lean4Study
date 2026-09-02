@@ -326,3 +326,25 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 `WaitReducibility` とは別の概念である。
 -/
 ```
+
+## `WaitSpecification` の読解ブロック例
+
+分類仕様に入る箇所では、待ち核集合、観測基本形、名前付き分類の3層を分けて説明する。
+
+```lean
+/-!
+## 待ち核集合から名前付き分類へ
+
+このモジュールでは、待ち核集合そのものではなく、分類に必要な情報だけを取り出した
+観測基本形 `WaitProfile` の列を扱う。
+
+`WaitProfile` は、単騎、対子+ターツ形、双碰のような基本形を表す。
+単騎については、分離された完成面子がなかったか、順子だったか、刻子だったかを
+`WaitProfileMentsu` として残す。これはノベタンやくっつきのような名前付き分類を
+判定するために必要な文脈である。
+
+`Classifies` は、観測基本形の列がどの `WellKnownWaitKind` に属するかを、計算器から独立した
+宣言的な規則として定める。`expectedKind` は同じ規則を実行できる形にした参照実装で、
+`expectedKind_iff` が両者の一致を保証する。
+-/
+```

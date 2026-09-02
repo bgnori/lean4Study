@@ -314,3 +314,26 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `WaitClassification` は、分類名 `kind` と待ち核の曖昧性 `ambiguity` をまとめる。
 `WellKnownWaitKind.classification` は、分類名だけからこのラベルを返す。
 可約・既約は具体的な牌姿に依存するため、ここでは扱わず `WaitReducibility` で別に読む。
+
+## 名前付き分類の仕様を読む
+
+次のまとまりは、`Wait/Specification.lean` の `WaitProfileMentsu`、`WaitProfile`、`Classifies`、`expectedKind`、`expectedKind_iff` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「観測基本形」と「名前付き分類」を読む。
+
+読む前に知る語彙:
+
+- `inductive`
+- `Prop`
+- `abbrev`
+- `def`
+- `instance`
+- `Decidable`
+- `theorem`
+- `↔`
+
+`WaitProfile` は、待ち核集合から名前付き分類に必要な情報だけを取り出した観測基本形である。
+単騎核については、分離された完成面子の文脈を `WaitProfileMentsu` に残す。
+
+`Classifies` は、観測基本形の列がどの `WellKnownWaitKind` に属するかを宣言的に定める。
+`expectedKind` は同じ規則を実行できる形にした参照実装で、`expectedKind_iff` が両者の一致を保証する。

@@ -4,8 +4,24 @@ import Mahjong.Wait
 # 待ち分類の仕様
 
 解析器が牌列から観測する内部基本形を `WaitProfile` とし、その観測列がどの
-公開分類 `WellKnownWaitKind` に属するかを命題 `Classifies` で宣言的に定める。
+名前付き分類 `WellKnownWaitKind` に属するかを命題 `Classifies` で宣言的に定める。
 このモジュールは和了分解の列挙方法や分類アルゴリズムには依存しない。
+-/
+
+/-!
+## 待ち核集合から名前付き分類へ
+
+このモジュールでは、待ち核集合そのものではなく、分類に必要な情報だけを取り出した
+観測基本形 `WaitProfile` の列を扱う。
+
+`WaitProfile` は、単騎、対子+ターツ形、双碰のような基本形を表す。
+単騎については、分離された完成面子がなかったか、順子だったか、刻子だったかを
+`WaitProfileMentsu` として残す。これはノベタンやくっつきのような名前付き分類を
+判定するために必要な文脈である。
+
+`Classifies` は、観測基本形の列がどの `WellKnownWaitKind` に属するかを、計算器から独立した
+宣言的な規則として定める。`expectedKind` は同じ規則を実行できる形にした参照実装で、
+`expectedKind_iff` が両者の一致を保証する。
 -/
 
 /-- 単騎核と一緒に分離された完成面子の文脈。純粋な1枚単騎では `none`。 -/
@@ -25,6 +41,17 @@ inductive WaitProfile
 deriving BEq, DecidableEq, Repr
 
 namespace WaitSpecification
+
+/-!
+## 通称・複合分類を認識する補助条件
+
+`HasKuttsuki...` 系は、刻子文脈を伴う単騎核と、対子+ターツ形が同時に観測されることを表す。
+`HasNobetanReading` は、順子文脈を伴う単騎核が2つ以上あることを表す。
+
+`HasNobetanReading` は名前に `Reading` を含むが、ここでは麻雀一般の「待ち読み」ではなく、
+名前付き分類 `nobetan` を使える条件として読む。
+`IsNobetan` はさらに狭く、観測列全体が順子文脈を伴う単騎核だけからなることを要求する。
+-/
 
 /-- 刻子文脈を伴う単騎核と、指定した対子+ターツ形が共存すること。 -/
 def HasKuttsuki (profiles : List WaitProfile) (taatsuProfile : WaitProfile) : Prop :=
@@ -67,6 +94,17 @@ def IsNobetan (profiles : List WaitProfile) : Prop :=
 instance (profiles : List WaitProfile) : Decidable (IsNobetan profiles) := by
   unfold IsNobetan
   infer_instance
+
+/-!
+## 名前付き分類の宣言的仕様と参照実装
+
+`Classifies` は、観測基本形の列がどの名前付き分類に属するかを命題として定める。
+各コンストラクタは、その分類を選ぶために必要な条件を明示的に持つ。
+
+`expectedKind` は、同じ規則を実行可能な決定手続きとして書いたものである。
+複数の条件が同時に成立する場合は、くっつき両面、くっつき嵌張、くっつき辺張、狭義ノベタン、
+基本形の順に名前付き分類を選ぶ。
+-/
 
 /--
 観測された基本形列に期待する名前付き分類を与える宣言的な規則。
