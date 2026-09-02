@@ -57,6 +57,19 @@ structure ConcreteWaitReading where
   components : List ConcreteWaitReadingComponent
 deriving BEq, DecidableEq, Repr
 
+/-- 完成面子を除いた待ちの核と、除去した面子を分けて保持する待ち読み。 -/
+structure IrreducibleWaitReading where
+  wait : Tile
+  core : List ConcreteWaitReadingComponent
+  removedMentsu : List ConcreteWaitReadingComponent
+deriving BEq, DecidableEq, Repr
+
+/-- 完成面子の文脈を忘れた、比較可能な待ちの既約核。 -/
+structure WaitCore where
+  wait : Tile
+  components : List ConcreteWaitReadingComponent
+deriving BEq, DecidableEq, Repr
+
 /-- 牌の位置を忘れ、部品種別だけを残した待ち読み。 -/
 structure AbstractWaitReading where
   wait : Tile
@@ -133,6 +146,11 @@ private def concreteWaitReadingKey (reading : ConcreteWaitReading) : Nat :=
     reading.components.foldl
       (fun key component => key * readingComponentKeyStride + concreteComponentKey component) 0
 
+private def waitCoreKey (core : WaitCore) : Nat :=
+  core.wait.orderKey * readingWaitKeyStride +
+    core.components.foldl
+      (fun key component => key * readingComponentKeyStride + concreteComponentKey component) 0
+
 private def abstractWaitReadingKey (reading : AbstractWaitReading) : Nat :=
   reading.components.foldl
     (fun key component =>
@@ -169,6 +187,26 @@ def concreteWaitReadings
           components := canonicalizeWaitReading reading }
   deduplicateAndSortBy concreteWaitReadingKey entries
 
+private def isCompletedMentsu (component : ConcreteWaitReadingComponent) : Bool :=
+  component.kind == .shuntsu || component.kind == .koutsu
+
+/-- 1つの待ち読みから完成面子を除き、比較対象となる既約核を得る。 -/
+def reduceWaitReading (reading : ConcreteWaitReading) : IrreducibleWaitReading :=
+  { wait := reading.wait
+    core := reading.components.filter fun component => !isCompletedMentsu component
+    removedMentsu := reading.components.filter isCompletedMentsu }
+
+/-- 発見済みの待ち読みを、完成面子を除いた既約核へ正規化する。 -/
+def irreducibleWaitReadings
+    (completions : List WaitCompletion) : List IrreducibleWaitReading :=
+  (concreteWaitReadings completions).map reduceWaitReading
+
+/-- 発見済みの全readingを既約核の集合へ正規化する。 -/
+def waitCores (completions : List WaitCompletion) : List WaitCore :=
+  irreducibleWaitReadings completions
+    |>.map (fun reading => { wait := reading.wait, components := reading.core })
+    |> deduplicateAndSortBy waitCoreKey
+
 /-- 発見済み `WaitCompletion` から牌位置を忘れ、部品種別だけの待ち読みへ変換する。 -/
 def abstractWaitReadings
     (completions : List WaitCompletion) : List AbstractWaitReading :=
@@ -203,6 +241,28 @@ def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
 
 def findConcreteWaitReadings (tiles : List Tile) : List ConcreteWaitReading :=
   concreteWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
+
+/-- 牌列から、完成面子と分離した既約な待ち核を列挙する。 -/
+def findIrreducibleWaitReadings (tiles : List Tile) : List IrreducibleWaitReading :=
+  irreducibleWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
+
+/-- 牌列から得られる既約な待ち核の正規化済み集合。 -/
+def findWaitCores (tiles : List Tile) : List WaitCore :=
+  waitCores (WaitCompletionFinder.findWaitCompletions tiles)
+
+/-- 完成面子を1つ除いても既約核の集合が変わらないかを判定する。 -/
+def canReduceMentsuPreservingWaitCores (tiles : List Tile) : Bool :=
+  1 < tiles.length &&
+    (mentsuReductions tiles).any fun remaining =>
+      !(waitingTiles remaining).isEmpty && findWaitCores remaining == findWaitCores tiles
+
+/-- 完成面子の除去後も既約核の集合が同じであること。 -/
+def CanReduceMentsuPreservingWaitCores (tiles : List Tile) : Prop :=
+  canReduceMentsuPreservingWaitCores tiles = true
+
+instance (tiles : List Tile) : Decidable (CanReduceMentsuPreservingWaitCores tiles) := by
+  unfold CanReduceMentsuPreservingWaitCores
+  infer_instance
 
 def findAbstractWaitReadings (tiles : List Tile) : List AbstractWaitReading :=
   abstractWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)

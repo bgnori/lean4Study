@@ -481,6 +481,9 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
 `waitCompletionCount` は待ち牌と和了形の組を数える。メンツを1つ除いた
 聴牌形が同じ個数の分解を持つなら、その手牌はメンツ除去により可約である。
 待ちでない牌列を既約とは扱わない。
+
+これは分解数だけを比較する旧来の近似である。分類で使う根源的な既約性は
+`WaitReadingCode.CanReduceMentsuPreservingWaitCores` が待ちreadingごとの既約核を比較する。
 -/
 def waitCompletionCount (tiles : List Tile) : Nat :=
   (findWaitCompletions tiles).length
@@ -494,7 +497,7 @@ def mentsuReductions (tiles : List Tile) : List (List Tile) :=
   mentsuChunkCandidates.filterMap fun mentsu =>
     removeTiles tiles mentsu.tiles
 
-/-- 完成面子を1つ除いても同じ分解数の聴牌形が残るなら可約とする。 -/
+/-- 完成面子を1つ除いても同じ分解数の聴牌形が残るとする旧来の可約性判定。 -/
 def CanReduceMentsu (tiles : List Tile) : Prop :=
   1 < tiles.length ∧ IsTenpai tiles ∧
     (mentsuReductions tiles).any (fun remaining =>

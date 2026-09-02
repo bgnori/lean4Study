@@ -54,11 +54,10 @@ end Hand
 /--
 手牌から取り出せる待ち分類の構造。
 
-`tanki` と `wait` は終端で、`mentsuThen` は完成面子を1つ取り除いたあと、
-残りの手牌に対してさらに抽出を続ける。
+`wait` は既約な待ち核の終端で、`mentsuThen` は完成面子を1つ取り除いたあと、
+残りの手牌に対してさらに抽出を続ける。単騎も `wait (.tanki ...)` として表す。
 -/
 inductive HandExtraction
-| tanki (tanki : Tanki) (taken : List PhysicalTile)
 | wait (extraction : WaitPattern) (taken : List PhysicalTile)
 | mentsuThen (mentsu : MentsuCandidate) (taken : List PhysicalTile)
     (remaining : HandExtraction)
@@ -75,11 +74,6 @@ private noncomputable def takeExact (tiles : Finset PhysicalTile) (wanted : List
   else
     none
 
-private noncomputable def tankiTerminals (tiles : Finset PhysicalTile) : List HandExtraction :=
-  Tanki.all.filterMap fun tanki => do
-    let taken ← takeExact tiles tanki.tiles
-    some (.tanki tanki taken)
-
 private noncomputable def waitTerminals (tiles : Finset PhysicalTile) : List HandExtraction :=
   WaitPattern.all.filterMap fun extraction => do
     let taken ← takeExact tiles extraction.tiles
@@ -88,12 +82,11 @@ private noncomputable def waitTerminals (tiles : Finset PhysicalTile) : List Han
 /--
 手牌から可能な抽出を列挙する。
 
-`fuel` は再帰の深さで、完成面子を取り除きながら、最終的に単騎または4枚待ちへ到達する。
+`fuel` は再帰の深さで、完成面子を取り除きながら、最終的に既約な待ち核へ到達する。
 -/
 noncomputable def fromTiles : Nat → Finset PhysicalTile → List HandExtraction
-  | 0, tiles => tankiTerminals tiles ++ waitTerminals tiles
+  | 0, tiles => waitTerminals tiles
   | Nat.succ fuel, tiles =>
-      tankiTerminals tiles ++
       waitTerminals tiles ++
       MentsuCandidate.candidates.flatMap fun mentsu =>
         match Chunk.takeTilesFrom tiles mentsu.tiles with
@@ -110,9 +103,6 @@ noncomputable def fromTiles : Nat → Finset PhysicalTile → List HandExtractio
 分解不能な牌姿についてはこの型の証拠を構成できない。
 -/
 inductive Extracts : Nat → Finset PhysicalTile → HandExtraction → Prop
-| tanki {fuel tiles tanki taken}
-    (take : takeExact tiles tanki.tiles = some taken) :
-    Extracts fuel tiles (.tanki tanki taken)
 | wait {fuel tiles extraction taken}
     (take : takeExact tiles extraction.tiles = some taken) :
     Extracts fuel tiles (.wait extraction taken)
@@ -120,22 +110,6 @@ inductive Extracts : Nat → Finset PhysicalTile → HandExtraction → Prop
     (take : Chunk.takeTilesFrom tiles mentsu.tiles = some (taken, rest))
     (next : Extracts fuel rest remaining) :
     Extracts (fuel + 1) tiles (.mentsuThen mentsu taken remaining)
-
-private theorem mem_tankiTerminals_iff (tiles : Finset PhysicalTile)
-    (result : HandExtraction) :
-    result ∈ tankiTerminals tiles ↔
-      ∃ tanki taken, takeExact tiles tanki.tiles = some taken ∧
-        result = .tanki tanki taken := by
-  simp only [tankiTerminals, List.mem_filterMap]
-  constructor
-  · rintro ⟨tanki, _, result⟩
-    cases take : takeExact tiles tanki.tiles with
-    | none => simp [take] at result
-    | some taken =>
-        simp [take] at result
-        exact ⟨tanki, taken, take, result.symm⟩
-  · rintro ⟨tanki, taken, take, rfl⟩
-    exact ⟨tanki, by simp [Tanki.all], by simp [take]⟩
 
 private theorem mem_waitTerminals_iff (tiles : Finset PhysicalTile)
     (result : HandExtraction) :
@@ -183,29 +157,24 @@ theorem mem_fromTiles_iff (fuel : Nat) (tiles : Finset PhysicalTile)
     extraction ∈ fromTiles fuel tiles ↔ Extracts fuel tiles extraction := by
   induction fuel generalizing tiles extraction with
   | zero =>
-      simp only [fromTiles, List.mem_append, mem_tankiTerminals_iff,
-        mem_waitTerminals_iff]
+      simp only [fromTiles, mem_waitTerminals_iff]
       constructor
-      · rintro (⟨tanki, taken, take, rfl⟩ | ⟨wait, taken, take, rfl⟩)
-        · exact .tanki take
-        · exact .wait take
+      · rintro ⟨wait, taken, take, rfl⟩
+        exact .wait take
       · intro extracted
         cases extracted with
-        | tanki take => exact Or.inl ⟨_, _, take, rfl⟩
-        | wait take => exact Or.inr ⟨_, _, take, rfl⟩
+        | wait take => exact ⟨_, _, take, rfl⟩
   | succ fuel ih =>
-      simp only [fromTiles, List.mem_append, mem_tankiTerminals_iff,
-        mem_waitTerminals_iff, mem_mentsuExtractions_iff]
+      simp only [fromTiles, List.mem_append, mem_waitTerminals_iff,
+        mem_mentsuExtractions_iff]
       constructor
-      · rintro ((⟨tanki, taken, take, rfl⟩ | ⟨wait, taken, take, rfl⟩) |
+      · rintro (⟨wait, taken, take, rfl⟩ |
           ⟨mentsu, taken, rest, remaining, take, next, rfl⟩)
-        · exact .tanki take
         · exact .wait take
         · exact .mentsuThen take ((ih rest remaining).mp next)
       · intro extracted
         cases extracted with
-        | tanki take => exact Or.inl (Or.inl ⟨_, _, take, rfl⟩)
-        | wait take => exact Or.inl (Or.inr ⟨_, _, take, rfl⟩)
+        | wait take => exact Or.inl ⟨_, _, take, rfl⟩
         | mentsuThen take next =>
             exact Or.inr ⟨_, _, _, _, take, (ih _ _).mpr next, rfl⟩
 
@@ -213,7 +182,7 @@ end HandExtraction
 
 namespace Hand
 
-/-- 13枚手牌から単騎・4枚待ちまで降りるために取り除ける最大面子数。 -/
+/-- 13枚手牌から既約な待ち核まで降りるために取り除ける最大面子数。 -/
 def maxMentsuRemovalCount : Nat := standardHandMentsuCount
 
 /-- 手牌から得られる抽出候補を列挙する。 -/

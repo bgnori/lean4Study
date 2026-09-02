@@ -11,25 +11,24 @@ import Mahjong.Pattern
 /-!
 ## 待ち終端の抽出パターン
 
-`WaitPattern` は、手牌から最後に残る1枚または4枚の終端部を、どの形として抽出するかを表す。
+`WaitPattern` は、完成面子を取り除いたあとに残る既約な待ちの核を表す。
 ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
 実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
 
-- `tanki`: 単騎として扱う1枚と、同じ4枚終端に残る面子候補を組み合わせる。
+- `tanki`: 単騎として扱う1枚。
 - `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
 - `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
 - `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
 - `shanpon`: 2つの対子からなる4枚終端。
 
-`tanki` が面子候補を持つのは、4枚終端を抽出するためであり、その牌姿が既約であることは意味しない。
-完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
+完成面子はこの型に含めず、抽出過程の `HandExtraction.mentsuThen` で表す。
 
 `WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
 -/
 
-/-- 待ちの終端を、単騎+完成面子または対子+ターツとして取り出す方法。 -/
+/-- 完成面子を除いた待ちの既約核を取り出す方法。 -/
 inductive WaitPattern
-| tanki (tanki : Tanki) (mentsu : MentsuCandidate)
+| tanki (tanki : Tanki)
 | toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : RyanmenStart)
 | toitsuKanchan (toitsu : Toitsu) (suit : Suit) (start : ShuntsuStart)
 | toitsuPenchan (toitsu : Toitsu) (suit : Suit) (high : Bool)
@@ -52,13 +51,13 @@ noncomputable def all : List WaitPattern :=
 
 /-- 抽出候補が要求する牌種列。 -/
 def tiles : WaitPattern → List Tile
-  | .tanki single mentsu => single.tiles ++ mentsu.tiles
+  | .tanki single => single.tiles
   | .toitsuRyanmen toitsu suit start => toitsu.tiles ++ (Taatsu.ryanmen suit start).tiles
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taatsu.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taatsu.penchan suit high).tiles
   | .shanpon first second => first.tiles ++ second.tiles
 
-example : (WaitPattern.tanki (.tanki (.honor .East)) (.koutsu (.numbered .Manzu 0))).tiles.map (Tile.format .mpsz) = ["1z", "1m", "1m", "1m"] := rfl
+example : (WaitPattern.tanki (.tanki (.honor .East))).tiles.map (Tile.format .mpsz) = ["1z"] := rfl
 example : (WaitPattern.toitsuRyanmen (.toitsu (.numbered .Manzu 4)) .Manzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["5m", "5m", "2m", "3m"] := rfl
 example : (WaitPattern.toitsuKanchan (.toitsu (.honor .White)) .Pinzu ⟨2, by decide⟩).tiles.map (Tile.format .mpsz) = ["5z", "5z", "3p", "5p"] := rfl
 example : (WaitPattern.toitsuPenchan (.toitsu (.honor .Red)) .Souzu true).tiles.map (Tile.format .mpsz) = ["7z", "7z", "8s", "9s"] := rfl

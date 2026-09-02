@@ -26,10 +26,30 @@ def waitProfilesOfComponentKinds
   else
     [])
 
+/-- 既約核を先に読み、除去した面子は単騎の複合分類に必要な文脈としてだけ使う。 -/
+def waitProfilesOfIrreducibleReading
+    (reading : IrreducibleWaitReading) : List WaitProfile :=
+  let coreKinds := reading.core.map fun component => component.kind
+  let removedKinds := reading.removedMentsu.map fun component => component.kind
+  let hasCore componentKind := coreKinds.contains componentKind
+  let hasRemoved componentKind := removedKinds.contains componentKind
+  (if hasCore .tanki && !hasRemoved .shuntsu && !hasRemoved .koutsu then
+    [WaitProfile.tanki .none]
+  else
+    []) ++
+  (if hasCore .tanki && hasRemoved .shuntsu then [WaitProfile.tanki .shuntsu] else []) ++
+  (if hasCore .tanki && hasRemoved .koutsu then [WaitProfile.tanki .koutsu] else []) ++
+  (if hasCore .toitsu && hasCore .ryanmen then [WaitProfile.toitsuRyanmen] else []) ++
+  (if hasCore .toitsu && hasCore .kanchan then [WaitProfile.toitsuKanchan] else []) ++
+  (if hasCore .toitsu && hasCore .penchan then [WaitProfile.toitsuPenchan] else []) ++
+  (if 2 ≤ (coreKinds.filter (fun componentKind => componentKind == .toitsu)).length then
+    [WaitProfile.shanpon]
+  else
+    [])
+
 /-- 通常形の和了分解から得られる待ち基本形の正規化済み観測列。 -/
 def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
-  (findAbstractWaitReadings tiles).flatMap fun reading =>
-    waitProfilesOfComponentKinds reading.components
+  (findIrreducibleWaitReadings tiles).flatMap waitProfilesOfIrreducibleReading
 
 /-- 純粋な分類仕様を実行する、基本形列上の決定手続き。 -/
 def classifyWaitProfiles (profiles : List WaitProfile) : Option WaitKind :=
@@ -103,7 +123,10 @@ theorem classifyWait_iff (tiles : List Tile) (kind : WaitKind) :
 -/
 def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
     WaitReducibility :=
-  if WaitCompletionFinder.CanReduceMentsu tiles then .reducible else .irreducible
+  if WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles then
+    .reducible
+  else
+    .irreducible
 
 /-- 非聴牌を `none` として明示する、既約性の決定手続き。 -/
 def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
@@ -116,14 +139,14 @@ def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
 theorem reducibility_eq_reducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .reducible ↔
-      WaitCompletionFinder.CanReduceMentsu tiles := by
+      WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
 
 /-- 計算結果が既約であることは、面子除去不能性と同値である。 -/
 theorem reducibility_eq_irreducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .irreducible ↔
-      ¬WaitCompletionFinder.CanReduceMentsu tiles := by
+      ¬WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
 
 end WaitAnalysis

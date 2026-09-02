@@ -270,17 +270,17 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `example`
 - `rfl`
 
-`WaitPattern` は、手牌から最後に残る1枚または4枚の終端部を、どの形として抽出するかを表す。
+`WaitPattern` は、完成面子を取り除いたあとに残る既約な待ちの核を表す。
 ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
 実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
 
-- `tanki`: 単騎として扱う1枚と、同じ4枚終端に残る面子候補。
+- `tanki`: 単騎として扱う1枚。
 - `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
 - `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
 - `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
 - `shanpon`: 2つの対子からなる4枚終端。
 
-`tanki` が面子候補を持つのは、4枚終端を抽出するためであり、その牌姿が既約であることは意味しない。
+完成面子は `WaitPattern` に含めず、`HandExtraction.mentsuThen` による抽出過程として表す。
 完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
 
 `WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。

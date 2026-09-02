@@ -1,4 +1,5 @@
 import Mahjong.WaitReadingCode
+import Mahjong.Wait.Analysis
 
 namespace MahjongTests.WaitReadingCode
 
@@ -6,14 +7,32 @@ open _root_.WaitReadingCode
 open _root_.WaitCompletionFinder
 
 private def testHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
+private def testHand1234 : List Tile := manzu [0, 1, 2, 3]
 private def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 private def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
 
 private def isIrreducibleTenpai (tiles : List Tile) : Bool :=
-  if tenpai : IsTenpai tiles then
-    decide (IsIrreducible tiles tenpai)
-  else
-    false
+  !(canReduceMentsuPreservingWaitCores tiles)
+
+example :
+    findIrreducibleWaitReadings testHand1234 =
+      [{ wait := .numbered .Manzu 0,
+         core := [{ kind := .tanki, tiles := [.numbered .Manzu 0] }],
+         removedMentsu := [{ kind := .shuntsu, tiles := manzu [1, 2, 3] }] },
+       { wait := .numbered .Manzu 3,
+         core := [{ kind := .tanki, tiles := [.numbered .Manzu 3] }],
+         removedMentsu := [{ kind := .shuntsu, tiles := manzu [0, 1, 2] }] }] := by
+  native_decide
+
+example :
+    findWaitCores (manzu [0, 0, 0, 3]) = findWaitCores (manzu [3]) ∧
+    canReduceMentsuPreservingWaitCores (manzu [0, 0, 0, 3]) = true ∧
+    findWaitCores testHand1234 != findWaitCores (manzu [0]) ∧
+    findWaitCores testHand1234 != findWaitCores (manzu [3]) ∧
+    canReduceMentsuPreservingWaitCores testHand1234 = false ∧
+    WaitAnalysis.classifyWait testHand1234 = some .nobetan ∧
+    WaitAnalysis.classifyWait (manzu [3]) = some .tanki := by
+  native_decide
 
 example :
     findAbstractWaitReadings testHand2345678 =

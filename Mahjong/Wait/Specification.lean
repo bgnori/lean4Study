@@ -8,8 +8,9 @@ import Mahjong.Wait
 このモジュールは和了分解の列挙方法や分類アルゴリズムには依存しない。
 -/
 
-/-- 単騎読みと一緒に現れる完成面子の種類。 -/
+/-- 単騎核から除去された完成面子の文脈。純粋な1枚単騎では `none`。 -/
 inductive WaitProfileMentsu
+| none
 | shuntsu
 | koutsu
 deriving BEq, DecidableEq, Repr

@@ -114,12 +114,6 @@ private def sevenTileShapeReports (_ : Unit) : List SevenTileShapeReport :=
     |>.mergeSort readingEntryKeyLE
     |>.foldl groupSortedReadingEntry []
 
-private def canReduceMentsuWithCompletionCount (tiles : List Tile) (completionCount : Nat) : Bool :=
-  1 < tiles.length &&
-    (mentsuReductions tiles).any (fun remaining =>
-      let remainingCompletions := findWaitCompletions remaining
-      !remainingCompletions.isEmpty && remainingCompletions.length == completionCount)
-
 private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
 
@@ -132,7 +126,7 @@ private def addShapeReport (report : SevenTileShapeReport) (summary : SevenTileS
     { summary with
       tenpaiReports := summary.tenpaiReports + 1
       waitTileCountDistribution := incrementAssoc waits.length summary.waitTileCountDistribution }
-  if canReduceMentsuWithCompletionCount report.tiles completions.length then
+  if canReduceMentsuPreservingWaitCores report.tiles then
     { summary with reducibleReports := summary.reducibleReports + 1 }
   else
     { summary with
