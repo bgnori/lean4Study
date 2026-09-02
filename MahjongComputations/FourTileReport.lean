@@ -12,7 +12,7 @@ open MahjongComputations.FourTile
 
 private def newline : String := "\n"
 
-private def waitKindName : WaitKind → String
+private def wellKnownWaitKindName : WellKnownWaitKind → String
   | .tanki => "tanki"
   | .toitsuRyanmen => "toitsuRyanmen"
   | .toitsuKanchan => "toitsuKanchan"
@@ -23,9 +23,9 @@ private def waitKindName : WaitKind → String
   | .kuttsukiKanchan => "kuttsukiKanchan"
   | .kuttsukiPenchan => "kuttsukiPenchan"
 
-private def optionWaitKindName : Option WaitKind → String
+private def optionWellKnownWaitKindName : Option WellKnownWaitKind → String
   | none => "none"
-  | some kind => waitKindName kind
+  | some kind => wellKnownWaitKindName kind
 
 private def reducibilityName : Option WaitReducibility → String
   | none => "none"
@@ -50,21 +50,21 @@ private def formatTiles (tiles : List Tile) : String :=
     formatHonorGroup tiles
   ].filter fun group => !group.isEmpty
 
-private def formatKinds (kinds : List WaitKind) : String :=
-  String.intercalate "+" (kinds.map waitKindName)
+private def formatKinds (kinds : List WellKnownWaitKind) : String :=
+  String.intercalate "+" (kinds.map wellKnownWaitKindName)
 
 private def reportLine (report : FourTileShapeReport) : String :=
   String.intercalate "\t" [
     formatTiles report.tiles,
     formatTiles report.waits,
-    optionWaitKindName report.kind,
+    optionWellKnownWaitKindName report.kind,
     formatKinds report.candidateKinds,
     reducibilityName report.reducibility,
     toString report.waitReadingCodes
   ]
 
-private def countLine (entry : WaitKind × Nat) : String :=
-  s!"{waitKindName entry.1}: {entry.2}"
+private def countLine (entry : WellKnownWaitKind × Nat) : String :=
+  s!"{wellKnownWaitKindName entry.1}: {entry.2}"
 
 private def reducibilityCount (reports : List FourTileShapeReport)
     (reducibility : WaitReducibility) : Nat :=
@@ -101,8 +101,8 @@ private def reportText : String :=
      s!"unclassifiedTenpaiReports: {(directReadingTenpaiReports.filter fun report => report.kind.isNone).length}",
      s!"ambiguousReports: {(directReadingTenpaiReports.filter fun report => 1 < report.candidateKinds.length).length}",
      "",
-     "## Counts by representative kind"] ++
-    (WaitKind.all.map fun kind =>
+    "## Counts by well-known kind"] ++
+    (WellKnownWaitKind.all.map fun kind =>
       countLine (kind, (directReadingTenpaiReports.filter fun report => report.kind == some kind).length)) ++
     ["",
      "## Reducibility",
@@ -124,7 +124,7 @@ private def reportText : String :=
     ([1, 2, 3, 4].map waitCountLine) ++
     ["",
      "## Tenpai reports",
-    "tiles\twaits\trepresentativeKind\tcandidateKinds\treducibility\twaitReadingCodes"] ++
+    "tiles\twaits\twellKnownKind\tcandidateKinds\treducibility\twaitReadingCodes"] ++
     directReadingTenpaiReports.map reportLine ++
     [""]
 

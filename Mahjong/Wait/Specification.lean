@@ -4,7 +4,7 @@ import Mahjong.Wait
 # 待ち分類の仕様
 
 解析器が牌列から観測する内部基本形を `WaitProfile` とし、その観測列がどの
-公開分類 `WaitKind` に属するかを命題 `Classifies` で宣言的に定める。
+公開分類 `WellKnownWaitKind` に属するかを命題 `Classifies` で宣言的に定める。
 このモジュールは和了分解の列挙方法や分類アルゴリズムには依存しない。
 -/
 
@@ -75,7 +75,7 @@ instance (profiles : List WaitProfile) : Decidable (IsNobetan profiles) := by
 それ以外では狭義のノベタンを先に認識してから、正規化済み観測列の先頭を使う。
 この命題は下の決定手続き `expectedKind` を参照しない。
 -/
-inductive Classifies : List WaitProfile → WaitKind → Prop
+inductive Classifies : List WaitProfile → WellKnownWaitKind → Prop
 | kuttsukiRyanmen {profiles}
     (has : HasKuttsukiRyanmen profiles) : Classifies profiles .kuttsukiRyanmen
 | kuttsukiKanchan {profiles}
@@ -95,7 +95,7 @@ inductive Classifies : List WaitProfile → WaitKind → Prop
   (noKanchan : ¬HasKuttsukiKanchan (WaitProfile.tanki mentsu :: rest))
   (noPenchan : ¬HasKuttsukiPenchan (WaitProfile.tanki mentsu :: rest))
   (noNobetan : ¬IsNobetan (WaitProfile.tanki mentsu :: rest)) :
-  Classifies (WaitProfile.tanki mentsu :: rest) WaitKind.tanki
+  Classifies (WaitProfile.tanki mentsu :: rest) WellKnownWaitKind.tanki
   | toitsuRyanmen {rest}
     (noRyanmen : ¬HasKuttsukiRyanmen (.toitsuRyanmen :: rest))
     (noKanchan : ¬HasKuttsukiKanchan (.toitsuRyanmen :: rest))
@@ -127,25 +127,25 @@ inductive Classifies : List WaitProfile → WaitKind → Prop
 複数のくっつき条件が同時に成立する場合は両面、嵌張、辺張の順に正規化する。
 それ以外は狭義のノベタンを認識してから、正規化済み観測列の先頭で基本形を定める。
 -/
-def expectedKind (profiles : List WaitProfile) : Option WaitKind :=
+def expectedKind (profiles : List WaitProfile) : Option WellKnownWaitKind :=
   if HasKuttsukiRyanmen profiles then
-    some WaitKind.kuttsukiRyanmen
+    some WellKnownWaitKind.kuttsukiRyanmen
   else if HasKuttsukiKanchan profiles then
-    some WaitKind.kuttsukiKanchan
+    some WellKnownWaitKind.kuttsukiKanchan
   else if HasKuttsukiPenchan profiles then
-    some WaitKind.kuttsukiPenchan
+    some WellKnownWaitKind.kuttsukiPenchan
   else if IsNobetan profiles then
-    some WaitKind.nobetan
+    some WellKnownWaitKind.nobetan
   else match profiles with
     | [] => none
-    | WaitProfile.tanki _ :: _ => some WaitKind.tanki
-    | WaitProfile.toitsuRyanmen :: _ => some WaitKind.toitsuRyanmen
-    | WaitProfile.toitsuKanchan :: _ => some WaitKind.toitsuKanchan
-    | WaitProfile.toitsuPenchan :: _ => some WaitKind.toitsuPenchan
-    | WaitProfile.shanpon :: _ => some WaitKind.shanpon
+    | WaitProfile.tanki _ :: _ => some WellKnownWaitKind.tanki
+    | WaitProfile.toitsuRyanmen :: _ => some WellKnownWaitKind.toitsuRyanmen
+    | WaitProfile.toitsuKanchan :: _ => some WellKnownWaitKind.toitsuKanchan
+    | WaitProfile.toitsuPenchan :: _ => some WellKnownWaitKind.toitsuPenchan
+    | WaitProfile.shanpon :: _ => some WellKnownWaitKind.shanpon
 
 /-- `expectedKind` は宣言的な分類規則を健全かつ完全に決定する。 -/
-theorem expectedKind_iff (profiles : List WaitProfile) (kind : WaitKind) :
+theorem expectedKind_iff (profiles : List WaitProfile) (kind : WellKnownWaitKind) :
     expectedKind profiles = some kind ↔ Classifies profiles kind := by
   constructor
   · intro result

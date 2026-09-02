@@ -5,7 +5,7 @@ tenpaiReports: 3756
 unclassifiedTenpaiReports: 0
 ambiguousReports: 171
 
-## Counts by representative kind
+## Counts by well-known kind
 tanki: 1710
 toitsuRyanmen: 540
 toitsuKanchan: 651
@@ -45,7 +45,7 @@ waitReadingCodes	count	representativeTiles	representativeWaits
 4 wait tile kinds: 0
 
 ## Tenpai reports
-tiles	waits	representativeKind	candidateKinds	reducibility	waitReadingCodes
+tiles	waits	wellKnownKind	candidateKinds	reducibility	waitReadingCodes
 6777z	6z	tanki	tanki	reducible	[34]
 6677z	67z	shanpon	shanpon	irreducible	[9]
 6667z	7z	tanki	tanki	reducible	[34]

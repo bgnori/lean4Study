@@ -64,16 +64,16 @@
 
 このコメントでは、定理固有の意味を説明し、Lean語彙の詳細説明は語彙ページに任せる。
 
-## `WaitKind.exhaustive` の粒度例
+## `WellKnownWaitKind.exhaustive` の粒度例
 
 よい粒度の例:
 
 ```lean
 /--
-すべての待ち分類名は標準列挙 `WaitKind.all` に含まれる。
+すべての待ち分類名は標準列挙 `WellKnownWaitKind.all` に含まれる。
 
 この定理は、通常形聴牌で使う分類語彙の一覧に抜けがないことを保証する。
-証明は `WaitKind` の各分類名に場合分けし、それぞれが明示的な一覧に含まれることを示す。
+証明は `WellKnownWaitKind` の各分類名に場合分けし、それぞれが明示的な一覧に含まれることを示す。
 
 読むためのLean語彙: `namespace`, `theorem`, `cases`, `<;>`, `simp`, `[...]`, `∈`。
 -/
@@ -307,3 +307,22 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 ```
 
 具体例が有効なため、`WaitPattern.tiles` の近くに `Tile.format .mpsz` を使った `example` を置く。
+
+## `WaitAmbiguity` の読解ブロック例
+
+待ち核の曖昧性を説明するときは、「複数の読み」という表現を避け、単一の待ち核か複数の待ち核かで説明する。
+
+```lean
+/-!
+## 待ち核の個数にもとづく曖昧性
+
+`WaitAmbiguity` は、名前付き分類が単一の待ち核で説明できるか、複数の待ち核の共存を表すかを示す。
+ここでも麻雀一般の「待ち読み」という語は使わず、待ち核の個数に注目する。
+
+- `noAmbiguity`: 名前付き分類が単一の待ち核に対応する。
+- `ambiguous`: 名前付き分類が複数の待ち核の共存に対応する。
+
+この値は分類名 `WellKnownWaitKind` から決まるラベルであり、完成面子を取り除けるかどうかを表す
+`WaitReducibility` とは別の概念である。
+-/
+```

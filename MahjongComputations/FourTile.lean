@@ -20,8 +20,8 @@ open WaitCompletionFinder
 structure FourTileShapeReport where
   tiles : List Tile
   waits : List Tile
-  kind : Option WaitKind
-  candidateKinds : List WaitKind
+  kind : Option WellKnownWaitKind
+  candidateKinds : List WellKnownWaitKind
   reducibility : Option WaitReducibility
   waitReadingCodes : List Nat
 deriving BEq, DecidableEq, Repr
@@ -44,7 +44,7 @@ def report (tiles : List Tile) : FourTileShapeReport :=
   { tiles
     waits := waitingTiles tiles
     kind := WaitAnalysis.classifyWait tiles
-    candidateKinds := WaitAnalysis.candidateWaitKinds tiles
+    candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
     reducibility := WaitAnalysis.determineReducibility tiles
     waitReadingCodes := findAbstractWaitReadingCode tiles }
 
@@ -59,7 +59,7 @@ def tenpaiReports : List FourTileShapeReport :=
         { tiles
           waits
           kind := WaitAnalysis.classifyWait tiles
-          candidateKinds := WaitAnalysis.candidateWaitKinds tiles
+          candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
           reducibility := WaitAnalysis.determineReducibility tiles
           waitReadingCodes := findAbstractWaitReadingCode tiles }
 
@@ -117,7 +117,7 @@ private def directReport (report : DirectFourTileShapeReport) : FourTileShapeRep
   { tiles := report.tiles
     waits := waitsFromCompletions completions
     kind := WaitAnalysis.classifyWaitProfiles profiles
-    candidateKinds := WaitAnalysis.candidateWaitKindsOfProfiles profiles
+    candidateKinds := WaitAnalysis.candidateWellKnownWaitKindsOfProfiles profiles
     reducibility :=
       some <| if canReduceMentsuPreservingWaitCores report.tiles then
         .reducible
@@ -134,14 +134,14 @@ def directReadingTenpaiReports : List FourTileShapeReport :=
   (directFourTileShapeReports ()).map directReport
 
 /-- Exhaustive four-tile reports whose classified wait kind is `kind`. -/
-def reportsOfKind (kind : WaitKind) : List FourTileShapeReport :=
+def reportsOfKind (kind : WellKnownWaitKind) : List FourTileShapeReport :=
   tenpaiReports.filter fun report => report.kind == some kind
 
 /-- Count four-tile tenpai shapes by named wait kind. -/
-def countsByKind : List (WaitKind × Nat) :=
-  WaitKind.all.map fun kind => (kind, (reportsOfKind kind).length)
+def countsByKind : List (WellKnownWaitKind × Nat) :=
+  WellKnownWaitKind.all.map fun kind => (kind, (reportsOfKind kind).length)
 
-/-- Four-tile tenpai shapes that the classifier did not assign to a `WaitKind`. -/
+/-- Four-tile tenpai shapes that the classifier did not assign to a `WellKnownWaitKind`. -/
 def unclassifiedTenpaiReports : List FourTileShapeReport :=
   tenpaiReports.filter fun report => report.kind.isNone
 

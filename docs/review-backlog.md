@@ -12,6 +12,26 @@
 
 ## 課題一覧
 
+### Tanki実装変更後の可約・既約レポート差分を確認する
+
+状態: 保留
+
+Tanki関係の実装変更後に `fourTileReport` を再生成したところ、4枚形の集計で可約・既約の数が変わった。
+
+- 旧: reducible 1674、irreducible 2082
+- 新: reducible 1647、irreducible 2109
+
+例として、`1223m` や `1233m` は旧レポートでは `reducible` だったが、新レポートでは `irreducible` になっている。
+新しい実装では、単騎を完成面子付きの4枚終端としてではなく、完成面子を分離した後の核成分列として扱うため、
+この差分は意図に沿っている可能性が高い。
+
+後で確認すること:
+
+- 旧実装で、既約であるべき牌姿が誤って可約に分類されていたか。
+- `canReduceMentsuPreservingWaitCores` が、待ち核集合にもとづく可約性として期待どおりか。
+- レポート内の `waitReadingCodes` グループ `[21, 26]`、`[26, 33]` が新たに既約側へ出ている理由。
+- 検証が必要なら、`1223m` と `1233m` を最小例として仕様・テストに落とすか。
+
 ### `Reading` と「読み」という日本語説明の衝突を避ける
 
 状態: 対応中
@@ -28,11 +48,11 @@
 - `Reading` 系のモジュールを説明するときに、プロジェクト内の `Reading` が何を意味するかを改めて定義する。
 - 麻雀一般の「待ち読み」と違う意味であることを、初出時に明示する。
 
-### `WaitKind` がルール上の分類と通称を混ぜている
+### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
 状態: 保留
 
-`WaitKind` は現在、`tanki`、`toitsuRyanmen`、`toitsuKanchan`、`toitsuPenchan`、`shanpon` に加えて、
+`WellKnownWaitKind` は現在、`tanki`、`toitsuRyanmen`、`toitsuKanchan`、`toitsuPenchan`、`shanpon` に加えて、
 `nobetan` や `kuttsuki...` 系を同じ列挙に含めている。
 
 麻雀ルール上の基本的な待ち分類としては `shanpon` まででよく、`nobetan` 以降は通称・複合的な読みとして
@@ -40,8 +60,8 @@
 
 後で確認すること:
 
-- `WaitKind` を基本分類と通称分類に分けるべきか。
-- `WaitClassification`、`WaitKind.classification`、`WaitKind.ambiguity` の役割をどう切るか。
+- `WellKnownWaitKind` を基本分類と通称・複合分類に分けるべきか。
+- `WaitClassification`、`WellKnownWaitKind.classification`、`WellKnownWaitKind.ambiguity` の役割をどう切るか。
 - `Mahjong.Wait.Specification` と `Mahjong.Wait.Analysis` の定理名・返り値への影響。
 - 既存レポートや `WaitReadingCode` の表示語彙への影響。
 

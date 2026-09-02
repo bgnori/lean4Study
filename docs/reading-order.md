@@ -26,7 +26,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## その後の予定
 
-次に読む実例は、待ち分類語彙の一覧性を示す `WaitKind.exhaustive` である。ここでは
+次に読む実例は、待ち分類語彙の一覧性を示す `WellKnownWaitKind.exhaustive` である。ここでは
 `Tile.mem_all` と同じく、列挙した分類名に抜けがないことを確認する読み方を使う。
 
 読む前に知る語彙:
@@ -39,7 +39,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `[...]`
 - `∈`
 
-`Tile.mem_all` では牌種の一覧を確認した。`WaitKind.exhaustive` では、待ち分類名の一覧を確認する。
+`Tile.mem_all` では牌種の一覧を確認した。`WellKnownWaitKind.exhaustive` では、待ち分類名の一覧を確認する。
 これにより、後続の分類処理が参照する名前付き分類の表を、Leanが機械的に検査していることが分かる。
 
 ## 物理牌の枚数を読む
@@ -290,3 +290,27 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 `WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。
 `Tile.format .mpsz` を使った `example` により、抽出パターンが実際の牌姿としてどう見えるかを確認する。
+
+## 待ち分類と待ち核の曖昧性を読む
+
+次のまとまりは、`WellKnownWaitKind`、`WaitAmbiguity`、`WaitClassification`、`WellKnownWaitKind.classification` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核の曖昧性」を読む。
+
+読む前に知る語彙:
+
+- `inductive`
+- `structure`
+- `def`
+- `namespace`
+- `theorem`
+- `cases`
+- `simp`
+
+`WellKnownWaitKind` は、通常形聴牌に付けるよく知られた名前付き分類を表す。
+これは待ちの数学的定義そのものではなく、待ち核集合に対して人間向けの分類名を与える層である。
+`WaitAmbiguity` は、その名前付き分類が単一の待ち核に対応するか、複数の待ち核の共存に対応するかを表す。
+
+`WaitClassification` は、分類名 `kind` と待ち核の曖昧性 `ambiguity` をまとめる。
+`WellKnownWaitKind.classification` は、分類名だけからこのラベルを返す。
+可約・既約は具体的な牌姿に依存するため、ここでは扱わず `WaitReducibility` で別に読む。

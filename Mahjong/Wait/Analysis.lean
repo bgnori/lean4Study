@@ -52,10 +52,10 @@ def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
   (findIrreducibleWaitReadings tiles).flatMap waitProfilesOfIrreducibleReading
 
 /-- 純粋な分類仕様を実行する、基本形列上の決定手続き。 -/
-def classifyWaitProfiles (profiles : List WaitProfile) : Option WaitKind :=
+def classifyWaitProfiles (profiles : List WaitProfile) : Option WellKnownWaitKind :=
   WaitSpecification.expectedKind profiles
 
-private def basicWaitKindOfProfile : WaitProfile → WaitKind
+private def basicWellKnownWaitKindOfProfile : WaitProfile → WellKnownWaitKind
   | .tanki _ => .tanki
   | .toitsuRyanmen => .toitsuRyanmen
   | .toitsuKanchan => .toitsuKanchan
@@ -63,13 +63,13 @@ private def basicWaitKindOfProfile : WaitProfile → WaitKind
   | .shanpon => .shanpon
 
 /--
-観測された基本形列から、人間向けの代表分類へ畳む前の候補分類を広めに列挙する。
+観測された基本形列から、人間向けの名前付き分類へ畳む前の候補分類を広めに列挙する。
 
-`classifyWaitProfiles` は正規化済みの代表分類を1つ返すが、この関数は
+`classifyWaitProfiles` は正規化済みの名前付き分類を1つ返すが、この関数は
 `2234m` のように単騎核と両面形が共存する牌姿を曖昧なまま保持する。
 -/
-def candidateWaitKindsOfProfiles (profiles : List WaitProfile) : List WaitKind :=
-  let basicKinds := profiles.map basicWaitKindOfProfile
+def candidateWellKnownWaitKindsOfProfiles (profiles : List WaitProfile) : List WellKnownWaitKind :=
+  let basicKinds := profiles.map basicWellKnownWaitKindOfProfile
   let aliasKinds :=
     (if WaitSpecification.HasNobetanReading profiles then [.nobetan] else []) ++
     (if WaitSpecification.HasKuttsukiRyanmen profiles then [.kuttsukiRyanmen] else []) ++
@@ -79,46 +79,46 @@ def candidateWaitKindsOfProfiles (profiles : List WaitProfile) : List WaitKind :
 
 /-- 基本形上の解析器は宣言的な分類仕様に対して健全かつ完全である。 -/
 theorem classifyWaitProfiles_iff (profiles : List WaitProfile)
-    (kind : WaitKind) :
+    (kind : WellKnownWaitKind) :
     classifyWaitProfiles profiles = some kind ↔
       WaitSpecification.Classifies profiles kind := by
   exact WaitSpecification.expectedKind_iff profiles kind
 
 /-- 牌列に名前付き分類を与える解析器。 -/
-def classifyWait (tiles : List Tile) : Option WaitKind :=
+def classifyWait (tiles : List Tile) : Option WellKnownWaitKind :=
   classifyWaitProfiles (observedWaitProfiles tiles)
 
-/-- 牌列に対する、代表分類へ畳む前の候補分類。 -/
-def candidateWaitKinds (tiles : List Tile) : List WaitKind :=
-  candidateWaitKindsOfProfiles (observedWaitProfiles tiles)
+/-- 牌列に対する、名前付き分類へ畳む前の候補分類。 -/
+def candidateWellKnownWaitKinds (tiles : List Tile) : List WellKnownWaitKind :=
+  candidateWellKnownWaitKindsOfProfiles (observedWaitProfiles tiles)
 
 /-- 牌列が名前付き分類の仕様を満たすこと。 -/
-def HasWaitKind (tiles : List Tile) (kind : WaitKind) : Prop :=
+def HasWellKnownWaitKind (tiles : List Tile) (kind : WellKnownWaitKind) : Prop :=
   WaitSpecification.Classifies (observedWaitProfiles tiles) kind
 
 /-- `classifyWait` の健全性。 -/
-theorem classifyWait_sound {tiles : List Tile} {kind : WaitKind}
+theorem classifyWait_sound {tiles : List Tile} {kind : WellKnownWaitKind}
     (classified : classifyWait tiles = some kind) :
-    HasWaitKind tiles kind := by
-  unfold classifyWait HasWaitKind at *
+    HasWellKnownWaitKind tiles kind := by
+  unfold classifyWait HasWellKnownWaitKind at *
   simpa [classifyWaitProfiles_iff] using classified
 
 /-- `classifyWait` の完全性。 -/
-theorem classifyWait_complete {tiles : List Tile} {kind : WaitKind}
-    (specified : HasWaitKind tiles kind) :
+theorem classifyWait_complete {tiles : List Tile} {kind : WellKnownWaitKind}
+    (specified : HasWellKnownWaitKind tiles kind) :
     classifyWait tiles = some kind := by
-  unfold classifyWait HasWaitKind at *
+  unfold classifyWait HasWellKnownWaitKind at *
   simpa [classifyWaitProfiles_iff] using specified
 
 /-- 健全性と完全性をまとめた特徴付け。 -/
-theorem classifyWait_iff (tiles : List Tile) (kind : WaitKind) :
-    classifyWait tiles = some kind ↔ HasWaitKind tiles kind :=
+theorem classifyWait_iff (tiles : List Tile) (kind : WellKnownWaitKind) :
+    classifyWait tiles = some kind ↔ HasWellKnownWaitKind tiles kind :=
   ⟨classifyWait_sound, classifyWait_complete⟩
 
 /--
 聴牌の証拠を前提に、面子除去で同じ待ち構造へ縮約できるかを計算する。
 
-`WaitKind` だけでは既約性は決まらないため、この値は具体的な牌姿に依存する。
+名前付き分類 `WellKnownWaitKind` だけでは既約性は決まらないため、この値は具体的な牌姿に依存する。
 引数に `IsTenpai tiles` を要求することで、和了不能な牌姿の既約性は構成できない。
 -/
 def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
