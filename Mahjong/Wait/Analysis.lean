@@ -26,7 +26,7 @@ def waitProfilesOfComponentKinds
   else
     [])
 
-/-- 既約核を先に読み、除去した面子は単騎の複合分類に必要な文脈としてだけ使う。 -/
+/-- 核成分列を先に観測し、除去した面子は単騎の複合分類に必要な文脈としてだけ使う。 -/
 def waitProfilesOfIrreducibleReading
     (reading : IrreducibleWaitReading) : List WaitProfile :=
   let coreKinds := reading.core.map fun component => component.kind
@@ -66,7 +66,7 @@ private def basicWaitKindOfProfile : WaitProfile → WaitKind
 観測された基本形列から、人間向けの代表分類へ畳む前の候補分類を広めに列挙する。
 
 `classifyWaitProfiles` は正規化済みの代表分類を1つ返すが、この関数は
-`2234m` のように単騎読みと両面読みが共存する牌姿を曖昧なまま保持する。
+`2234m` のように単騎核と両面形が共存する牌姿を曖昧なまま保持する。
 -/
 def candidateWaitKindsOfProfiles (profiles : List WaitProfile) : List WaitKind :=
   let basicKinds := profiles.map basicWaitKindOfProfile

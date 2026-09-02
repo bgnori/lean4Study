@@ -3,30 +3,36 @@ import Mahjong.Pattern
 /-!
 # 通常形聴牌の待ち分類
 
-このモジュールでは、通常形聴牌の終端部をどの形として抽出するかを `WaitPattern`、
+このモジュールでは、通常形聴牌から完成面子を分離した後に残る核成分列の形を `WaitPattern`、
 麻雀上の分類語彙を `WaitKind` として表す。実際に待ちであることは
 `WaitCompletionFinder.IsWaitFor` が定め、分類は `WaitCompletion` の解析結果から計算する。
+
+ここでいう待ち核は、待ち牌と核成分列の組である。`WaitPattern` はそのうち核成分列として
+抽出できる形を表す。
+可約・既約の判定は後続の `WaitReducibility` と `WaitReadingCode.CanReduceMentsuPreservingWaitCores` で扱う。
 -/
 
 /-!
-## 待ち終端の抽出パターン
+## 既約な待ち核の抽出パターン
 
-`WaitPattern` は、完成面子を取り除いたあとに残る既約な待ちの核を表す。
+`WaitPattern` は、完成面子を取り除いたあとに残る核成分列の抽出パターンを表す。
 ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
 実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
 
 - `tanki`: 単騎として扱う1枚。
-- `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
-- `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
-- `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
-- `shanpon`: 2つの対子からなる4枚終端。
+- `toitsuRyanmen`: 対子と両面ターツからなる4枚の待ち核。
+- `toitsuKanchan`: 対子と嵌張ターツからなる4枚の待ち核。
+- `toitsuPenchan`: 対子と辺張ターツからなる4枚の待ち核。
+- `shanpon`: 2つの対子からなる4枚の待ち核。
 
 完成面子はこの型に含めず、抽出過程の `HandExtraction.mentsuThen` で表す。
+具体牌付きの核成分列は `IrreducibleWaitReading.core` に保持する。待ち牌と核成分列を組にして、
+除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
 
 `WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
 -/
 
-/-- 完成面子を除いた待ちの既約核を取り出す方法。 -/
+/-- 完成面子を除いたあとに残る核成分列の抽出パターン。 -/
 inductive WaitPattern
 | tanki (tanki : Tanki)
 | toitsuRyanmen (toitsu : Toitsu) (suit : Suit) (start : RyanmenStart)
@@ -38,11 +44,11 @@ deriving BEq, DecidableEq, Repr, Fintype
 namespace WaitPattern
 
 /-!
-## 待ち終端の抽出パターンと牌種列
+## 核成分列と牌種列
 
 `WaitPattern.tiles` は、各抽出パターンが要求する牌種列を返す。
-たとえば対子と両面ターツの終端なら、対子の2枚に両面ターツの2枚を連結する。
-`HasTilePattern` のインスタンスにより、待ち終端の抽出パターンも共通の物理牌取り出し処理に渡せる。
+たとえば対子と両面ターツの核成分列なら、対子の2枚に両面ターツの2枚を連結する。
+`HasTilePattern` のインスタンスにより、核成分列の抽出パターンも共通の物理牌取り出し処理に渡せる。
 -/
 
 /-- 有限型として列挙できるすべての抽出候補。 -/

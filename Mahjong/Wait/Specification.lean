@@ -8,14 +8,14 @@ import Mahjong.Wait
 このモジュールは和了分解の列挙方法や分類アルゴリズムには依存しない。
 -/
 
-/-- 単騎核から除去された完成面子の文脈。純粋な1枚単騎では `none`。 -/
+/-- 単騎核と一緒に分離された完成面子の文脈。純粋な1枚単騎では `none`。 -/
 inductive WaitProfileMentsu
 | none
 | shuntsu
 | koutsu
 deriving BEq, DecidableEq, Repr
 
-/-- 1つの和了分解から観測される内部基本形。くっつきやノベタン判定に必要な差は引数に残す。 -/
+/-- 既約な待ち核から観測される内部基本形。くっつきやノベタン判定に必要な文脈は引数に残す。 -/
 inductive WaitProfile
 | tanki (mentsu : WaitProfileMentsu)
 | toitsuRyanmen
@@ -26,7 +26,7 @@ deriving BEq, DecidableEq, Repr
 
 namespace WaitSpecification
 
-/-- 刻子を伴う単騎と、指定した対子+ターツの読みが共存すること。 -/
+/-- 刻子文脈を伴う単騎核と、指定した対子+ターツ形が共存すること。 -/
 def HasKuttsuki (profiles : List WaitProfile) (taatsuProfile : WaitProfile) : Prop :=
   profiles.contains (.tanki .koutsu) = true ∧ profiles.contains taatsuProfile = true
 
@@ -35,23 +35,23 @@ instance (profiles : List WaitProfile) (taatsuProfile : WaitProfile) :
   unfold HasKuttsuki
   infer_instance
 
-/-- 両面くっつきの2つの読みが共存すること。 -/
+/-- 両面くっつきに必要な2つの基本形が共存すること。 -/
 abbrev HasKuttsukiRyanmen (profiles : List WaitProfile) : Prop :=
   HasKuttsuki profiles .toitsuRyanmen
 
-/-- 嵌張くっつきの2つの読みが共存すること。 -/
+/-- 嵌張くっつきに必要な2つの基本形が共存すること。 -/
 abbrev HasKuttsukiKanchan (profiles : List WaitProfile) : Prop :=
   HasKuttsuki profiles .toitsuKanchan
 
-/-- 辺張くっつきの2つの読みが共存すること。 -/
+/-- 辺張くっつきに必要な2つの基本形が共存すること。 -/
 abbrev HasKuttsukiPenchan (profiles : List WaitProfile) : Prop :=
   HasKuttsuki profiles .toitsuPenchan
 
 /--
-観測列がノベタンとして読める部分を含むこと。
+観測列がノベタン相当の部分を含むこと。
 
-これは牌姿全体の分類名ではなく、人間向けの別名として使う。ほかの読みが同時に
-存在しても、単騎+順子の読みが2つ以上あれば成立する。
+これは牌姿全体の分類名ではなく、人間向けの別名として使う。ほかの基本形が同時に
+存在しても、順子文脈を伴う単騎核が2つ以上あれば成立する。
 -/
 def HasNobetanReading (profiles : List WaitProfile) : Prop :=
   2 ≤ profiles.count (.tanki .shuntsu)
@@ -60,7 +60,7 @@ instance (profiles : List WaitProfile) : Decidable (HasNobetanReading profiles) 
   unfold HasNobetanReading
   infer_instance
 
-/-- 牌姿全体をノベタンと分類するための、単騎+順子だけからなる狭義の条件。 -/
+/-- 牌姿全体をノベタンと分類するための、順子文脈を伴う単騎核だけからなる狭義の条件。 -/
 def IsNobetan (profiles : List WaitProfile) : Prop :=
   HasNobetanReading profiles ∧ ∀ profile ∈ profiles, profile = .tanki .shuntsu
 
