@@ -182,7 +182,15 @@ def expectedKind (profiles : List WaitProfile) : Option WellKnownWaitKind :=
     | WaitProfile.toitsuPenchan :: _ => some WellKnownWaitKind.toitsuPenchan
     | WaitProfile.shanpon :: _ => some WellKnownWaitKind.shanpon
 
-/-- `expectedKind` は宣言的な分類規則を健全かつ完全に決定する。 -/
+/--
+`expectedKind` が返す名前付き分類と、宣言的仕様 `Classifies` は一致する。
+
+左辺は実行できる参照実装で、右辺は分類が成立する理由を保持する仕様である。
+この定理により、参照実装が分類規則を過不足なく判定していることが分かる。
+左から右は健全性、右から左は完全性に対応する。
+
+読むためのLean語彙: `theorem`, `↔`, `constructor`, `intro`, `unfold`, `split`, `cases`, `exact`, `simp_all`。
+-/
 theorem expectedKind_iff (profiles : List WaitProfile) (kind : WellKnownWaitKind) :
     expectedKind profiles = some kind ↔ Classifies profiles kind := by
   constructor

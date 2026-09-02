@@ -162,6 +162,26 @@
 
 `cases kind` のように `with` を省略すると、分岐名を明示せず、Leanに各場合を順に作らせる。
 
+### constructor
+
+`constructor` は、目標が複数の部品からできているときに、それぞれの部品を別々の目標へ分けるタクティクである。
+`P ↔ Q` の証明では、`P → Q` と `Q → P` の2つの方向に分ける。
+
+### intro
+
+`intro` は、仮定を受け取って名前を付けるタクティクである。
+`expectedKind_iff` では、`expectedKind profiles = some kind` という計算結果や、`Classifies profiles kind` という分類証拠を受け取る。
+
+### unfold
+
+`unfold` は、定義を展開するタクティクである。
+`unfold expectedKind at result` は、仮定 `result` の中に出てくる `expectedKind` の定義を展開する。
+
+### split
+
+`split` は、`if` や `match` による分岐を証明中でも場合分けするタクティクである。
+`expectedKind_iff` では、`expectedKind` の分岐を順に開いて、各分類規則に対応させている。
+
 ### rcases
 
 `rcases` は、複数の部品を持つ値を分解して、それぞれの部品に名前を付けるタクティクである。
@@ -177,6 +197,11 @@
 
 `simp [tiles, Shuntsu.tiles] at honor_mem` のように `at` を付けると、現在の目標ではなく、手元にある仮定
 `honor_mem` を単純化する。
+
+### simp_all
+
+`simp_all` は、現在の目標だけでなく、手元の仮定も使って単純化するタクティクである。
+`expectedKind_iff` では、`Classifies` の各場合から得られる仮定を使い、`expectedKind` が対応する分類名を返すことを確認している。
 
 ### at
 

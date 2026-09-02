@@ -348,3 +348,17 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 `expectedKind_iff` が両者の一致を保証する。
 -/
 ```
+
+`_iff` 定理は、実行できる定義と宣言的な仕様の一致として説明する。
+
+```lean
+/--
+`expectedKind` が返す名前付き分類と、宣言的仕様 `Classifies` は一致する。
+
+左辺は実行できる参照実装で、右辺は分類が成立する理由を保持する仕様である。
+この定理により、参照実装が分類規則を過不足なく判定していることが分かる。
+左から右は健全性、右から左は完全性に対応する。
+
+読むためのLean語彙: `theorem`, `↔`, `constructor`, `intro`, `unfold`, `split`, `cases`, `exact`, `simp_all`。
+-/
+```
