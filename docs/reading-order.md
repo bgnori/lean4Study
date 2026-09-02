@@ -254,3 +254,34 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `TileChunk.tiles`: 完成部品を構成する牌種列を返す。
 
 ここでも `Tile.format .mpsz` を使った `example` により、雀頭 `55m`、順子 `456p`、刻子 `777z` を確認する。
+
+## 待ち終端の抽出パターンを読む
+
+次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。
+
+読む前に知る語彙:
+
+- `inductive`
+- `namespace`
+- `List Tile`
+- `++`
+- `instance`
+- `HasTilePattern`
+- `example`
+- `rfl`
+
+`WaitPattern` は、手牌から最後に残る1枚または4枚の終端部を、どの形として抽出するかを表す。
+ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
+実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
+
+- `tanki`: 単騎として扱う1枚と、同じ4枚終端に残る面子候補。
+- `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
+- `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
+- `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
+- `shanpon`: 2つの対子からなる4枚終端。
+
+`tanki` が面子候補を持つのは、4枚終端を抽出するためであり、その牌姿が既約であることは意味しない。
+完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
+
+`WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。
+`Tile.format .mpsz` を使った `example` により、抽出パターンが実際の牌姿としてどう見えるかを確認する。

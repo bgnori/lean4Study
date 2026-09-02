@@ -276,3 +276,31 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 `TileChunk.tiles` は、どちらの部品であっても構成する牌種列を返す。
 -/
 ```
+
+## `WaitPattern` の読解ブロック例
+
+待ち分類に入る箇所では、「実際に待ちであること」と「終端部をどう抽出するか」を混同しないように説明する。
+麻雀一般の「待ち読み」と衝突しやすいため、`WaitPattern` の説明では原則として「読み」ではなく「抽出パターン」を使う。
+
+```lean
+/-!
+## 待ち終端の抽出パターン
+
+`WaitPattern` は、手牌から最後に残る1枚または4枚の終端部を、どの形として抽出するかを表す。
+ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
+実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
+
+- `tanki`: 単騎として扱う1枚と、同じ4枚終端に残る面子候補を組み合わせる。
+- `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
+- `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
+- `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
+- `shanpon`: 2つの対子からなる4枚終端。
+
+`tanki` が面子候補を持つのは、4枚終端を抽出するためであり、その牌姿が既約であることは意味しない。
+完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
+
+`WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
+-/
+```
+
+具体例が有効なため、`WaitPattern.tiles` の近くに `Tile.format .mpsz` を使った `example` を置く。

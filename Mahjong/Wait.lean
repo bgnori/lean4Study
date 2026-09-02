@@ -3,9 +3,28 @@ import Mahjong.Pattern
 /-!
 # 通常形聴牌の待ち分類
 
-このモジュールでは、通常形聴牌をどの未完成部品として読むかを `WaitPattern`、
+このモジュールでは、通常形聴牌の終端部をどの形として抽出するかを `WaitPattern`、
 麻雀上の分類語彙を `WaitKind` として表す。実際に待ちであることは
 `WaitCompletionFinder.IsWaitFor` が定め、分類は `WaitCompletion` の解析結果から計算する。
+-/
+
+/-!
+## 待ち終端の抽出パターン
+
+`WaitPattern` は、手牌から最後に残る1枚または4枚の終端部を、どの形として抽出するかを表す。
+ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
+実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
+
+- `tanki`: 単騎として扱う1枚と、同じ4枚終端に残る面子候補を組み合わせる。
+- `toitsuRyanmen`: 対子と両面ターツからなる4枚終端。
+- `toitsuKanchan`: 対子と嵌張ターツからなる4枚終端。
+- `toitsuPenchan`: 対子と辺張ターツからなる4枚終端。
+- `shanpon`: 2つの対子からなる4枚終端。
+
+`tanki` が面子候補を持つのは、4枚終端を抽出するためであり、その牌姿が既約であることは意味しない。
+完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
+
+`WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
 -/
 
 /-- 待ちの終端を、単騎+完成面子または対子+ターツとして取り出す方法。 -/
@@ -19,6 +38,14 @@ deriving BEq, DecidableEq, Repr, Fintype
 
 namespace WaitPattern
 
+/-!
+## 待ち終端の抽出パターンと牌種列
+
+`WaitPattern.tiles` は、各抽出パターンが要求する牌種列を返す。
+たとえば対子と両面ターツの終端なら、対子の2枚に両面ターツの2枚を連結する。
+`HasTilePattern` のインスタンスにより、待ち終端の抽出パターンも共通の物理牌取り出し処理に渡せる。
+-/
+
 /-- 有限型として列挙できるすべての抽出候補。 -/
 noncomputable def all : List WaitPattern :=
   (Finset.univ : Finset WaitPattern).toList
@@ -30,6 +57,12 @@ def tiles : WaitPattern → List Tile
   | .toitsuKanchan toitsu suit start => toitsu.tiles ++ (Taatsu.kanchan suit start).tiles
   | .toitsuPenchan toitsu suit high => toitsu.tiles ++ (Taatsu.penchan suit high).tiles
   | .shanpon first second => first.tiles ++ second.tiles
+
+example : (WaitPattern.tanki (.tanki (.honor .East)) (.koutsu (.numbered .Manzu 0))).tiles.map (Tile.format .mpsz) = ["1z", "1m", "1m", "1m"] := rfl
+example : (WaitPattern.toitsuRyanmen (.toitsu (.numbered .Manzu 4)) .Manzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["5m", "5m", "2m", "3m"] := rfl
+example : (WaitPattern.toitsuKanchan (.toitsu (.honor .White)) .Pinzu ⟨2, by decide⟩).tiles.map (Tile.format .mpsz) = ["5z", "5z", "3p", "5p"] := rfl
+example : (WaitPattern.toitsuPenchan (.toitsu (.honor .Red)) .Souzu true).tiles.map (Tile.format .mpsz) = ["7z", "7z", "8s", "9s"] := rfl
+example : (WaitPattern.shanpon (.toitsu (.numbered .Pinzu 1)) (.toitsu (.honor .East))).tiles.map (Tile.format .mpsz) = ["2p", "2p", "1z", "1z"] := rfl
 
 instance : HasTilePattern WaitPattern where
   tiles := WaitPattern.tiles
