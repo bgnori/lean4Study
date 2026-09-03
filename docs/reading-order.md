@@ -492,7 +492,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 完成部品から待ち牌を除いた形を読む
 
-次の実例は、`WaitReadingCode.lean` の `componentKindAfterRemovingWait` である。
+次の実例は、`WaitReadingCode.lean` の `componentKindAfterRemovingWait` と `componentAfterRemovingWait` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「和了分割の完成部品」を読む。
 
@@ -503,6 +503,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `if`
 - `==`
 - `!=`
+- `Option.map`
+- `List.erase`
 - `example`
 - `rfl`
 
@@ -521,3 +523,10 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース中の `example` は、この5つの対応をLeanの計算で確認する。
 指定牌が対子・刻子と同じ牌種でない場合、または順子とスートやランクが合わない場合は `none` を返す。
 ここでの `none` は待ち全体が存在しないという意味ではなく、この1つの完成部品から指定牌を除く形を作れないという意味である。
+
+`componentAfterRemovingWait` は、その種別判定に具体的な牌の除去を加える。
+種別が得られた場合だけ `List.erase` で待ち牌を最初の1枚だけ除き、種別と残った牌種列を
+`ConcreteWaitReadingComponent` にまとめる。種別が `none` なら、`Option.map` により結果も `none` のままになる。
+
+対子 `55m` と待ち牌 `5m` の例では、種別は単騎、残った牌種列は `[5m]` になる。
+この対応もソース中の `example` が `rfl` で確認している。

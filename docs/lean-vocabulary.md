@@ -141,6 +141,11 @@
 `some value` は成功して値があること、`none` は失敗して値がないことを表す。
 `takeTileFrom` では、指定した牌種の物理牌が見つかれば `some`、見つからなければ `none` を返す。
 
+### Option.map
+
+`option.map f` は、`option` が `some value` なら `some (f value)` を返し、`none` ならそのまま `none` を返す。
+`componentAfterRemovingWait` では、部品種別を得られた場合だけ、残った具体牌と組み合わせる。
+
 ### match
 
 `match` は、値の形によって処理を分ける構文である。
@@ -161,6 +166,11 @@
 
 `xs.filter p` は、リスト `xs` のうち条件 `p` を満たす要素だけを残す。
 `coreKinds.filter ...` は、核成分列の中に特定の部品種別がいくつあるかを数えるために使われる。
+
+### List.erase
+
+`xs.erase x` は、リスト `xs` で最初に現れる `x` を1つだけ取り除く。
+同じ値が複数あっても、残りはそのまま保持する。対子 `55m` から `5m` を `erase` すると、単騎の `5m` が1枚残る。
 
 ### List.any
 

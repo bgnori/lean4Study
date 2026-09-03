@@ -141,10 +141,21 @@ def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
       example : componentKindAfterRemovingWait
         (.numbered .Souzu 2) (TileChunk.shuntsu .Souzu ⟨0, by decide⟩) = some .penchan := rfl
 
+/--
+完成部品から指定した待ち牌を1枚除き、種別と残った牌種列を持つ具体的な不完全部品を作る。
+
+`componentKindAfterRemovingWait` が `some kind` を返した場合だけ、完成部品の牌種列から
+待ち牌を最初の1枚だけ除き、`ConcreteWaitReadingComponent` にまとめる。
+指定牌を除けず種別が `none` の場合は、この関数も `none` を返す。
+-/
 private def componentAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
     Option ConcreteWaitReadingComponent :=
   (componentKindAfterRemovingWait wait chunk).map fun kind =>
     { kind, tiles := chunk.tiles.erase wait }
+
+example : componentAfterRemovingWait
+    (.numbered .Manzu 4) (TileChunk.pair (.numbered .Manzu 4)) =
+      some { kind := .tanki, tiles := [.numbered .Manzu 4] } := rfl
 
 private def componentProduct (components : List WaitReadingComponentKind) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
