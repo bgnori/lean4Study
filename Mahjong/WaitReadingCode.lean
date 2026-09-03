@@ -99,7 +99,13 @@ private def completeComponent (chunk : TileChunk) : ConcreteWaitReadingComponent
       | .inr (.koutsu _) => .koutsu
     tiles := chunk.tiles }
 
-/-- 完成部品から指定した待ち牌を除いたときに生じる不完全部品の種別。 -/
+/--
+通常形の和了分割に現れる完成部品から、指定した待ち牌を1枚除いたときに見える不完全部品の種別を返す。
+
+同種2枚の対子から1枚除けば単騎、同種3枚の刻子から1枚除けば対子になる。
+順子では、除く位置と端の順子かどうかから両面・嵌張・辺張を区別する。
+指定牌がその和了分割の完成部品を構成しない場合は `none` を返す。
+-/
 def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
     Option WaitReadingComponentKind :=
   match chunk with
@@ -119,6 +125,21 @@ def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
           else if rank == ShuntsuStart.lastRank start then
             some (if ShuntsuStart.isFirst start then .penchan else .ryanmen)
           else none
+
+      example : componentKindAfterRemovingWait
+        (.numbered .Manzu 4) (TileChunk.pair (.numbered .Manzu 4)) = some .tanki := rfl
+
+      example : componentKindAfterRemovingWait
+        (.numbered .Pinzu 6) (TileChunk.koutsu (.numbered .Pinzu 6)) = some .toitsu := rfl
+
+      example : componentKindAfterRemovingWait
+        (.numbered .Souzu 1) (TileChunk.shuntsu .Souzu ⟨1, by decide⟩) = some .ryanmen := rfl
+
+      example : componentKindAfterRemovingWait
+        (.numbered .Souzu 2) (TileChunk.shuntsu .Souzu ⟨1, by decide⟩) = some .kanchan := rfl
+
+      example : componentKindAfterRemovingWait
+        (.numbered .Souzu 2) (TileChunk.shuntsu .Souzu ⟨0, by decide⟩) = some .penchan := rfl
 
 private def componentAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
     Option ConcreteWaitReadingComponent :=
