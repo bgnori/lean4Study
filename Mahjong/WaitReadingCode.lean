@@ -200,7 +200,16 @@ def concreteWaitReadings
 private def isCompletedMentsu (component : ConcreteWaitReadingComponent) : Bool :=
   component.kind == .shuntsu || component.kind == .koutsu
 
-/-- 1つのReadingから完成面子を除き、比較対象となる核成分列を得る。 -/
+/--
+1つの具体牌付きReadingを、待ち核の成分列と、そこから分離した完成面子に分ける。
+
+順子 `.shuntsu` と刻子 `.koutsu` は `removedMentsu` に移し、それ以外の不完全部品は `core` に残す。
+待ち牌 `wait` と各部品の具体的な牌種列は保持するため、後続処理は「どの完成面子を除いたか」を失わずに、
+完成面子を除いた核成分列だけを比較できる。
+この関数は1つのReadingを二分するだけであり、牌姿全体が可約か既約かは判定しない。
+
+読むためのLean語彙: `structure`, `filter`, `fun`, `!`。
+-/
 def reduceWaitReading (reading : ConcreteWaitReading) : IrreducibleWaitReading :=
   { wait := reading.wait
     core := reading.components.filter fun component => !isCompletedMentsu component

@@ -398,3 +398,32 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `reducibility_eq_irreducible_iff` は対になる保証で、計算結果が `irreducible` であることを、待ち核集合を
 保ったまま除去できる完成面子がないこととして特徴づける。既約性のために別の探索をするのではなく、
 可約性を表す同じ命題の否定 `¬CanReduceMentsuPreservingWaitCores` を使っている点を読む。
+
+## Readingから核成分列を分離する処理を読む
+
+次の実例は、`WaitReadingCode.lean` の `ConcreteWaitReading`、`IrreducibleWaitReading`、
+`reduceWaitReading` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」と「待ち核」を読む。
+
+読む前に知る語彙:
+
+- `structure`
+- `filter`
+- `fun`
+- `!`
+
+`ConcreteWaitReading` は、1つの待ち牌と、待ち牌を除いた和了分割に見える具体牌付き部品列を持つ。
+この段階では、不完全部品と、すでに完成している順子・刻子が同じ `components` に並んでいる。
+
+`reduceWaitReading` は、順子と刻子を `removedMentsu` に分離し、それ以外を `core` に残して
+`IrreducibleWaitReading` を作る。2つの `filter` は同じ部品列を反対の条件で選別しており、
+待ち牌と各部品の具体牌は変更しない。
+
+最初は、待ち牌 `4m` に対して、部品列が「単騎 `4m`、完成順子 `123p`」である1つのReadingだけを考える。
+`reduceWaitReading` を適用すると、単騎 `4m` は `core` に残り、完成順子 `123p` は `removedMentsu` に入る。
+スートが異なるため別の分解を考える必要がなく、ここでは2つの `filter` による振り分けだけを読めばよい。
+
+名前に `Irreducible` とあるが、`reduceWaitReading` 自体は1つのReadingから完成面子を分離する局所処理であり、
+牌姿全体が可約か既約かは判定しない。牌姿全体の判定では、そこから得られる待ち核集合を、完成面子除去の
+前後で比較する必要がある。複数の分解を持つ `1234m` は、その段階で扱う例である。
