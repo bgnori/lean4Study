@@ -365,7 +365,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 可約性の計算と意味の一致を読む
 
-次の実例は、`Wait/Analysis.lean` の `reducibility`、`reducibility_eq_reducible_iff`、
+次の実例は、`Wait/Analysis.lean` の `reducibility`、`determineReducibility`、`reducibility_eq_reducible_iff`、
 `reducibility_eq_irreducible_iff` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
@@ -374,6 +374,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 - `def`
 - `if`
+- 証拠付き `if`
+- `Option`
 - `theorem`
 - `↔`
 - `¬`
@@ -381,6 +383,10 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 `reducibility` は、聴牌であることが確認済みの牌列について、待ち核集合を変えずに完成面子を除去できるかを調べる。
 除去できれば `reducible`、できなければ `irreducible` を返す。
+
+`determineReducibility` は、聴牌かまだ分からない一般の牌列に対する入口である。
+聴牌なら条件分岐で得た証拠を `reducibility` へ渡して結果を `some` に包み、非聴牌なら `none` を返す。
+したがって `none` は解析失敗や既約を意味するのではなく、可約性を分類する前提である聴牌を満たさないことを表す。
 
 `reducibility_eq_reducible_iff` は、計算結果が `reducible` であることと、実際に待ち核集合を保つ面子除去が
 可能であることが同値だと保証する。左から右は誤って可約と判定しないこと、右から左は可能な面子除去を

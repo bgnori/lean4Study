@@ -144,6 +144,12 @@
 `if condition then a else b` は、条件が成り立つかどうかで返す値を分ける構文である。
 `waitProfilesOfIrreducibleReading` では、特定の部品種別が含まれるかどうかで、観測基本形を追加するか空リストにする。
 
+### 証拠付き `if`
+
+`if proof : proposition then a else b` は、命題が成り立つかを調べると同時に、then側でその証拠を
+`proof` という名前で使える条件分岐である。`determineReducibility` の `if tenpai : IsTenpai tiles` では、
+聴牌の場合に得た証拠 `tenpai` を、証拠を要求する `reducibility tiles tenpai` へ渡している。
+
 ### filter
 
 `xs.filter p` は、リスト `xs` のうち条件 `p` を満たす要素だけを残す。

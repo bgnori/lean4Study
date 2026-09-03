@@ -154,7 +154,15 @@ def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
   else
     .irreducible
 
-/-- 非聴牌を `none` として明示する、既約性の決定手続き。 -/
+/--
+任意の牌列について、聴牌なら可約・既約を判定し、非聴牌なら `none` を返す。
+
+`reducibility` 自体は聴牌の証拠を要求するため、条件分岐に `tenpai` と名前を付け、
+聴牌側の分岐で得られる証拠をそのまま渡す。これにより、可約・既約という分類を
+和了可能な待ちが存在する牌列だけに制限しつつ、一般の牌列から呼べる入口にしている。
+
+読むためのLean語彙: `Option`, 証拠付き `if`, `some`, `none`。
+-/
 def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
   if tenpai : WaitCompletionFinder.IsTenpai tiles then
     some (reducibility tiles tenpai)
