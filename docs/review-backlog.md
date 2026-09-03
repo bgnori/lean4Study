@@ -49,6 +49,14 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 - `Reading` 系のモジュールを説明するときは、[domain-vocabulary.md](domain-vocabulary.md) の `Reading` 定義へ導く。
 - 麻雀一般の「待ち読み」と違う意味であることを、初出時に明示する。
 
+命名体系として後で確認すること:
+
+- `AbstractWaitReading` の `Abstract` が、待ち牌を抽象化せず、部品の具体的な牌種列だけを忘れることを十分に表すか。
+- `ConcreteWaitReading` と `AbstractWaitReading` の対比を、具体牌付き・部品種別のみという情報差が分かる名前にするべきか。
+- `IrreducibleWaitReading` が牌姿全体の既約判定と誤解されないか。実際には完成面子を核成分列から分離した観測結果である。
+- `WaitReadingComponentKind`、`ConcreteWaitReadingComponent` の `Component` が、`TileChunk` や説明語彙「完成部品」とどう対応するか。
+- `Reading`、`TileChunk`、`Component`、`Core` を個別に改名せず、入力となる和了分割から情報を段階的に忘れる流れ全体で一貫した名前を選べるか。
+
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
 状態: 保留
@@ -90,5 +98,6 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 - `TileChunk` の参照範囲。
 - `WaitCompletion.winningChunks` など、周辺の `Chunk` 系の名前も同時に見直すべきか。
+- `AbstractWaitReading`、`ConcreteWaitReadingComponent` など、変換後の `Reading`・`Component` 系の名前と一体で見直すべきか。
 - `DirectWaitReading`、`WaitCompletionFinder`、`WaitReadingCode` の読者向け語彙への影響。
 - リネームする場合、既存の証明・レポート生成・テストへの影響。

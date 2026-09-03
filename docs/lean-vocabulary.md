@@ -188,6 +188,11 @@
 `canReduceMentsuPreservingWaitCores` では、完成面子を1つ除いた候補のうち、待ち核集合を保つものが
 1つでも存在するかを調べる。
 
+### List.foldl
+
+`xs.foldl f initial` は、初期値 `initial` から始め、リスト `xs` の要素を左から順に関数 `f` へ渡して
+1つの値へ畳み込む。`componentProduct` では初期値を1とし、各部品種別に割り当てた素数を順に掛ける。
+
 ### map
 
 `xs.map f` は、リスト `xs` の各要素に関数 `f` を適用し、結果を同じ順番で並べたリストを作る。

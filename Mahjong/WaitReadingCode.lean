@@ -302,7 +302,13 @@ def waitCores (completions : List WaitCompletion) : List WaitCore :=
     |>.map (fun reading => { wait := reading.wait, components := reading.core })
     |> deduplicateAndSortBy waitCoreKey
 
-/-- 発見済み `WaitCompletion` から牌位置を忘れ、部品種別だけのReadingへ変換する。 -/
+/--
+発見済みの具体牌付きReadingから各部品の牌種列を忘れ、部品種別だけのReadingへ変換する。
+
+待ち牌 `wait` は保持し、各 `ConcreteWaitReadingComponent` は `kind` だけに写す。
+具体牌が異なっても待ち牌と部品種別列が同じReadingは重複を除き、一定の順序に整列する。
+この段階では部品種別列をまだ数値コードには変換しない。
+-/
 def abstractWaitReadings
     (completions : List WaitCompletion) : List AbstractWaitReading :=
   concreteWaitReadings completions
@@ -311,7 +317,23 @@ def abstractWaitReadings
         components := reading.components.map (fun component => component.kind) })
     |> deduplicateAndSortBy abstractWaitReadingKey
 
-/-- 発見済みWaitCompletionを、待ち牌ごとの素数積コードへ変換する。 -/
+example : abstractWaitReadings
+    [{ wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] },
+     { wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨3, by decide⟩] }] =
+    [{ wait := .numbered .Manzu 4, components := [.tanki, .shuntsu] }] := by
+  native_decide
+
+/--
+抽象Readingの部品種別列を素数積へ変換し、待ち牌ごとのコードとして列挙する。
+
+各部品種別に割り当てた素数をすべて掛けるため、コードは部品順を忘れる一方、
+各種別が現れる個数を素因数の指数として保持する。待ち牌はコードと別のフィールドに残し、
+同じ待ち牌とコードの重複を除いて一定の順序に整列する。
+-/
 def waitReadingCodeEntries
     (completions : List WaitCompletion) : List WaitReadingCodeEntry :=
   abstractWaitReadings completions
@@ -319,6 +341,13 @@ def waitReadingCodeEntries
       { wait := reading.wait
         code := componentProduct reading.components })
     |> deduplicateAndSortBy waitReadingCodeEntryKey
+
+example : waitReadingCodeEntries
+    [{ wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+    [{ wait := .numbered .Manzu 4, code := 26 }] := by
+  native_decide
 
 /-- 発見済みWaitCompletionから計算した、待ち牌を残す抽象形コード。 -/
 def abstractWaitReadingCodeWithWait

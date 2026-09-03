@@ -577,3 +577,51 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース中の `example` は、雀頭 `55m` と順子 `123p` の順序だけを入れ替えた2つのcompletionを入力する。
 どちらからも同じ「単騎 `5m`、完成順子 `123p`」が得られるため、正規化後の結果は1件だけになる。
 これにより、データ上の部品順や重複ではなく、観測される待ち牌と部品の内容を比較できる。
+
+## 具体牌を忘れて抽象Readingを作る
+
+次の実例は、`WaitReadingCode.lean` の `AbstractWaitReading` と `abstractWaitReadings` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」を読む。
+
+読む前に知る語彙:
+
+- `map`
+- `fun`
+- `|>`
+
+`abstractWaitReadings` は、各 `ConcreteWaitReading` の待ち牌を保持したまま、具体牌付き部品を
+その部品種別 `kind` だけに変換する。単騎がどの牌だったか、完成順子がどのスート・ランクだったかは忘れるが、
+待ち牌と「単騎、順子」のような部品種別列は残る。
+
+ソース中の `example` では、待ち牌がどちらも `5m` で、完成順子だけが `123p` と `456p` で異なる
+2つの具体Readingを作る。具体牌を忘れると、どちらも部品種別列 `[tanki, shuntsu]` になるため、
+重複排除後の抽象Readingは1件になる。
+
+この段階では部品種別列を数値へ変換しない。次の `waitReadingCodeEntries` が、抽象Readingを
+待ち牌と素数積コードの組へ変換する。
+
+## 抽象Readingを素数積コードへ変換する
+
+次の実例は、`WaitReadingCode.lean` の `WaitReadingComponentKind.prime`、`componentProduct`、
+`WaitReadingCodeEntry`、`waitReadingCodeEntries` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ちReadingコード」を読む。
+
+読む前に知る語彙:
+
+- `Nat`
+- `List.foldl`
+- `map`
+- `|>`
+
+各部品種別には異なる素数が割り当てられている。たとえば単騎は2、順子は13である。
+`componentProduct` は1から始めて、抽象Readingの各部品に対応する素数を順に掛ける。
+
+積では掛ける順序が結果に影響しないため、部品列の順序は忘れられる。一方、同じ部品が複数あれば
+同じ素数を繰り返し掛けるため、その個数は指数として残る。たとえば `[tanki, shuntsu]` は
+$2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ になる。
+
+`waitReadingCodeEntries` は、計算したコードだけでなく待ち牌も `WaitReadingCodeEntry` に残す。
+ソース中の `example` は、待ち牌 `5m` と部品種別 `[tanki, shuntsu]` から
+`{ wait := 5m, code := 26 }` が得られることを計算で確認する。
