@@ -220,7 +220,16 @@ def irreducibleWaitReadings
     (completions : List WaitCompletion) : List IrreducibleWaitReading :=
   (concreteWaitReadings completions).map reduceWaitReading
 
-/-- 発見済みの全Readingを待ち核集合へ正規化する。 -/
+/--
+発見済みの全Readingから、比較可能な待ち核集合を作る。
+
+各 `IrreducibleWaitReading` から `removedMentsu` を忘れ、待ち牌 `wait` と核成分列 `core` だけを
+`WaitCore` に残す。同じ待ち核が複数の和了分割から得られても1件として扱えるよう重複を除き、
+待ち牌と核成分列から作るキーの順に整列する。
+
+返り値は `List WaitCore` だが、重複がなく順序も正規化されているため、待ち核の有限集合として比較できる。
+読むためのLean語彙: `map`, `fun`, `|>`。
+-/
 def waitCores (completions : List WaitCompletion) : List WaitCore :=
   irreducibleWaitReadings completions
     |>.map (fun reading => { wait := reading.wait, components := reading.core })
