@@ -362,3 +362,27 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 `classifyWaitProfiles_iff` は、観測基本形上の解析器が `WaitSpecification.Classifies` と一致することを示す。
 `classifyWait_iff` は、実際の牌列に対する分類結果が、牌列に対する名前付き分類仕様と一致することを示す。
+
+## 可約性の計算と意味の一致を読む
+
+次の実例は、`Wait/Analysis.lean` の `reducibility` と `reducibility_eq_reducible_iff` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
+
+読む前に知る語彙:
+
+- `def`
+- `if`
+- `theorem`
+- `↔`
+- `simp`
+
+`reducibility` は、聴牌であることが確認済みの牌列について、待ち核集合を変えずに完成面子を除去できるかを調べる。
+除去できれば `reducible`、できなければ `irreducible` を返す。
+
+`reducibility_eq_reducible_iff` は、計算結果が `reducible` であることと、実際に待ち核集合を保つ面子除去が
+可能であることが同値だと保証する。左から右は誤って可約と判定しないこと、右から左は可能な面子除去を
+見落とさないことに対応する。
+
+証明の `simp [reducibility]` は、`reducibility` の条件分岐を展開し、その判定条件が右辺の命題
+`CanReduceMentsuPreservingWaitCores` そのものであることを確認する。

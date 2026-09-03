@@ -161,7 +161,14 @@ def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
   else
     none
 
-/-- 計算結果が可約であることは、面子除去可能性と同値である。 -/
+/--
+`reducibility` が「可約」と判定することは、待ち核集合を保ったまま完成面子を除去できることと同値である。
+
+左から右は計算結果に可約である根拠があること、右から左は面子を除去できれば計算も可約を返すことを表す。
+証明では `reducibility` の定義を展開し、条件分岐の条件そのものとの同値を `simp` で確認する。
+
+読むためのLean語彙: `theorem`, `↔`, `simp`。
+-/
 theorem reducibility_eq_reducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .reducible ↔
