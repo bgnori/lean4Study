@@ -372,6 +372,7 @@ example : abstractWaitReadingCodeWithWait
 
 異なる待ち牌が同じコードを持つ場合は、待ち牌を除いた時点で同じ値になるため、再度重複を除いて整列する。
 この結果の一致は部品種別の多重集合が同じことだけを表し、待ち牌や具体牌、元の牌姿の一致は表さない。
+現行実装は同じコードを持つReadingの個数も失うため、コード多重集合を必要とする用途には使えない。
 -/
 def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
   waitReadingCodeEntries completions

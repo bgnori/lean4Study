@@ -50,6 +50,8 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 `WaitReadingCodeEntry` は、このコードと待ち牌を組にして保持する。
 `abstractWaitReadingCode` でコード単体へ変換すると待ち牌も忘れるため、両者を区別して読む。
 コード単体の一致が表すのは部品種別の多重集合の一致だけであり、待ち牌、具体牌、元の牌姿の一致ではない。
+さらに現行の `abstractWaitReadingCode` は同じコードの重複を除くため、そのコードを持つReadingの個数も保持しない。
+重複を保持するコード多重集合を基礎表現にする仕様変更は [review-backlog.md](review-backlog.md) で追跡する。
 
 ## 待ち核
 
