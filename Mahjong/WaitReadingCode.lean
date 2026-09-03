@@ -349,11 +349,23 @@ example : waitReadingCodeEntries
     [{ wait := .numbered .Manzu 4, code := 26 }] := by
   native_decide
 
-/-- 発見済みWaitCompletionから計算した、待ち牌を残す抽象形コード。 -/
+/--
+待ち牌ごとのReadingコードを、`(コード, 待ち牌)` のペアとして列挙する。
+
+`WaitReadingCodeEntry` の名前付きフィールドを単純なペアへ写すだけで、新しい符号化は行わない。
+待ち牌を残すため、同じ部品種別コードを持つ異なる待ち牌も区別できる。
+-/
 def abstractWaitReadingCodeWithWait
     (completions : List WaitCompletion) : List (Nat × Tile) :=
   waitReadingCodeEntries completions
     |>.map fun entry => (entry.code, entry.wait)
+
+example : abstractWaitReadingCodeWithWait
+    [{ wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+    [(26, .numbered .Manzu 4)] := by
+  native_decide
 
 /-- 発見済みWaitCompletionから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
 def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=

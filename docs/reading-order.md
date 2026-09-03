@@ -625,3 +625,22 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 `waitReadingCodeEntries` は、計算したコードだけでなく待ち牌も `WaitReadingCodeEntry` に残す。
 ソース中の `example` は、待ち牌 `5m` と部品種別 `[tanki, shuntsu]` から
 `{ wait := 5m, code := 26 }` が得られることを計算で確認する。
+
+## Readingコードを待ち牌付きのペアで取り出す
+
+次の実例は、`WaitReadingCode.lean` の `abstractWaitReadingCodeWithWait` である。
+
+読む前に知る語彙:
+
+- 直積 `×`
+- `map`
+- `fun`
+
+`abstractWaitReadingCodeWithWait` は、`WaitReadingCodeEntry` を `(コード, 待ち牌)` のペアへ変換する。
+部品種別列からコードを計算する処理は前節で完了しているため、ここではフィールドを取り出して並べ替えるだけである。
+
+前節と同じ、待ち牌 `5m`、部品種別 `[tanki, shuntsu]` の例なら、結果は `(26, 5m)` になる。
+待ち牌を保持しているため、複数の待ち牌が同じコードを持っていても、それぞれを別のペアとして確認できる。
+
+名前に `WithWait` が付くのは、この待ち牌情報を残すためである。
+後続の `abstractWaitReadingCode` は待ち牌を捨て、コードの種類だけを列挙するので区別して読む。
