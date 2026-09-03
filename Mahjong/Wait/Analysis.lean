@@ -175,7 +175,16 @@ theorem reducibility_eq_reducible_iff (tiles : List Tile)
       WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
 
-/-- 計算結果が既約であることは、面子除去不能性と同値である。 -/
+/--
+`reducibility` が「既約」と判定することは、待ち核集合を保ったまま除去できる完成面子がないことと同値である。
+
+既約性を新しい探索条件として重ねるのではなく、可約性の条件
+`CanReduceMentsuPreservingWaitCores` の否定として特徴づけている。
+証明では `reducibility` の定義を展開し、条件分岐が可約でない場合に限って `.irreducible` を返すことを
+`simp` で確認する。
+
+読むためのLean語彙: `theorem`, `↔`, `¬`, `simp`。
+-/
 theorem reducibility_eq_irreducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .irreducible ↔

@@ -365,7 +365,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 可約性の計算と意味の一致を読む
 
-次の実例は、`Wait/Analysis.lean` の `reducibility` と `reducibility_eq_reducible_iff` である。
+次の実例は、`Wait/Analysis.lean` の `reducibility`、`reducibility_eq_reducible_iff`、
+`reducibility_eq_irreducible_iff` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
 
@@ -375,6 +376,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `if`
 - `theorem`
 - `↔`
+- `¬`
 - `simp`
 
 `reducibility` は、聴牌であることが確認済みの牌列について、待ち核集合を変えずに完成面子を除去できるかを調べる。
@@ -386,3 +388,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 証明の `simp [reducibility]` は、`reducibility` の条件分岐を展開し、その判定条件が右辺の命題
 `CanReduceMentsuPreservingWaitCores` そのものであることを確認する。
+
+`reducibility_eq_irreducible_iff` は対になる保証で、計算結果が `irreducible` であることを、待ち核集合を
+保ったまま除去できる完成面子がないこととして特徴づける。既約性のために別の探索をするのではなく、
+可約性を表す同じ命題の否定 `¬CanReduceMentsuPreservingWaitCores` を使っている点を読む。
