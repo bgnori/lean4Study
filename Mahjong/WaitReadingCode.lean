@@ -367,11 +367,26 @@ example : abstractWaitReadingCodeWithWait
     [(26, .numbered .Manzu 4)] := by
   native_decide
 
-/-- 発見済みWaitCompletionから待ち牌を忘れ、抽象形コードだけを列挙する。 -/
+/--
+待ち牌を忘れ、発見済みReadingに現れる部品種別コードだけを列挙する。
+
+異なる待ち牌が同じコードを持つ場合は、待ち牌を除いた時点で同じ値になるため、再度重複を除いて整列する。
+この結果の一致は部品種別の多重集合が同じことだけを表し、待ち牌や具体牌、元の牌姿の一致は表さない。
+-/
 def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
   waitReadingCodeEntries completions
     |>.map (fun entry => entry.code)
     |> deduplicateAndSortBy id
+
+example : abstractWaitReadingCode
+    [{ wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] },
+     { wait := .numbered .Manzu 5
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 5), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+    [26] := by
+  native_decide
 
 /-! ## 牌列から探索して符号化する便利関数 -/
 

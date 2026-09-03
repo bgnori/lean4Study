@@ -644,3 +644,24 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 
 名前に `WithWait` が付くのは、この待ち牌情報を残すためである。
 後続の `abstractWaitReadingCode` は待ち牌を捨て、コードの種類だけを列挙するので区別して読む。
+
+## 待ち牌を忘れてコードの種類だけを取り出す
+
+次の実例は、`WaitReadingCode.lean` の `abstractWaitReadingCode` である。
+
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ちReadingコード」を読む。
+
+読む前に知る語彙:
+
+- `map`
+- `|>`
+
+`abstractWaitReadingCode` は、待ち牌付きの各entryから `code` だけを取り出す。
+この変換後は、異なる待ち牌でも部品種別コードが同じなら同じ自然数になるため、重複をもう一度除いて整列する。
+
+ソース中の `example` では、待ち牌 `5m` と `6m` がそれぞれ単騎と完成順子からなるReadingを持つ。
+待ち牌は異なるが、どちらの部品種別列も `[tanki, shuntsu]` なのでコードは26であり、結果は `[26]` になる。
+
+この表現は、コード系列の中で最も多くの情報を忘れている。
+コード列が一致しても、待ち牌、具体的な部品の牌、元の牌姿が同じとは限らない。
+「どの部品種別の組合せが現れるか」だけを比較したい集計で使う。
