@@ -207,6 +207,13 @@ private def deduplicateAndSortBy {α : Type} [BEq α]
     (key : α → Nat) (values : List α) : List α :=
   values.eraseDups.mergeSort fun first second => key first ≤ key second
 
+/--
+1つの待ち牌と和了分割から、待ち牌を除く完成部品の選び方をすべて列挙する。
+
+各結果では、分割中の完成部品をちょうど1つ選んで `componentAfterRemovingWait` で不完全部品へ変え、
+それ以外は `completeComponent` で完成した種別のまま残す。指定牌を除けない部品は選択肢にせず、
+同じ待ち牌を除ける部品が複数あれば、除去元ごとに別のReadingを作る。
+-/
 private def waitReadings (completion : WaitCompletion) :
     List (List ConcreteWaitReadingComponent) :=
   let rec selectCompletedChunk : List TileChunk → List (List ConcreteWaitReadingComponent)
@@ -219,6 +226,14 @@ private def waitReadings (completion : WaitCompletion) :
             (incomplete :: rest.map completeComponent) :: later
         | none => later
   selectCompletedChunk completion.winningChunks
+
+example : waitReadings
+    { wait := .numbered .Manzu 4
+      winningChunks :=
+        [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] } =
+    [[{ kind := .tanki, tiles := [.numbered .Manzu 4] },
+      { kind := .shuntsu, tiles :=
+        [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }]] := rfl
 
 /-- 発見済みの待ちと分割から、待ち牌ごとの具体的なReadingを列挙する。 -/
 def concreteWaitReadings

@@ -26,6 +26,11 @@
 `let name := value` は、式の途中で一時的な名前を付ける構文である。
 `waitProfilesOfIrreducibleReading` では、核成分列の種類を `coreKinds`、除去した面子の種類を `removedKinds` として使う。
 
+### `let rec`
+
+`let rec name ...` は、定義の途中で、自分自身を呼び出せる局所的な再帰関数を作る。
+`waitReadings` の `selectCompletedChunk` は、完成部品列の先頭を調べた後、残りの列に対して自分自身を呼び出す。
+
 ### noncomputable def
 
 `noncomputable def` は、数学的には定義できるが、Leanが通常の実行用プログラムとして直接扱うとは限らない定義である。
@@ -96,6 +101,11 @@
 
 `List Tile` は、牌種 `Tile` の列を表す型である。
 ターツ、対子、順子のような部品は、それぞれを構成する牌種列として `List Tile` に変換される。
+
+### リストの `[]` と `::`
+
+`[]` は空リスト、`first :: rest` は先頭要素 `first` と残りのリスト `rest` からなるリストを表す。
+リストを `match` するときは、この2つの形に分けることで、空の場合と先頭要素がある場合を処理できる。
 
 ### `++`
 
