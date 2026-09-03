@@ -278,7 +278,16 @@ def findIrreducibleWaitReadings (tiles : List Tile) : List IrreducibleWaitReadin
 def findWaitCores (tiles : List Tile) : List WaitCore :=
   waitCores (WaitCompletionFinder.findWaitCompletions tiles)
 
-/-- 完成面子を1つ除いても待ち核集合が変わらないかを判定する。 -/
+/--
+完成面子を1つ除いても、同じ待ち核集合を持つ聴牌形が残るかを判定する。
+
+`mentsuReductions tiles` が列挙する各除去候補について、除去後にも待ち牌があり、かつ
+`findWaitCores remaining` が元の `findWaitCores tiles` と一致するものが1つでもあるかを調べる。
+待ち牌が残るという条件により、たまたま空の待ち核集合どうしが一致する場合は可約とみなさない。
+
+`1 < tiles.length` は、完成面子を含み得ない1枚単騎を除外するための入口条件である。
+読むためのLean語彙: `Bool`, `&&`, `!`, `List.any`, `==`。
+-/
 def canReduceMentsuPreservingWaitCores (tiles : List Tile) : Bool :=
   1 < tiles.length &&
     (mentsuReductions tiles).any fun remaining =>
