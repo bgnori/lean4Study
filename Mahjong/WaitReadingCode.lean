@@ -293,10 +293,16 @@ def canReduceMentsuPreservingWaitCores (tiles : List Tile) : Bool :=
     (mentsuReductions tiles).any fun remaining =>
       !(waitingTiles remaining).isEmpty && findWaitCores remaining == findWaitCores tiles
 
-/-- 完成面子の除去後も待ち核集合が同じであること。 -/
+/--
+待ち核集合を保ったまま完成面子を除去できることを表す命題。
+
+実行用のBool判定 `canReduceMentsuPreservingWaitCores` が `true` を返すことを `Prop` として包む。
+新しい探索条件を加える定義ではなく、同じ判定結果を定理の仮定や結論に使える形で公開する。
+-/
 def CanReduceMentsuPreservingWaitCores (tiles : List Tile) : Prop :=
   canReduceMentsuPreservingWaitCores tiles = true
 
+/-- Bool判定との等式により、可約性の命題を条件分岐や計算で決定できるようにする。 -/
 instance (tiles : List Tile) : Decidable (CanReduceMentsuPreservingWaitCores tiles) := by
   unfold CanReduceMentsuPreservingWaitCores
   infer_instance

@@ -453,7 +453,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 待ち核集合を保つ面子除去を読む
 
-次の実例は、`WaitReadingCode.lean` の `canReduceMentsuPreservingWaitCores` である。
+次の実例は、`WaitReadingCode.lean` の `canReduceMentsuPreservingWaitCores`、
+`CanReduceMentsuPreservingWaitCores` と、その `Decidable` インスタンスである。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
 
@@ -464,6 +465,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `!`
 - `List.any`
 - `==`
+- `Prop`
+- `Decidable`
 
 `mentsuReductions tiles` は、牌列から完成面子を1つ取り除いて得られる候補を列挙する。
 `canReduceMentsuPreservingWaitCores` は、その候補の中に次の2条件を両方満たすものがあるかを調べる。
@@ -476,3 +479,11 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 結果が `true` なら、元の牌姿には待ち核集合を変えずに分離できる完成面子が少なくとも1つある。
 どの候補が成功したかではなく、そのような候補が存在するかだけを返す判定である。
+
+先頭が小文字の `canReduceMentsuPreservingWaitCores` は、実際に実行して `true` または `false` を返す。
+先頭が大文字の `CanReduceMentsuPreservingWaitCores` は、その結果が `true` であることを表す `Prop` である。
+大文字側で別の条件を追加しているわけではなく、同じ計算結果を定理の仮定や結論として使える形にしている。
+
+直後の `Decidable` インスタンスは、この命題が小文字側のBool計算によって判定できることをLeanへ登録する。
+これにより、`Analysis.lean` の `reducibility` は `CanReduceMentsuPreservingWaitCores tiles` を `if` の条件にでき、
+後続の同値定理では同じ名前を可約性の意味として使える。
