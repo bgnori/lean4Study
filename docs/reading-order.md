@@ -555,3 +555,25 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 同じ待ち牌を除ける完成部品が複数ある場合は、どの部品を除去元として選ぶかごとに別のReadingを返す。
 つまり、この処理は1つの分割を決め打ちで読むのではなく、その分割から生じるすべての観測結果を列挙する。
+
+## 複数の和了分割から具体的なReadingをまとめる
+
+次の実例は、`WaitReadingCode.lean` の `concreteWaitReadings` である。
+
+読む前に知る語彙:
+
+- `let`
+- `flatMap`
+- `map`
+- `structure`
+
+`concreteWaitReadings` は、複数の `WaitCompletion` に前節の `waitReadings` を適用し、すべての結果を
+待ち牌と具体牌付き部品列を持つ `ConcreteWaitReading` にまとめる。
+
+和了分割は、同じ部品を異なる順序で持つことがある。そのままでは部品順だけが異なるReadingが別物に見えるため、
+各Readingの部品列を `canonicalizeWaitReading` で一定の順序に並べる。最後に
+`deduplicateAndSortBy` が同一Readingの重複を除き、結果全体も一定の順序へ整える。
+
+ソース中の `example` は、雀頭 `55m` と順子 `123p` の順序だけを入れ替えた2つのcompletionを入力する。
+どちらからも同じ「単騎 `5m`、完成順子 `123p`」が得られるため、正規化後の結果は1件だけになる。
+これにより、データ上の部品順や重複ではなく、観測される待ち牌と部品の内容を比較できる。

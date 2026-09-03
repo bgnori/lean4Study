@@ -235,7 +235,13 @@ example : waitReadings
       { kind := .shuntsu, tiles :=
         [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }]] := rfl
 
-/-- 発見済みの待ちと分割から、待ち牌ごとの具体的なReadingを列挙する。 -/
+/--
+発見済みの待ちと和了分割をすべて処理し、待ち牌ごとの具体牌付きReadingを正規化して列挙する。
+
+各 `WaitCompletion` に `waitReadings` を適用し、待ち牌と部品列を `ConcreteWaitReading` にまとめる。
+部品列を一定の順序に並べた後、全completionから得た同一Readingの重複を除いて結果全体も整列する。
+そのため、和了分割内の部品順や同じcompletionの重複は、返り値を変えない。
+-/
 def concreteWaitReadings
     (completions : List WaitCompletion) : List ConcreteWaitReading :=
   let entries := completions.flatMap fun completion =>
@@ -243,6 +249,20 @@ def concreteWaitReadings
         { wait := completion.wait
           components := canonicalizeWaitReading reading }
   deduplicateAndSortBy concreteWaitReadingKey entries
+
+example : concreteWaitReadings
+    [{ wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.shuntsu .Pinzu ⟨0, by decide⟩, TileChunk.pair (.numbered .Manzu 4)] },
+     { wait := .numbered .Manzu 4
+       winningChunks :=
+         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+    [{ wait := .numbered .Manzu 4
+       components :=
+         [{ kind := .tanki, tiles := [.numbered .Manzu 4] },
+          { kind := .shuntsu, tiles :=
+            [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }] }] := by
+  native_decide
 
 private def isCompletedMentsu (component : ConcreteWaitReadingComponent) : Bool :=
   component.kind == .shuntsu || component.kind == .koutsu
