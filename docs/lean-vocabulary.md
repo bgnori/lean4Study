@@ -86,6 +86,28 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 言い換えると、`f a = f b` なら必ず `a = b` になるという主張である。
 `TileChunk.orderKey_injective` は、完成部品の数値キーが等しければ、元の完成部品も等しいことを保証する。
 
+### `Function.Surjective` と `Function.Bijective`
+
+`Function.Surjective f` は、出力側のどの値にも、それを返す入力が少なくとも1つあることを表す。
+`Function.Bijective f` は、`f` が単射かつ全射であることをまとめた主張である。
+`ofIndex_bijective` は、異なる添字が同じReadingへ衝突せず、すべてのReadingに添字があることを保証する。
+
+### 有限添字型 `Fin n`
+
+`Fin n` は、`0` 以上 `n` 未満の自然数を表す型である。値だけでなく上限未満である証拠も持つため、
+範囲外の添字はこの型の値として作れない。完全ハッシュでは `Fin (readingCount n)` を有効な添字範囲に使う。
+
+### `Fintype.card`
+
+`Fintype.card A` は、有限型 `A` が持つ値の個数である。`readingCount n` は
+`Fintype.card (Reading n)` の略記なので、添字の個数をReadingの総数と定義上同じにする。
+
+### 型の同値 `A ≃ B`
+
+`A ≃ B` は、`A` から `B` への関数とその逆関数、および両方向へ往復すると元に戻る証拠をまとめた型である。
+`.symm` は対応の向きを反転する。`readingEquiv` は有限添字とReadingの同値であり、`ofIndex` と `toIndex` は
+その二つの向きをそれぞれ名前付き関数として公開する。
+
 ### Prop
 
 `Prop` は、真か偽かを持つ命題の型である。

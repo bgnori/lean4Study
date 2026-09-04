@@ -29,8 +29,13 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean
 │   ├── WaitReadingCode.lean
+│   ├── DirectWaitReading.lean
 │   ├── Tenpai.lean
 │   └── README.md
+├── MahjongTests/         # 計算量の大きい回帰テスト
+├── MahjongComputations/  # 全列挙と集計レポート
+├── docs/                 # 読書順、Lean語彙、プロジェクト語彙
+└── reports/              # 生成済みレポート
 ```
 
 ## ビルド
@@ -47,6 +52,22 @@ lake build
 lake build Mahjong
 ```
 
+計算量の大きい回帰テストと全列挙を明示的に確認する場合:
+
+```bash
+lake build MahjongTests
+lake build MahjongComputations
+```
+
+4枚形・7枚形のレポートを生成する場合:
+
+```bash
+lake build fourTileReport
+lake build sevenTileReport
+```
+
+出力先はそれぞれ `reports/four-tile-direct-report.txt` と `reports/seven-tile-report.txt` です。
+
 単一ファイルを直接確認する場合:
 
 ```bash
@@ -62,5 +83,7 @@ lake env lean Mahjong/WaitCompletionFinder.lean
 - [docs/domain-vocabulary.md](docs/domain-vocabulary.md): 待ち核、可約、既約など、このプロジェクト内の説明語彙。
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): 定義・定理コメントに書くことと、語彙ページへ逃がすことの切り分け。
 - [docs/review-backlog.md](docs/review-backlog.md): ドキュメント整備後に検討する設計・命名課題。
+
+麻雀モジュール単位の概要は [Mahjong/README.md](Mahjong/README.md) を参照してください。
 
 Lean ソース内の module doc comment と doc comment は、定義や定理が麻雀待ち分類の中で何を意味するかに集中します。一般的なLean構文やタクティクの説明は `docs/lean-vocabulary.md` に集約します。

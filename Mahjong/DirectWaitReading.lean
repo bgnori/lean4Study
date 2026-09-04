@@ -862,35 +862,51 @@ theorem mem_findWaitCompletions_iff_exists_reading
     rw [handEq]
     exact List.mergeSort_perm _ _
 
-/-- `n` 面子 Reading の総数。完全ハッシュで使える自然数の上限でもある。 -/
+/-- `n` 面子Readingの総数。完全ハッシュの添字型は `0` 以上この値未満になる。 -/
 abbrev readingCount (n : Nat) : Nat := Fintype.card (Reading n)
 
 /--
-有限添字から全 Reading への完全ハッシュ。実装上はこの関数で Reading を直接列挙し、
-牌姿全体の列挙を避ける。
+有限添字 `Fin (readingCount n)` と全Readingの一対一対応。
+
+`Fintype.equivFin` が与える「Readingから有限添字」の全単射を `.symm` で反転し、添字からReadingを
+得る向きにする。添字はReadingの総数と同じ個数だけあるため、衝突も未使用の添字もない。
+
+これは `noncomputable` な数学的仕様であり、実行時にReadingを列挙するアルゴリズムではない。
+実際の列挙には、完成形から構造的に生成する `directReadings` を使う。
 -/
 noncomputable def readingEquiv (n : Nat) : Fin (readingCount n) ≃ Reading n :=
   (Fintype.equivFin (Reading n)).symm
 
-/-- 完全ハッシュの順方向。 -/
+/-- 完全ハッシュの順方向。有効な有限添字に対応する唯一のReadingを返す。 -/
 noncomputable def ofIndex (index : Fin (readingCount n)) : Reading n :=
   readingEquiv n index
 
-/-- Reading を完全ハッシュの添字へ戻す。 -/
+/-- 完全ハッシュの逆方向。各Readingに対応する唯一の有限添字を返す。 -/
 noncomputable def toIndex (reading : Reading n) : Fin (readingCount n) :=
   (readingEquiv n).symm reading
 
-/-- `ofIndex` は単射かつ全射であり、有効な各自然数がちょうど1つの Reading を表す。 -/
+/--
+`ofIndex` は単射かつ全射である。
+
+単射なので異なる添字が同じReadingへ衝突せず、全射なのでどのReadingにも対応する添字がある。
+したがって `0, ..., readingCount n - 1` は、全Readingを重複も欠落もなく表す完全な添字範囲になる。
+-/
 theorem ofIndex_bijective : Function.Bijective (ofIndex (n := n)) :=
   (readingEquiv n).bijective
 
+/-- `ofIndex` でReadingへ移した添字を `toIndex` で戻すと、元の添字に戻る。 -/
 @[simp] theorem toIndex_ofIndex (index : Fin (readingCount n)) :
     toIndex (ofIndex index) = index :=
   (readingEquiv n).symm_apply_apply index
 
+/-- `toIndex` で添字へ移したReadingを `ofIndex` で戻すと、元のReadingに戻る。 -/
 @[simp] theorem ofIndex_toIndex (reading : Reading n) :
     ofIndex (toIndex reading) = reading :=
   (readingEquiv n).apply_symm_apply reading
+
+example (index : Fin (readingCount n)) (reading : Reading n) :
+    toIndex (ofIndex index) = index ∧ ofIndex (toIndex reading) = reading := by
+  simp
 
 /-- 指定した牌姿を生成する全 Reading。これがその牌姿の曖昧さの定義である。 -/
 noncomputable def readingsForHand (tiles : List Tile) : Finset (Reading n) :=

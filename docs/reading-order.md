@@ -24,23 +24,19 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 この段階では、証明の細部をすべて追う必要はない。まずは「どの一覧に対して、何を保証しているか」を
 理解する。
 
-## その後の予定
+## 全体の道筋
 
-次に読む実例は、待ち分類語彙の一覧性を示す `WellKnownWaitKind.exhaustive` である。ここでは
-`Tile.mem_all` と同じく、列挙した分類名に抜けがないことを確認する読み方を使う。
+この文書は、次の順番で実装と正しさをたどる。
 
-読む前に知る語彙:
+1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、完成部品、物理牌を表す。
+2. `WaitCompletionFinder.lean` で牌の除去、面子分解、通常和了分割、待ち牌、Finderを結ぶ。
+3. `Wait.lean`、`Wait/Specification.lean`、`Wait/Analysis.lean` で待ち核と名前付き分類を定義・判定する。
+4. `WaitReadingCode.lean` でFinderが得た具体的なReadingから段階的に情報を抽象化し、コード化する。
+5. `DirectWaitReading.lean` で完成形からReadingを直接生成し、既存Finderとの完全対応と有限添字を示す。
 
-- `namespace`
-- `theorem`
-- `cases`
-- `<;>`
-- `simp`
-- `[...]`
-- `∈`
-
-`Tile.mem_all` では牌種の一覧を確認した。`WellKnownWaitKind.exhaustive` では、待ち分類名の一覧を確認する。
-これにより、後続の分類処理が参照する名前付き分類の表を、Leanが機械的に検査していることが分かる。
+各節の「読む前に知る語彙」に未知の項目があれば、先に [lean-vocabulary.md](lean-vocabulary.md) を参照する。
+麻雀固有の「待ち核」「可約」「Reading」などは [domain-vocabulary.md](domain-vocabulary.md) にまとめている。
+設計や命名について説明中に見つかった検討事項は [review-backlog.md](review-backlog.md) に分離している。
 
 ## 物理牌の枚数を読む
 
@@ -1612,3 +1608,46 @@ Finder側の `IsWaitFor` からは、通常手の面子数上限と4枚制限を
 したがって、完成形から待ち牌を除く直接生成と、牌姿へ候補牌を加えるFinderは、入力順を正規化すれば
 同じcompletionを過不足なく表す。`MahjongTests/DirectWaitReading.lean` の7枚形の例は、任意の `found` について
 この同値定理をそのまま適用している。
+
+## 全Readingを有限添字と一対一に対応させる
+
+次に `DirectWaitReading.lean` の `readingCount`、`readingEquiv`、`ofIndex`、`toIndex`、
+`ofIndex_bijective`、二つの往復定理を読む。
+
+読む前に知る語彙:
+
+- `noncomputable def`
+- 有限添字型 `Fin n`
+- `Fintype.card`
+- 型の同値 `A ≃ B`
+- `Function.Injective`
+- `Function.Surjective`
+- `Function.Bijective`
+- `@[simp]`
+
+`Reading n` は有限型なので、値の総数を `Fintype.card` で数えられる。`readingCount n` はこの総数の略記である。
+`Fin (readingCount n)` は、0以上Reading総数未満という範囲内の添字だけを持つ有限型になる。
+
+`readingEquiv n` は、この有限添字型と `Reading n` の全単射を `A ≃ B` として表す。
+ここでいう完全ハッシュとは、各有効添字がちょうど1つのReadingに対応し、各Readingにも対応する添字が
+ちょうど1つある、という意味である。通常のハッシュ表のように衝突処理を行うのではなく、型どうしの
+一対一対応そのものを証拠付きで持つ。
+
+`ofIndex` は添字からReadingへ進み、`toIndex` はReadingから添字へ戻る。`ofIndex_bijective` の単射部分は、
+異なる添字が同じReadingへ衝突しないことを保証する。全射部分は、どのReadingにも添字があり、列挙から
+欠落しないことを保証する。添字型の大きさ自体がReading総数なので、未使用の有効添字もない。
+
+二つの往復定理は、この対応を操作として使える形にする。
+
+- `toIndex_ofIndex`: 添字からReadingへ進んで戻ると、元の添字になる。
+- `ofIndex_toIndex`: Readingから添字へ進んで戻ると、元のReadingになる。
+
+両方に `@[simp]` が付いているため、ソース中の例のように二つの往復を含む目標は `simp` で解ける。
+
+ただし `readingEquiv`、`ofIndex`、`toIndex` は `noncomputable` である。この完全ハッシュは全Readingの個数と
+一対一対応が存在することを述べる数学的仕様であり、通常の実行用列挙器ではない。実際の計算では、
+完成形と選択部品から候補を構造的に作る `directReadings` を使う。
+
+直前に出てきた `sparseCode` との違いにも注意する。`sparseCode` はReadingを自然数へ衝突なく写すが、
+使われない自然数があり、Reading総数と一致する密な範囲を与えない。`readingEquiv` は非計算的である代わりに、
+`Fin (readingCount n)` という過不足のない有限範囲との完全な対応を保証する。

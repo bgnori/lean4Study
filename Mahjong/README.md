@@ -43,7 +43,12 @@ This directory contains the Mahjong wait-classification formalization used as th
    - `find...` convenience functions explicitly compose `WaitCompletionFinder` with coding.
    - The 53 one-suit irreducible seven-tile examples.
 
-10. `Tenpai.lean`
+10. `DirectWaitReading.lean`
+   - Generates normalized readings directly from completed winning shapes.
+   - Proves exact correspondence with `WaitCompletionFinder` in the standard-hand range.
+   - Provides a noncomputable perfect-hash specification between all readings and finite indices.
+
+11. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points
