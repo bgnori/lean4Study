@@ -327,7 +327,19 @@ theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}
       exact .next mentsu candidate removeOther
         (inductionHypothesis outputPerm.symm)
 
-/-- 面子分割の全チャンク牌は入力牌列と多重集合として一致する。 -/
+/--
+面子分割の全完成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。
+
+リストの順番は一致しなくてもよいため、結論は等号ではなく `List.Perm` で表す。これにより、
+分解が入力牌を失ったり、余分な牌を追加したり、同じ牌種の枚数を変えたりしないことが分かる。
+
+証明は分解証拠に対する帰納法で行う。`done` では空列同士の順列を返す。`next` では、
+`exists_removeTiles_eq_some_iff_perm` から「先頭面子の牌と除去後の残り」が入力牌列の順列であることを得る。
+帰納法の仮定が末尾の完成部品牌と残り牌の順列を保証するので、`List.Perm.append_left` で両側へ
+先頭面子の牌を加え、`.trans` で2つの順列関係をつなぐ。
+
+読むためのLean語彙: `List.flatMap`, `List.Perm`, `induction`, `List.Perm.append_left`, `.trans`。
+-/
 theorem MentsuPartition.tiles_perm {fuel : Nat} {tiles : List Tile}
     {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
     (chunks.flatMap TileChunk.tiles).Perm tiles := by
@@ -339,6 +351,17 @@ theorem MentsuPartition.tiles_perm {fuel : Nat} {tiles : List Tile}
         (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
           ⟨remaining, remove, .refl remaining⟩
       exact (List.Perm.append_left mentsu.tiles inductionHypothesis).trans removedPerm
+
+example
+    (partition : MentsuPartition 2
+      [.honor .Red, .numbered .Manzu 0, .honor .Red,
+        .numbered .Manzu 1, .honor .Red, .numbered .Manzu 2]
+      [TileChunk.koutsu (.honor .Red), TileChunk.shuntsu .Manzu ⟨0, by decide⟩]) :
+    ([TileChunk.koutsu (.honor .Red), TileChunk.shuntsu .Manzu ⟨0, by decide⟩].flatMap
+      TileChunk.tiles).Perm
+      [.honor .Red, .numbered .Manzu 0, .honor .Red,
+        .numbered .Manzu 1, .honor .Red, .numbered .Manzu 2] := by
+  exact partition.tiles_perm
 
 /--
 `MentsuPartition` の分解結果に現れるすべての完成部品は、`mentsuChunkCandidates` に含まれる。

@@ -151,6 +151,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `xs.Perm ys` は、リスト `xs` と `ys` が同じ要素を同じ個数だけ含み、順番だけが異なり得ることを表す。
 集合と違って重複数も保存するため、`[a, a, b]` と `[a, b]` は順列関係にならない。
 
+### `List.Perm.append_left`
+
+`List.Perm.append_left prefix proof` は、`xs.Perm ys` の証拠 `proof` から、両方の先頭へ同じ列
+`prefix` を連結した `(prefix ++ xs).Perm (prefix ++ ys)` の証拠を作る。
+`MentsuPartition.tiles_perm` では、残り牌について得た順列の両側へ、現在の完成面子の牌を加える。
+
 ### mergeSort
 
 `xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。

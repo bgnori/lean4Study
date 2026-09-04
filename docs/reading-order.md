@@ -520,6 +520,42 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース末尾の`777z`の例は、前節で作った`MentsuPartition`の証拠を同値定理の`.mpr`方向へ渡し、
 実際に`decomposeMentsu 1`の列挙結果へ含まれることを確認する。
 
+## 面子分解が入力牌を保存することを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.tiles_perm` である。
+
+読む前に知る語彙:
+
+- `List.flatMap`
+- `List.Perm`
+- `induction`
+- `List.Perm.append_left`
+- `.trans`
+
+`chunks.flatMap TileChunk.tiles` は、分解結果の各完成面子を3枚の牌種列へ戻し、それらを順番に連結する。
+定理の結論 `(chunks.flatMap TileChunk.tiles).Perm tiles` は、この復元した牌列と元の入力牌列 `tiles` が、
+同じ牌種を同じ枚数だけ含むことを表す。
+
+ここで等号ではなく `List.Perm` を使うのは、分解結果では牌が面子ごとにまとまる一方、入力牌列では
+異なる面子の牌が混ざった順番でもよいからである。順番の差は許すが重複数は保存するため、この定理から
+分解処理が牌を失わず、余分な牌を加えず、同じ牌種の枚数も変えないことが分かる。
+
+証明は `MentsuPartition` の証拠に対する帰納法で進む。
+
+- `done`: 入力牌列と完成面子列はどちらも空なので、空列自身の順列を返す。
+- `next`: 先頭面子を除いた計算結果と、末尾の分解証拠を組み合わせる。
+
+`next` に保存された `remove` を `exists_removeTiles_eq_some_iff_perm` の左から右へ使うと、
+「先頭面子の牌 `mentsu.tiles` と除去後の `remaining` を連結した列」が、その段階の入力 `tiles` の
+順列であるという `removedPerm` を得る。
+
+一方、帰納法の仮定 `inductionHypothesis` は、末尾の完成面子を牌へ戻した列が `remaining` の順列であると保証する。
+`List.Perm.append_left` で両方の先頭へ `mentsu.tiles` を加えれば、全完成面子の牌列と
+`mentsu.tiles ++ remaining` の順列になる。最後に `.trans removedPerm` で入力牌列まで関係をつなぐ。
+
+ソース中の例は、赤牌刻子 `777z` と萬子順子 `123m` の完成部品列を使う。入力側では両面子の牌を
+交互に並べているため列としては等しくないが、`tiles_perm` により同じ牌を同じ枚数だけ持つことを取り出せる。
+
 ## 面子分解の全要素が完成面子候補であることを読む
 
 次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.all_mentsu` である。
