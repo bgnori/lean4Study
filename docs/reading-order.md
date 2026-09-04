@@ -1423,3 +1423,48 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 この重複排除は仕様変更の検討対象である。重複を保った `[338, 338, 338]` からは必要に応じて `[338]` を
 導出できるが、`[338]` から3つのReadingがあったことは復元できない。現行関数は、暫定的に
 「どの部品種別の組合せが少なくとも1回現れるか」だけを比較する集計として読む。
+
+## 直接生成器が妥当なSeedを過不足なく返すことを読む
+
+次の実例は、`DirectWaitReading.lean` の `seedCandidates`、`directSeeds`、`directSeeds_sound`、
+`directSeeds_complete`、`mem_directSeeds_iff` である。
+
+読む前に知る語彙:
+
+- `Seed.valid`
+- `List.filter`
+- `List.mem_filter`
+- `List.flatMap`
+- `List.mem_flatMap`
+- `List.map`
+- `List.mem_map`
+- `List.dedup`
+- `List.mem_dedup`
+- 健全性と完全性
+
+直接生成は、完成済みの形から待ち牌を1枚取り除く向きにReadingの生成元を作る。
+`seedCandidates n` は、雀頭と `n` 個の面子からなる全完成形、待ち牌を取り除く全部品位置、
+選択した部品に実際に含まれる牌種、という3段階を列挙する。全34牌種を各部品で試さず、候補を
+部品内の最大3牌種へ限定することで、大きな不要探索を避けている。
+
+候補であるだけでは、同じ牌種を5枚使う完成形や、面子順・同一面子の選択位置だけが違う重複を含み得る。
+`directSeeds n` は `seedCandidates n` を `Seed.valid` でフィルタし、物理的な4枚制限と二つの正規化条件を
+満たすSeedだけを残す。
+
+`directSeeds_sound` は、生成結果への所属から `List.mem_filter.mp` でフィルタ条件を取り出す。
+したがって、生成器が返したSeedは必ず `Seed.valid` を満たし、不正なReadingの生成元が混ざらない。
+これが健全性である。
+
+`directSeeds_complete` は逆に、任意の妥当なSeedが候補生成の3段階を通ることを示す。
+全完成形と全部品位置への所属は `mem_winningShapes` と `mem_componentIndices` が保証する。
+残る待ち牌について、`Seed.valid` の最初の条件は、選択部品からその牌を除くと不完全形が得られることを表す。
+`wait_mem_chunk_of_componentKind_isSome` は、この成功条件から待ち牌が選択部品に含まれることを導く。
+その所属を `dedup` と `map`、さらに外側の二つの `flatMap` へ戻せば、Seedが `seedCandidates` に含まれる。
+最後に妥当性証拠をフィルタへ渡すため、正しいSeedは取りこぼされない。これが完全性である。
+
+`mem_directSeeds_iff` はこの二方向を組にし、直接生成器への所属と `Seed.valid` が同値だと述べる。
+候補削減が結果の意味を変えないことを、実行器と仕様の一致として利用できる形である。
+
+ソース中の例は、面子を持たない赤牌対子だけの完成形を作り、雀頭から赤牌を除く単騎Seedが
+`directSeeds 0` に含まれることを示す。`Seed.valid` は具体的な有限計算として `native_decide` で確認し、
+`directSeeds_complete` に渡して生成結果への所属を得る。

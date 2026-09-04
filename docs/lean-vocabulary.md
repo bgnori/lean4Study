@@ -273,6 +273,13 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `xs.filter p` は、リスト `xs` のうち条件 `p` を満たす要素だけを残す。
 `coreKinds.filter ...` は、核成分列の中に特定の部品種別がいくつあるかを数えるために使われる。
 
+### `List.mem_filter`
+
+`List.mem_filter` は、値 `value` が `xs.filter p` に含まれることと、元の `xs` に含まれ、かつ
+`p value` が真であることを対応させる。`.mp` はフィルタ後への所属から元の所属と条件の証拠を取り出し、
+`.mpr` はその2つをフィルタ後への所属へ戻す。`directSeeds_sound` と `directSeeds_complete` は、
+この二方向をそれぞれ使う。
+
 ### List.erase
 
 `xs.erase x` は、リスト `xs` で最初に現れる `x` を1つだけ取り除く。

@@ -287,12 +287,34 @@ def seedCandidates (n : Nat) : List (Seed n) :=
 def directSeeds (n : Nat) : List (Seed n) :=
   (seedCandidates n).filter fun seed => seed.valid
 
-/-- 直接生成器は妥当でない Seed を出力しない。 -/
+/--
+`directSeeds` が列挙したすべての `Seed` は、物理制約と正規化条件をまとめた `Seed.valid` を満たす。
+
+`directSeeds` は `seedCandidates` を `seed.valid` で `filter` した列なので、所属証拠を
+`List.mem_filter.mp` で分解すれば、フィルタ条件が真であるという証拠をそのまま取り出せる。
+これは直接生成器が不正なReadingの生成元を返さないという健全性を保証する。
+
+読むためのLean語彙: 健全性, `List.filter`, `List.mem_filter`, `.mp`, `.2`。
+-/
 theorem directSeeds_sound {seed : Seed n} (member : seed ∈ directSeeds n) :
     seed.valid := by
   exact (List.mem_filter.mp member).2
 
-/-- 妥当な Seed は必ず直接生成器の出力に含まれる。 -/
+/--
+`Seed.valid` を満たすすべての `Seed` は、`directSeeds` の出力に含まれる。
+
+候補生成は、全完成形、全部品位置、選択部品に含まれる全牌種の3段階からなる。最初の2段階は
+`mem_winningShapes` と `mem_componentIndices` により任意の `seed.shape` と `seed.selected` を含む。
+3段階目については、`Seed.valid` の最初の条件から、待ち牌を除く処理が成功することを取り出す。
+`wait_mem_chunk_of_componentKind_isSome` により `seed.wait` が選択部品に含まれると分かるため、
+`dedup` と `map` を通った候補列にも元の `seed` が含まれる。最後に元の妥当性証拠をフィルタ条件として戻す。
+
+したがって、候補を選択部品内の最大3牌種へ限定する最適化を行っても、妥当なSeedを取りこぼさない。
+これは直接生成器の完全性を保証する。
+
+読むためのLean語彙: 完全性, `Bool.and_eq_true`, `List.mem_flatMap`, `List.mem_map`,
+`List.mem_dedup`, `List.mem_filter`, `refine`。
+-/
 theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
     seed ∈ directSeeds n := by
   have validParts :
@@ -316,10 +338,27 @@ theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
   apply List.mem_map.mpr
   exact ⟨seed.wait, List.mem_dedup.mpr waitMember, rfl⟩
 
-/-- 直接生成器への所属と Reading の妥当性は一致する。 -/
+/--
+`Seed` が直接生成器の出力に含まれることと、その `Seed` が妥当であることは同値である。
+
+`directSeeds_sound` と `directSeeds_complete` をそれぞれ同値の両方向として組み合わせる。
+この定理が、実行可能な直接生成器と宣言的な妥当性条件の境界になる。
+-/
 theorem mem_directSeeds_iff {seed : Seed n} :
     seed ∈ directSeeds n ↔ seed.valid :=
   ⟨directSeeds_sound, directSeeds_complete⟩
+
+example :
+    let seed : Seed 0 :=
+      { shape :=
+          { pair := .toitsu (.honor .Red)
+            mentsu := fun index => Fin.elim0 index }
+        selected := .pair
+        wait := .honor .Red }
+    seed ∈ directSeeds 0 := by
+  dsimp
+  apply directSeeds_complete
+  native_decide
 
 /-- 妥当性証拠を付け、直接生成器の出力を Reading の集合として公開する。 -/
 def directReadings (n : Nat) : List (Reading n) :=
