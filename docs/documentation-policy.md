@@ -8,6 +8,7 @@
 ソースコメントは局所説明、読者向けdocsは線形化された読書体験、語彙ページは重複回避の辞書として使う。
 
 - ソースコメント: その定義や定理が麻雀待ち分類の中で何を意味するかを書く。
+- [introduction.md](introduction.md): Lean4と証明付きプログラムが今回の用途で何を支えるかを説明する。
 - [reading-order.md](reading-order.md): Lean未経験者が成果と正しさを追うための読む順番を示す。
 - [lean-vocabulary.md](lean-vocabulary.md): Lean語彙の初出説明を集約する。
 - [domain-vocabulary.md](domain-vocabulary.md): 麻雀待ち分類のプロジェクト語彙を集約する。

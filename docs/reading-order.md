@@ -6,10 +6,11 @@
 
 ## 最初の入口
 
-1. [lean-vocabulary.md](lean-vocabulary.md) の「最小語彙」を読む。
-2. `Mahjong/Basic.lean` の牌種定義を読む。
-3. `Tile.all` が34種類の牌種一覧であることを読む。
-4. `Tile.mem_all` が、その一覧に抜けがないことを保証していることを読む。
+1. [introduction.md](introduction.md) で、Lean4と証明付きプログラムが今回の用途で何を支えるかを読む。
+2. [lean-vocabulary.md](lean-vocabulary.md) の「最小語彙」を読む。
+3. `Mahjong/Basic.lean` の牌種定義を読む。
+4. `Tile.all` が34種類の牌種一覧であることを読む。
+5. `Tile.mem_all` が、その一覧に抜けがないことを保証していることを読む。
 
 この段階では、証明の細部をすべて追う必要はない。まずは「どの一覧に対して、何を保証しているか」を
 理解する。

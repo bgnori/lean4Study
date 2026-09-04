@@ -82,6 +82,7 @@ lake env lean Mahjong/WaitCompletionFinder.lean
 
 Reader-facing guides:
 
+- [docs/introduction.md](docs/introduction.md): Japanese introduction to Lean4 and proof-carrying programs for this project.
 - [docs/reading-order.md](docs/reading-order.md): linear reading path for readers new to Lean.
 - [docs/lean-vocabulary.md](docs/lean-vocabulary.md): recurring Lean syntax and proof vocabulary.
 - [docs/domain-vocabulary.md](docs/domain-vocabulary.md): project-specific Mahjong terminology.

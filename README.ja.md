@@ -78,6 +78,7 @@ lake env lean Mahjong/WaitCompletionFinder.lean
 
 読者向け:
 
+- [docs/introduction.md](docs/introduction.md): Lean4と証明付きプログラムが今回の用途で何を支えるか。
 - [docs/reading-order.md](docs/reading-order.md): Lean未経験者向けの読む順番。
 - [docs/lean-vocabulary.md](docs/lean-vocabulary.md): `namespace`、`theorem`、`cases`、`simp` などの初出説明。
 - [docs/domain-vocabulary.md](docs/domain-vocabulary.md): 待ち核、可約、既約など、このプロジェクト内の説明語彙。
