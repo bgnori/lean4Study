@@ -846,6 +846,52 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 最後に、同じ雀頭候補、並べ替え後の除去結果、移送した面子分解証拠を `WinningPartition.intro` へ渡す。
 ソース中の例は `55m123m` の分割証拠を、入力だけ並べ替えた `3m5m1m5m2m` へ移している。
 
+## 待ち牌の実行器と宣言的仕様の一致を読む
+
+次の実例は、`WaitCompletionFinder.lean` の `IsLegalTenpaiHand`、`IsWaitFor`、`waitingTiles`、
+`mem_waitingTiles_iff` である。
+
+読む前に知る語彙:
+
+- `Prop`
+- `Bool`
+- `∧`
+- `List.filter`
+- `↔`
+- 健全性と完全性
+- `by_cases`
+- `simp`
+- `Bool.and_eq_true`
+
+`IsLegalTenpaiHand tiles` は、待ち判定へ渡す手牌の事前条件をまとめる。通常形聴牌として扱う枚数が
+1、4、7、10、13枚のいずれかであり、各牌種が物理的な上限の4枚を超えないことを要求する。
+
+`IsWaitFor tiles candidate` は、候補牌が手牌 `tiles` の通常形待ちであるという宣言的仕様であり、
+次の3条件を同時に要求する。
+
+- 元の手牌が `IsLegalTenpaiHand` を満たす。
+- 候補牌が手牌中に4枚未満しかなく、加牌しても5枚目にならない。
+- 候補牌を先頭へ1枚加えた牌列が、雀頭1つと完成面子列からなる通常形で和了する。
+
+`waitingTiles tiles` は同じ条件を計算する実行器である。まず合法手牌でなければ空列を返す。
+合法なら全牌種 `Tile.all` を、4枚未満であることと加牌後に `isWinning` が真になることのBool論理積で
+`filter` する。
+
+`mem_waitingTiles_iff` は、候補牌がこの実行結果に含まれることと `IsWaitFor` を満たすことが同値だと示す。
+したがって、列挙された牌が実際の通常形待ちであるという健全性と、仕様を満たす待ち牌を列挙が
+取りこぼさないという完全性の両方が得られる。
+
+証明は `by_cases legal : IsLegalTenpaiHand tiles` で、事前条件を満たす場合と満たさない場合に分ける。
+非合法なら実行器は空列を返し、仕様の最初の条件も偽なので両辺は成立しない。
+
+合法な場合は、`waitingTiles` と `IsWaitFor` の定義を `simp` で展開する。任意の牌種が `Tile.all` に
+含まれることは `Tile.mem_all` で消え、`Bool.and_eq_true` が実行器の `&&` を2つの命題へ分解する。
+残る条件は「4枚未満」と「加牌後に通常形で和了する」であり、`IsWaitFor` の残り2条件と一致する。
+
+ソース中の例は、赤牌1枚の手牌について赤牌自身が単騎待ちとして `waitingTiles` に含まれることを示す。
+同値定理の `.mpr` で目標を `IsWaitFor` へ変換し、具体的な有限計算を `native_decide` で確認する。
+`unfold` は、この具体例で判定手続きが見えるように宣言的仕様を展開するために使っている。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

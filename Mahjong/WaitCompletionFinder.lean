@@ -765,13 +765,32 @@ def waitingTiles (tiles : List Tile) : List Tile :=
   else
     []
 
-/-- `waitingTiles` は `IsWaitFor` をちょうど判定する。 -/
+/--
+`waitingTiles` に候補牌が含まれることと、その牌が宣言的な通常形待ち `IsWaitFor` を満たすことは同値である。
+
+左辺は実行可能な待ち牌列挙への所属、右辺は「手牌枚数と各牌種の枚数が合法」「候補牌が4枚未満」
+「候補牌を加えると通常形で和了する」という仕様を表す。したがって、左から右は列挙の健全性、
+右から左は完全性を保証する。
+
+証明は手牌が `IsLegalTenpaiHand` を満たすかで場合分けする。合法な場合、`waitingTiles` の `filter` への
+所属を展開すると、候補牌が `Tile.all` に含まれること、4枚未満であること、加牌後に和了することが得られる。
+全牌種が `Tile.all` に含まれることを `Tile.mem_all` で消去し、Boolの論理積を `Bool.and_eq_true` で
+命題の論理積へ直すと、`IsWaitFor` の定義と一致する。非合法な場合は `waitingTiles` が空列になり、
+`IsWaitFor` の最初の条件も偽なので、両辺とも成立しない。
+
+読むためのLean語彙: `↔`, 健全性と完全性, `by_cases`, `List.filter`, `simp`, `Bool.and_eq_true`。
+-/
 theorem mem_waitingTiles_iff (tiles : List Tile) (candidate : Tile) :
     candidate ∈ waitingTiles tiles ↔ IsWaitFor tiles candidate := by
   by_cases legal : IsLegalTenpaiHand tiles
   · simp [waitingTiles, legal, Tile.mem_all, IsWaitFor, IsStandardAgari,
       Bool.and_eq_true]
   · simp [waitingTiles, legal, IsWaitFor]
+
+example : .honor .Red ∈ waitingTiles [.honor .Red] := by
+  apply (mem_waitingTiles_iff _ _).mpr
+  unfold IsWaitFor IsStandardAgari
+  native_decide
 
 /-- `waitingTiles` が空でないことと意味論上の聴牌は同値である。 -/
 theorem waitingTiles_ne_nil_iff (tiles : List Tile) :

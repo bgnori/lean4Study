@@ -187,6 +187,9 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `canReduceMentsuPreservingWaitCores` では、除去後の待ち牌列が空でないことと、除去前後の待ち核集合が
 等しいことを `&&` で同時に要求する。
 
+`Bool.and_eq_true` は、`a && b = true` を `a = true ∧ b = true` として読み替える定理である。
+`mem_waitingTiles_iff` では、実行器が使うBoolの条件を、`IsWaitFor` が使う命題の論理積へ対応させる。
+
 ### 直和 `⊕`
 
 `A ⊕ B` は、A型の値またはB型の値のどちらかを持つ型である。
@@ -388,6 +391,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `split` は、`if` や `match` による分岐を証明中でも場合分けするタクティクである。
 `expectedKind_iff` では、`expectedKind` の分岐を順に開いて、各分類規則に対応させている。
+
+### by_cases
+
+`by_cases proof : proposition` は、命題 `proposition` が成り立つ場合と成り立たない場合に証明を分ける。
+前者では `proof : proposition`、後者では `proof : ¬proposition` を仮定として使える。
+`mem_waitingTiles_iff` では、入力が合法な聴牌手である場合とそうでない場合に分ける。
 
 ### rcases
 
