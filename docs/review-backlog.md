@@ -125,3 +125,21 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 - `AbstractWaitReading`、`ConcreteWaitReadingComponent` など、変換後の `Reading`・`Component` 系の名前と一体で見直すべきか。
 - `DirectWaitReading`、`WaitCompletionFinder`、`WaitReadingCode` の読者向け語彙への影響。
 - リネームする場合、既存の証明・レポート生成・テストへの影響。
+
+### 完成部品列の標準順が型で保証されていない
+
+状態: 保留
+
+`TileChunk.canonicalize` は `List TileChunk` を標準順へ並べるが、返り値も通常の `List TileChunk` である。
+そのため、任意の順番の列と標準順の列を型で区別できず、`WaitCompletion.winningChunks` が標準順であるかも
+値だけからは分からない。
+
+現在の `canonicalize_eq_of_perm` は、順列関係にある2入力が同じ標準順表現へ写ることを保証する。
+一方で、「この値は標準順である」という不変条件をデータに持たせるものではない。
+
+後で確認すること:
+
+- 標準順であることを示す述語と仕様定理を公開するだけで十分か。
+- `WaitCompletion.winningChunks` を、標準順の証拠を持つ構造体や専用型にすべきか。
+- Finder以外から `WaitCompletion` を直接構築する既存コードやテストへの影響。
+- `TileChunk` の改名と同時に、完成部品列を表す型の名前も設計すべきか。

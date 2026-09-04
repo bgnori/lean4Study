@@ -118,6 +118,17 @@
 `xs ++ ys` は、リスト `xs` の後ろにリスト `ys` を連結する記法である。
 `WaitPattern.tiles` では、対子の牌種列とターツの牌種列を連結して、抽出パターン全体に必要な牌種列を作る。
 
+### `List.Perm`
+
+`xs.Perm ys` は、リスト `xs` と `ys` が同じ要素を同じ個数だけ含み、順番だけが異なり得ることを表す。
+集合と違って重複数も保存するため、`[a, a, b]` と `[a, b]` は順列関係にならない。
+
+### mergeSort
+
+`xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。
+`TileChunk.canonicalize` では、完成部品を `orderKey` の昇順に並べるために使う。
+整列は要素を追加・削除せず、入力リストの順列を返す。
+
 ### Bool
 
 `Bool` は、`true` または `false` のどちらかを持つ型である。
@@ -264,6 +275,11 @@
 `intro` は、仮定を受け取って名前を付けるタクティクである。
 `expectedKind_iff` では、`expectedKind profiles = some kind` という計算結果や、`Classifies profiles kind` という分類証拠を受け取る。
 
+### apply
+
+`apply theoremName` は、現在の目標を結論として持つ定理を使い、その定理に必要な仮定を新しい目標にする。
+`canonicalize_eq_of_perm` では、整列済みの順列が等しいという一般定理を使い、その条件を順番に証明する。
+
 ### unfold
 
 `unfold` は、定義を展開するタクティクである。
@@ -295,6 +311,12 @@
 `simp_all` は、現在の目標だけでなく、手元の仮定も使って単純化するタクティクである。
 `expectedKind_iff` では、`Classifies` の各場合から得られる仮定を使い、`expectedKind` が対応する分類名を返すことを確認している。
 
+### simpa と using
+
+`simpa [...] using proof` は、手元の証拠 `proof` の型と現在の目標を単純化し、同じ形になることを確認する。
+`canonicalize_eq_of_perm` では、`mergeSort` が整列済みであるという一般定理を、`canonicalize` と `orderLE` の
+定義を展開して現在の目標へ合わせる。
+
 ### at
 
 `at` は、タクティクをどこに適用するかを指定する構文である。
@@ -321,6 +343,17 @@
 
 `exact` は、残った目標を満たす証拠をその場で与えるタクティクである。
 証明の最後に「これが求められていた証拠です」とLeanへ渡す役割を持つ。
+
+### omega
+
+`omega` は、自然数や整数の加減算、不等式、等式からなる算術的な目標を解くタクティクである。
+`canonicalize_eq_of_perm` では、2つのキーが互いに以下なら等しいことを導く。
+
+### `.trans` と `.symm`
+
+`proof.trans next` は「AとBの間に関係がある」と「BとCの間に関係がある」をつなぎ、
+「AとCの間にも関係がある」という証拠を作る。`proof.symm` はその関係の向きを逆にする。
+`canonicalize_eq_of_perm` では、整列前後の順列関係と、仮定で与えられた2入力間の順列関係をつなぐ。
 
 ### refine と `?_`
 
