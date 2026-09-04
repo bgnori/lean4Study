@@ -427,7 +427,20 @@ example
       [TileChunk.koutsu (.honor .Red)].length = 1 := by
     exact partition.chunks_length
 
-/-- 完成面子候補列を平坦化した牌列は、その面子列自身へ分解できる。 -/
+/--
+完成面子候補だけからなる部品列を牌列へ平坦化すると、その部品列自身へ正しく分解できる。
+
+入力牌列 `chunks.flatMap TileChunk.tiles` は、各部品を構成する牌を部品の順番どおりに連結した列である。
+この定理はその列について `MentsuPartition` の証拠を構築する。入力牌列の任意の並び替えまでを
+ここで扱うのではなく、その場合は `MentsuPartition.of_perm` と組み合わせる。
+
+証明は `chunks` に対する帰納法で行う。空列は `MentsuPartition.done` で分解できる。
+先頭 `first` がある場合は、`allMentsu` から先頭と末尾の候補所属をそれぞれ取り出し、帰納法で
+末尾の分解証拠を作る。連結した牌列から先頭部品の牌を除く計算は `removeTiles_append_left` が保証するため、
+これらを `MentsuPartition.next` へ渡せばよい。
+
+読むためのLean語彙: `List.flatMap`, `∀`, `induction`, `have`, `simp`, `.done`, `.next`。
+-/
 theorem mentsuPartition_flatMap (chunks : List TileChunk)
     (allMentsu : ∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates) :
     MentsuPartition chunks.length (chunks.flatMap TileChunk.tiles) chunks := by
@@ -444,6 +457,17 @@ theorem mentsuPartition_flatMap (chunks : List TileChunk)
             some (rest.flatMap TileChunk.tiles) := by
         exact removeTiles_append_left _ _
       exact .next first firstCandidate removeFirst tail
+
+example :
+    MentsuPartition 1
+      [.honor .Red, .honor .Red, .honor .Red]
+      [TileChunk.koutsu (.honor .Red)] := by
+  have partition := mentsuPartition_flatMap [TileChunk.koutsu (.honor .Red)] (by
+    intro chunk member
+    simp only [List.mem_singleton] at member
+    subst chunk
+    exact mentsu_mem_mentsuChunkCandidates (.koutsu (.honor .Red)))
+  simpa [TileChunk.koutsu, TileChunk.tiles, MentsuCandidate.tiles] using partition
 
 /-- 牌種リストを雀頭1つと完成面子列に分解する。 -/
 def winningPartitions (tiles : List Tile) : List (List TileChunk) :=

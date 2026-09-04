@@ -619,6 +619,42 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 結果列の長さが `1` であることを確認する。`all_mentsu` が各要素の種類を保証したのに対し、
 `chunks_length` は列全体の要素数を保証する。
 
+## 完成面子列から分解証拠を組み立てる
+
+次の実例は、`WaitCompletionFinder.lean` の `mentsuPartition_flatMap` である。
+
+読む前に知る語彙:
+
+- `List.flatMap`
+- `∀`
+- `induction`
+- `have`
+- `simp`
+- inductive型のconstructor `.done` と `.next`
+
+これまでの `all_mentsu`、`exists_candidates`、`chunks_length` は、すでにある `MentsuPartition` の
+証拠から性質を取り出す定理だった。`mentsuPartition_flatMap` は逆向きに、すべての要素が
+`mentsuChunkCandidates` に含まれる部品列 `chunks` から分解証拠を組み立てる。
+
+`chunks.flatMap TileChunk.tiles` は、各完成面子を構成する3枚の牌種列を、部品の順番どおりに
+すべて連結する。定理の結論は、この牌列をちょうど `chunks.length` 個へ分解すると、元の
+`chunks` 自身が正しい分解になることを述べる。
+
+証明は `chunks` に対する帰納法で進む。
+
+- `nil`: 部品も牌もないため、空の分解を表す `.done` を使う。
+- `cons`: `allMentsu` から先頭 `first` の候補所属と、末尾 `rest` の全要素の候補所属を取り出す。帰納法の仮定へ後者を渡して末尾の分解証拠 `tail` を作る。
+
+先頭部品の牌列を平坦化後の入力から除くと、末尾を平坦化した牌列が残る。この計算は前に読んだ
+`removeTiles_append_left` が保証する。先頭の候補所属、除去結果、末尾の分解証拠を `.next` へ渡すと、
+列全体の分解証拠になる。
+
+保証の対象は、部品の牌を順番どおりに連結した入力である。牌列を任意に並べ替えた場合は、この定理で
+得た証拠を `MentsuPartition.of_perm` で移す。この役割分担により、ここでは除去順の議論を増やさずに済む。
+
+ソース中の例は赤牌刻子1個について一般形の `partition` を作り、最後に `simpa` で `flatMap` を
+具体的な `777z` の牌列へ計算している。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

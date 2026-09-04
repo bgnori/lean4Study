@@ -345,6 +345,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `intro` は、仮定を受け取って名前を付けるタクティクである。
 `expectedKind_iff` では、`expectedKind profiles = some kind` という計算結果や、`Classifies profiles kind` という分類証拠を受け取る。
 
+### have
+
+`have name : proposition := proof` は、証明の途中で補助的な事実を示し、`name` を付けて後から使えるようにする。
+型をLeanが推論できる場合は、`have name := proof` のように命題を省略できる。
+`mentsuPartition_flatMap` では、先頭の候補所属、末尾の分解証拠、先頭部品を除いた計算結果を順に保持する。
+
 ### apply
 
 `apply theoremName` は、現在の目標を結論として持つ定理を使い、その定理に必要な仮定を新しい目標にする。
