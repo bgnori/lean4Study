@@ -370,7 +370,19 @@ example
     TileChunk.koutsu (.honor .Red) ∈ mentsuChunkCandidates := by
   exact partition.all_mentsu _ (by simp)
 
-    /-- 面子分割のチャンク列は `MentsuCandidate` の列として復元できる。 -/
+    /--
+    面子分割の完成部品列は、順子・刻子だけを持つ `MentsuCandidate` の列として復元できる。
+
+    `all_mentsu` が各要素の候補所属を個別に保証するのに対し、この定理は列全体に対応する
+    `candidates` を作り、各要素を直和の右側へ入れ直すと元の `chunks` に一致することを保証する。
+    要素の順番と重複も `map` によってそのまま保存される。
+
+    証明は分解証拠に対する帰納法で行う。`done` では空列を返す。`next` では、先頭の候補所属から
+    `mentsu_of_mem_mentsuChunkCandidates` で具体的な `MentsuCandidate` を取り出し、帰納法で復元した
+    末尾の列へ追加する。
+
+    読むためのLean語彙: `∃`, `List.map`, `induction`, `obtain`, `rfl`, `⟨...⟩`。
+    -/
     theorem MentsuPartition.exists_candidates {fuel : Nat} {tiles : List Tile}
       {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
       ∃ candidates : List MentsuCandidate,
@@ -381,6 +393,15 @@ example
         obtain ⟨first, rfl⟩ := mentsu_of_mem_mentsuChunkCandidates candidate
         obtain ⟨rest, rfl⟩ := inductionHypothesis
         exact ⟨first :: rest, rfl⟩
+
+    example
+        (partition : MentsuPartition 1
+          [.honor .Red, .honor .Red, .honor .Red]
+          [TileChunk.koutsu (.honor .Red)]) :
+        ∃ candidates : List MentsuCandidate,
+          [TileChunk.koutsu (.honor .Red)] =
+            candidates.map fun candidate => (Sum.inr candidate : TileChunk) := by
+      exact partition.exists_candidates
 
   /--
   面子分割の `fuel` は、生成される完成面子列の長さに一致する。

@@ -553,6 +553,44 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 各要素が何らかの順子または刻子を`.inr`に包んだ値であり、雀頭は混ざらないことが分かる。
 ソース中の例は、`777z`の1面子分解から、その刻子が完成面子候補に含まれることを取り出す。
 
+## 面子分解を型付き候補列として復元する
+
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.exists_candidates` である。
+
+読む前に知る語彙:
+
+- `∃`
+- `List.map`
+- 直和の `.inr`
+- `induction`
+- `obtain`
+- `rfl`
+- `⟨...⟩`
+
+`TileChunk` は雀頭または完成面子を持てる型だが、面子分解の `chunks` に雀頭は現れない。
+定理はこの事実を、次のように列全体の形として表す。
+
+```lean
+∃ candidates : List MentsuCandidate,
+  chunks = candidates.map fun candidate => (Sum.inr candidate : TileChunk)
+```
+
+右辺は、順子または刻子だけを持つ `candidates` の各要素を、`TileChunk` の完成面子側である
+`.inr` へ入れた列である。この列が `chunks` と等しいため、雀頭が混ざらないだけでなく、
+元の要素の順番と重複を保ったまま `MentsuCandidate` の列へ戻せる。
+
+証明は `MentsuPartition` の証拠に対する帰納法で進む。
+
+- `done`: 分解結果は空なので、復元する候補列にも `[]` を選ぶ。
+- `next`: 先頭の `candidate` 証拠へ `mentsu_of_mem_mentsuChunkCandidates` を使い、具体的な順子または刻子 `first` を取り出す。残りの分解から帰納法で得た `rest` の先頭へ `first` を追加する。
+
+2回の `obtain` にある `rfl` は、取り出した値に合わせて先頭の完成部品と末尾の列をその場で
+書き換える。その結果、最後に選ぶ復元列 `first :: rest` を `map` した値と元の列は定義上同じになり、
+`rfl` で証明できる。
+
+ソース中の例は、`777z` の1面子分解に対応する `MentsuCandidate` 列が存在し、それを `.inr` へ
+写した列が元の赤牌刻子の列に一致することを、この定理から直接取り出す。
+
 ## 面子分解の個数保証を読む
 
 次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.chunks_length` である。
