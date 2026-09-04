@@ -191,7 +191,7 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 ### 和了構成部品列の標準順が型で保証されていない
 
-状態: 保留
+状態: 実装前に要判断
 
 `WinningComponent.canonicalize` は `List WinningComponent` を標準順へ並べるが、返り値も通常の `List WinningComponent` である。
 そのため、任意の順番の列と標準順の列を型で区別できず、`WaitCompletion.winningComponents` が標準順であるかも
@@ -200,9 +200,70 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 現在の `canonicalize_eq_of_perm` は、順列関係にある2入力が同じ標準順表現へ写ることを保証する。
 一方で、「この値は標準順である」という不変条件をデータに持たせるものではない。
 
+推奨案は、標準順の和了構成部品列を表す専用型を導入することである。
+
+```lean
+structure CanonicalWinningComponents where
+	components : List WinningComponent
+	canonical : components = WinningComponent.canonicalize components
+```
+
+ただし、この形の `canonical` フィールドだけだと、証明の扱いやすさはLeanの整列定理に強く依存する。
+実装時には、まず `WinningComponent.IsCanonical components` という述語を定義し、構造体には
+`canonical : WinningComponent.IsCanonical components` を持たせる案を優先して検証する。
+`IsCanonical` は「隣り合う要素の `orderKey` が昇順である」または `Pairwise` で表す。
+
+作成入口は、通常のconstructorを直接使わせず、次の関数に集約する。
+
+```lean
+namespace CanonicalWinningComponents
+
+def ofList (components : List WinningComponent) : CanonicalWinningComponents :=
+	-- `WinningComponent.canonicalize components` と、その標準順証拠を入れる
+
+def toList (components : CanonicalWinningComponents) : List WinningComponent :=
+	components.components
+
+end CanonicalWinningComponents
+```
+
+そのうえで `WaitCompletion` は次の形にする。
+
+```lean
+structure WaitCompletion where
+	wait : Tile
+	winningComponents : CanonicalWinningComponents
+```
+
+この変更により、Finderが返す `WaitCompletion` は型の時点で標準順であることを持つ。
+一方、面子分解や通常和了分割の内部探索は、今までどおり `List WinningComponent` でよい。
+標準化が必要なのは、探索枝から公開結果 `WaitCompletion` を作る境界だけである。
+
+代替案として、`SortedComponents` のような証拠付きsubtype
+`{ components : List WinningComponent // WinningComponent.IsCanonical components }` も考えられる。
+ただし、フィールド名やAPIを読みやすく保つには、専用 `structure` のほうがよい。
+
+単に `theorem WaitCompletion.winningComponents_canonical ...` を追加する案もあるが、任意の `WaitCompletion` を
+直接構築できる限り、型上は不正な値を作れる。そのため、公開データの不変条件としては弱い。
+まずは移行コストを見たい場合の暫定策に留める。
+
+実装順序の案:
+
+1. `WinningComponent.IsCanonical` と `canonicalize_isCanonical` を追加する。
+2. `CanonicalWinningComponents`、`ofList`、`toList`、必要な `BEq` / `DecidableEq` / `Repr` を追加する。
+3. `CanonicalWinningComponents.of_perm` または `ofList_eq_of_perm` を追加し、既存の `canonicalize_eq_of_perm` を包む。
+4. `WaitCompletion.winningComponents` の型を `CanonicalWinningComponents` に変える。
+5. `findWaitCompletions` の構築点だけ `CanonicalWinningComponents.ofList` を使う。
+6. `WaitReadingCode.waitReadings` など、読む側では `.toList` を通して既存処理へ渡す。
+
+移行時の注意点として、`BEq` と `DecidableEq` は標準順リスト本体で比較すればよい。
+証拠フィールドの違いで値が別物に見えないよう、必要なら `ext` 定理や比較用関数を先に用意する。
+また、`WaitCompletion` の外部手書き例は、リストを直接入れる形から `CanonicalWinningComponents.ofList [...]` へ変える。
+
 後で確認すること:
 
-- 標準順であることを示す述語と仕様定理を公開するだけで十分か。
-- `WaitCompletion.winningComponents` を、標準順の証拠を持つ構造体や専用型にすべきか。
+- `WinningComponent.IsCanonical` を `Pairwise` で表すか、`components = canonicalize components` で表すか。
+- `WaitCompletion.winningComponents` を `CanonicalWinningComponents` に変更したとき、既存テストの修正量が小さいか。
+- 証拠フィールドを持つ構造体で `BEq` / `DecidableEq` / `Repr` を自然に扱えるか。
 - Finder以外から `WaitCompletion` を直接構築する既存コードやテストへの影響。
-- 和了構成部品列を表す専用型を設計すべきか。
+- `CanonicalWinningComponents` を公開APIにするか、`WaitCompletion` のconstructorを制限して内部不変条件として持つだけにするか。
