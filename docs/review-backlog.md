@@ -178,34 +178,16 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 - `Mahjong.Wait.Specification` と `Mahjong.Wait.Analysis` の定理名・返り値への影響。
 - 既存レポートや `WaitReadingCode` の表示語彙への影響。
 
-### `TileChunk` と周辺の `Chunk` 系識別子を改名する
+### 和了構成部品まわりの命名を整理する
 
 状態: 対応済み
 
-旧 `TileChunk := Toitsu ⊕ MentsuCandidate` は、通常形の和了分割に現れる
-「雀頭または完成面子候補」を表していた。一方、`Basic.lean` の `Chunk` は物理牌の有限集合であり、
-同じ `Chunk` 語幹が異なる概念を指していた。
+和了分割の部品は `WinningComponent` に統一した。通常の読者向け説明からは旧用語を外し、
+移行用の対応表だけ [obsolete-vocabulary.md](obsolete-vocabulary.md) に分離した。
 
-対応では `WinningComponent` を採用した。`CompletedComponent` は待ち牌除去後の観測成分との
-「完成・不完全」の対比を強くしすぎ、`StandardComponent` は標準形以外との比較を想定させ、
-`MeldOrPair` は実装表現を列挙するだけで和了分割との関係を示さないため採用しなかった。
-
-同時に次を改名した。
-
-- `WaitCompletion.winningChunks` → `winningComponents`
-- `pairChunkCandidates` / `mentsuChunkCandidates` → `pairComponentCandidates` / `mentsuComponentCandidates`
-- `WinningShape.chunk` / `chunks` → `component` / `components`
-- 和了構成部品を指す補助変数・定理名の `chunk(s)` → `component(s)`
-
-物理牌集合 `Chunk` とその引数名 `chunk` は別概念として維持した。コード検索で残る `Chunk` は、
-この物理牌集合を指すものに限定した。
-
-`AbstractWaitReading` は維持した。これは `WinningComponent` の別名ではなく、待ち牌を除いた観測結果から
-具体牌列だけを忘れた型である。`ConcreteWaitReadingComponent` と `WaitReadingComponentKind` も同様に
-Reading内部の観測成分を指すため、`WinningComponent` と役割を分けて読める。
-
-日本語説明は「完成部品」から「和了構成部品」へ変更し、コードの `WinningComponent` と対応させた。
-これにより、完成面子、待ち牌除去後の観測成分、物理牌集合 `Chunk` との区別を明示する。
+採用名の判断としては、`CompletedComponent` は待ち牌除去後の観測成分との「完成・不完全」の対比を強くしすぎ、
+`StandardComponent` は標準形以外との比較を想定させ、`MeldOrPair` は実装表現を列挙するだけで
+和了分割との関係を示さないため採用しなかった。
 
 ### 和了構成部品列の標準順が型で保証されていない
 
