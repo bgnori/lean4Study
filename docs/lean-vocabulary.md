@@ -58,6 +58,23 @@
 `inductive` は、いくつかの作り方を列挙して新しい型を定義する。
 たとえば `MentsuCandidate` は、順子を表す `shuntsu` と刻子を表す `koutsu` の2通りで作られる。
 
+### 添字付きinductive family
+
+`MentsuPartition : Nat → List Tile → List TileChunk → Prop` のように、引数によって異なる命題や型を返す
+`inductive` 定義を、添字付きinductive familyと呼ぶ。constructorごとに、どの引数の組について値を
+作れるかを制限できる。`MentsuPartition.done` は `0, [], []` の組だけを作り、`next` は面子数を1増やす。
+
+### inductive型のconstructor
+
+inductive型のconstructorは、その型の値や証拠を作る方法である。`MentsuPartition.done`と
+`MentsuPartition.next`は、正しい面子分解の証拠を作る2つの方法を表す。
+証明タクティクの`constructor`とは同じ語を使うが、ここではinductive定義に並ぶ`done`や`next`を指す。
+
+### 暗黙の引数 `{...}`
+
+定義やconstructorの引数を波括弧`{...}`で囲むと、多くの場合は他の引数や期待される型からLeanが値を補う。
+`MentsuPartition.next`の`fuel`、`tiles`、`remaining`、`rest`は、完成面子、除去結果、再帰的な分解証拠から推論される。
+
 ### theorem
 
 `theorem` は、Leanに確認させる主張を作る。定義が「値や計算方法」を与えるのに対して、定理は

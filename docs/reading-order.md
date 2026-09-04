@@ -444,6 +444,44 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 この段階では実行可能な列挙処理を読む。直後の `MentsuPartition` が同じ分解を宣言的に表し、
 `mem_decomposeMentsu_iff` が列挙結果との一致を保証する。
 
+## 完成面子への分解を証拠として表す
+
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition` である。
+
+読む前に知る語彙:
+
+- `Prop`
+- 添字付きinductive family
+- inductive型のconstructor
+- 暗黙の引数
+- `.done` と `.next`
+- `apply`
+- `exact`
+
+`decomposeMentsu` は可能な分解をすべてリストとして計算した。`MentsuPartition fuel tiles chunks` は、
+特定の完成面子列 `chunks` が、牌種列 `tiles` をちょうど `fuel` 個へ分解した結果として正しいことを表す。
+3つの引数は次の意味を持つ。
+
+- `fuel`: 分解に使う完成面子の個数
+- `tiles`: 分解前の牌種列
+- `chunks`: 分解結果の完成面子列
+
+これは分解結果を新たに探索する関数ではなく、3者の関係が正しいことを表す命題である。
+証拠は2つのconstructorで組み立てる。
+
+- `done`: 空の牌種列を0個の完成面子へ分解した基底ケース
+- `next`: 完成面子を1つ選び、残りの牌種列に対する分解証拠の前へ追加する再帰ケース
+
+`next`を使うには、選んだ値が`mentsuChunkCandidates`に含まれること、入力からその面子の牌を除けること、
+除去後の牌種列も残りの面子へ分解できることの3つを示す必要がある。この条件により、雀頭を完成面子として
+混ぜたり、入力にない牌を使った分解証拠を作ったりできない。
+
+ソース中の`777z`の例は、`next`で字牌刻子を1つ選び、候補所属、3枚の除去、残りの空列に対する`done`を
+順に与える。これにより、`777z`がちょうど1個の完成面子へ分解できることをLeanが確認する。
+
+次の`mem_decomposeMentsu_iff`では、実行器の返すリストに`chunks`が含まれることと、
+この`MentsuPartition`の証拠が存在することが同値だと示す。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

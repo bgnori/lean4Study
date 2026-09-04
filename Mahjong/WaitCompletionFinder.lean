@@ -206,8 +206,18 @@ def decomposeMentsu : Nat → List Tile → List (List TileChunk)
 /--
 `tiles` をちょうど `fuel` 個の完成面子へ分解できることを表す宣言的な導出関係。
 
-列挙順序には依存せず、各段階で完成面子候補を選び、その牌を多重集合的に除いた残りを
-再帰的に分解する。`decomposeMentsu` の健全性・完全性を述べる基準になる。
+3つの引数は順に、完成面子の個数、分解前の牌種列、分解後の完成面子列を表す。
+値を計算して返す関数ではなく、この3者が正しい分解関係にあることの証拠を作る `Prop` である。
+
+- `done`: 0個の完成面子で空の牌種列を空の完成面子列へ分解する。
+- `next`: 候補に含まれる完成面子を1つ選び、その牌を除いた残りに対する分解証拠の前へ追加する。
+
+各 `next` は、選んだ値が完成面子候補である証拠と、実際にその牌を除けた証拠を要求する。
+そのため、候補でない雀頭や、入力に存在しない牌から分解証拠を作ることはできない。
+
+列挙順序には依存せず、`decomposeMentsu` の健全性・完全性を述べる基準になる。
+
+読むためのLean語彙: 添字付きinductive family, `Prop`, constructor, 暗黙の引数, `.done`, `.next`。
 -/
 inductive MentsuPartition : Nat → List Tile → List TileChunk → Prop
 | done : MentsuPartition 0 [] []
@@ -216,6 +226,15 @@ inductive MentsuPartition : Nat → List Tile → List TileChunk → Prop
     (remove : removeTiles tiles mentsu.tiles = some remaining)
     (tail : MentsuPartition fuel remaining rest) :
     MentsuPartition (fuel + 1) tiles (mentsu :: rest)
+
+example :
+    MentsuPartition 1
+      [.honor .Red, .honor .Red, .honor .Red]
+      [TileChunk.koutsu (.honor .Red)] := by
+  apply MentsuPartition.next (TileChunk.koutsu (.honor .Red))
+  · exact mentsu_mem_mentsuChunkCandidates (.koutsu (.honor .Red))
+  · rfl
+  · exact .done
 
 /-- `decomposeMentsu` は宣言的な面子分解を過不足なく列挙する。 -/
 theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
