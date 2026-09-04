@@ -236,7 +236,23 @@ example :
   · rfl
   · exact .done
 
-/-- `decomposeMentsu` は宣言的な面子分解を過不足なく列挙する。 -/
+/--
+完成面子列が `decomposeMentsu` の列挙結果に含まれることと、同じ分解を表す
+`MentsuPartition` の証拠を作れることは同値である。
+
+左から右は列挙器の健全性を示す。`fuel` に対する帰納法で、列挙結果を最初に選んだ完成面子と
+残りの分解へ分解し、候補所属、牌の除去結果、帰納法で得た残りの証拠から `MentsuPartition.next` を作る。
+
+右から左は列挙器の完全性を示す。`MentsuPartition` の証拠から最初の完成面子、除去結果、
+残りの分解証拠を取り出し、帰納法の仮定で残りを列挙結果へ戻して、`map` と `flatten` 内の該当する枝を示す。
+
+`fuel = 0` では、実行器と宣言的関係のどちらも、入力牌列と完成面子列がともに空の場合だけ成立する。
+この定理により、後続の証明は実行器のリスト操作を直接追わず、`MentsuPartition` の構築規則を使って
+列挙結果の意味を論じられる。
+
+読むためのLean語彙: `↔`, 健全性と完全性, `induction ... generalizing`, `constructor`, `split`,
+`List.mem_flatten`, `List.mem_map`, `.mp`, `.mpr`, `subst`, `rw`, `▸`, `rename_i`。
+-/
 theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
     (chunks : List TileChunk) :
     chunks ∈ decomposeMentsu fuel tiles ↔ MentsuPartition fuel tiles chunks := by
@@ -279,6 +295,17 @@ theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
               exact ⟨mentsu, candidate, by simp [remove]⟩
             · exact List.mem_map.mpr
                 ⟨rest, (inductionHypothesis remaining rest).mpr tail, rfl⟩
+
+example :
+    [TileChunk.koutsu (.honor .Red)] ∈
+      decomposeMentsu 1 [.honor .Red, .honor .Red, .honor .Red] := by
+  apply (mem_decomposeMentsu_iff 1
+    [.honor .Red, .honor .Red, .honor .Red]
+    [TileChunk.koutsu (.honor .Red)]).mpr
+  apply MentsuPartition.next (TileChunk.koutsu (.honor .Red))
+  · exact mentsu_mem_mentsuChunkCandidates (.koutsu (.honor .Red))
+  · rfl
+  · exact .done
 
 /-- 面子分解の導出は入力牌列の並び替えに依存しない。 -/
 theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}

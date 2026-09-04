@@ -482,6 +482,44 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 次の`mem_decomposeMentsu_iff`では、実行器の返すリストに`chunks`が含まれることと、
 この`MentsuPartition`の証拠が存在することが同値だと示す。
 
+## 面子分解の実行器と宣言的仕様の一致を読む
+
+次の実例は、`WaitCompletionFinder.lean` の `mem_decomposeMentsu_iff` である。
+
+読む前に知る語彙:
+
+- `↔`
+- 健全性と完全性
+- `induction ... generalizing`
+- `constructor`
+- `split`
+- `List.mem_flatten`
+- `List.mem_map`
+- `.mp` と `.mpr`
+- `subst`
+- `rw`
+- `▸`
+- `rename_i`
+
+定理の左辺 `chunks ∈ decomposeMentsu fuel tiles` は、実行器が列挙した分解の中に`chunks`があることを表す。
+右辺 `MentsuPartition fuel tiles chunks` は、同じ`chunks`が正しい分解であるという宣言的な証拠を表す。
+定理はこの2つが同値であり、実行と仕様の間にずれがないことを保証する。
+
+左から右は健全性に対応する。列挙結果に含まれる分解について、`flatten`から最初の候補の枝を、
+`map`から残りの分解を取り出す。候補所属、`removeTiles`の成功、帰納法で得た残りの証拠を
+`MentsuPartition.next`へ渡すため、実行器が不正な分解を返さないことが分かる。
+
+右から左は完全性に対応する。`MentsuPartition.next`から最初の完成面子、除去の成功、残りの分解証拠を取り出す。
+帰納法の仮定で残りの分解が再帰呼び出しの結果に含まれることを示し、その分解が最初の候補に対応する
+`map`と`flatten`の枝に存在することを組み立てる。したがって、仕様上正しい分解を実行器が取りこぼさない。
+
+証明は`fuel`に対する帰納法で進むが、再帰呼び出しでは入力牌列と完成面子列が変化する。
+そのため`generalizing tiles chunks`で両者を固定せず、各帰納段階で任意の値に対して使える仮定にする。
+`fuel = 0`では、両側とも入力牌列と完成面子列が空の場合だけ成立することを確認する。
+
+ソース末尾の`777z`の例は、前節で作った`MentsuPartition`の証拠を同値定理の`.mpr`方向へ渡し、
+実際に`decomposeMentsu 1`の列挙結果へ含まれることを確認する。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

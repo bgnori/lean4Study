@@ -323,6 +323,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `cons` の場合には、残りの列について同じ命題が成り立つという帰納法の仮定も使える。
 `removeTiles_append_left` では、除去対象の牌を先頭から1枚ずつ処理する再帰と同じ構造で証明を進める。
 
+### `induction ... generalizing`
+
+`induction fuel generalizing tiles chunks` は、`fuel`について帰納法を行うとき、`tiles`と`chunks`を
+特定の値に固定せず、任意の値について使える帰納法の仮定を作る。`mem_decomposeMentsu_iff`では、
+再帰呼び出しで残りの牌種列と完成面子列へ変わるため、この一般化が必要になる。
+
 ### constructor
 
 `constructor` は、目標が複数の部品からできているときに、それぞれの部品を別々の目標へ分けるタクティクである。
@@ -358,6 +364,11 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `obtain ⟨...⟩ := proof` は、存在や複数の部品を持つ証拠を分解し、中身に名前を付ける。
 `pair_of_mem_pairChunkCandidates` では、候補が `map` 元のどの牌種から作られたかを取り出す。
 
+### rename_i
+
+`rename_i name ...` は、Leanが自動的に導入した無名または内部名の変数へ、証明中で使う名前を付ける。
+`mem_decomposeMentsu_iff`では、分解証拠を場合分けした後に現れる残り牌列と残り面子列を命名する。
+
 ### simp
 
 `simp` は、定義を展開したり、既知の事実で式を書き換えたりして、目標を単純な形にするタクティクである。
@@ -379,6 +390,27 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `simpa [...] using proof` は、手元の証拠 `proof` の型と現在の目標を単純化し、同じ形になることを確認する。
 `canonicalize_eq_of_perm` では、`mergeSort` が整列済みであるという一般定理を、`canonicalize` と `orderLE` の
 定義を展開して現在の目標へ合わせる。
+
+### `List.mem_flatten`
+
+`List.mem_flatten`は、値が`List.flatten xss`に含まれることを、その値を含む内側のリストが
+`xss`に存在することとして読み替える。`mem_decomposeMentsu_iff`では、全候補の分解結果をまとめた列から、
+実際に対象の分解を生成した候補の枝を取り出す。
+
+### subst
+
+`subst x`は、手元にある`x = value`または`value = x`という等式を使い、証明中の`x`を`value`へ置き換える。
+置き換え後、その等式と変数`x`は不要になる。
+
+### rw
+
+`rw [proof]`は、等式`proof`を使って現在の目標や仮定を書き換える。
+`mem_decomposeMentsu_iff`では、`removeTiles`の計算結果を成功時の`some remaining`へ書き換える。
+
+### `▸`
+
+`equality ▸ proof`は、等式に沿って`proof`の型を書き換える項形式の記法である。
+`mem_decomposeMentsu_iff`では、`map`から得た完成面子列の等式に合わせて、構築した分解証拠の結論を書き換える。
 
 ### at
 
@@ -452,6 +484,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `P ↔ Q` は、命題 `P` と命題 `Q` が同値であることを表す。
 `expectedKind_iff` では、参照実装 `expectedKind profiles = some kind` と、宣言的仕様 `Classifies profiles kind` が同値であることを示す。
+
+### 健全性と完全性
+
+実行器と仕様の一致を2方向で述べるとき、健全性は「実行器が返した結果は仕様を満たす」、
+完全性は「仕様を満たす結果を実行器が取りこぼさない」という保証を指す。
+`mem_decomposeMentsu_iff`では、左から右が健全性、右から左が完全性に対応する。
 
 ### `¬`
 
