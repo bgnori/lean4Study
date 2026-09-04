@@ -938,6 +938,17 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 一方、返り値に記録される分割は正規化済みであるため、仕様は正規化前の `rawChunks` が存在し、
 `completion.winningChunks` がその標準順表現になるという形を帰納型の結論で表している。
 
+`CompletionFor.of_perm` は、入力牌姿を並べ替えても同じ `completion` の証拠を移せることを保証する。
+証拠を `cases` で分解すると、待ち牌の正しさ `IsWaitFor` と加牌後の分割 `WinningPartition` が得られる。
+前者は `IsWaitFor.of_perm` で移し、後者は `WinningPartition.of_perm` で移す。分割側の入力には待ち牌が
+1枚加わっているため、`permutation.cons wait` により元の順列の両側へ同じ牌を加えてから渡す。
+
+この定理は、下位で確認した二つの順列不変性を `CompletionFor` というFinder仕様の水準で合成する。
+返り値の待ち牌と正規化済み分割は変更せず、入力との関係を示す証拠だけを移すため、Finderの意味論が
+牌の入力順ではなく牌種ごとの枚数に依存することが分かる。ソース中の例は、「赤・東・東・東」に対する
+任意の正しいCompletion証拠を、「東・赤・東・東」へ移せることを確認する。二つの列が順列であることは
+有限な具体値なので `native_decide` で検査している。
+
 `mem_findWaitCompletions_iff` は、Finderの結果への所属と `CompletionFor` が同値だと示す。
 これは `mem_waitingTiles_iff` と `mem_winningPartitions_iff` という二つの下位境界を合成した、
 探索全体の健全性・完全性である。Finderが返した組には正しい待ち牌と和了分割が必ずあり、逆に、

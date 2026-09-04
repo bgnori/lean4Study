@@ -840,7 +840,16 @@ inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
     CompletionFor tiles
       { wait, winningChunks := TileChunk.canonicalize rawChunks }
 
-/-- completionの意味論は牌姿リストの並び順に依存しない。 -/
+/--
+同じ牌種を同じ枚数だけ含む牌姿へ並べ替えても、`CompletionFor` の証拠をそのまま移せる。
+
+`completion` に記録された待ち牌と正規化済み和了分割は変更しない。証拠を構成する
+`IsWaitFor` は `IsWaitFor.of_perm` で新しい入力へ移し、加牌後の `WinningPartition` は、入力間の順列の
+両側へ同じ待ち牌を加えた `permutation.cons wait` を `WinningPartition.of_perm` に渡して移す。
+したがって `CompletionFor` の意味は、牌姿リストの偶然の入力順ではなく、牌種とその枚数だけで決まる。
+
+読むためのLean語彙: `List.Perm`, `cases ... with`, `List.Perm.cons`, `exact`。
+-/
 theorem CompletionFor.of_perm {tiles other : List Tile} {completion : WaitCompletion}
     (valid : CompletionFor tiles completion) (permutation : tiles.Perm other) :
     CompletionFor other completion := by
@@ -848,6 +857,14 @@ theorem CompletionFor.of_perm {tiles other : List Tile} {completion : WaitComple
   | intro wait rawChunks waitFor partition =>
       exact .intro wait rawChunks (waitFor.of_perm permutation)
         (partition.of_perm (permutation.cons wait))
+
+example {completion : WaitCompletion}
+    (valid : CompletionFor
+      [.honor .Red, .honor .East, .honor .East, .honor .East] completion) :
+    CompletionFor
+      [.honor .East, .honor .Red, .honor .East, .honor .East] completion := by
+  apply valid.of_perm
+  native_decide
 
 /--
 `findWaitCompletions` に結果が含まれることと、宣言的仕様 `CompletionFor` を満たすことは同値である。
