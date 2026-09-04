@@ -12,6 +12,52 @@
 
 ## 課題一覧
 
+### 分解の操作履歴と外延的な正しさを分離する
+
+状態: 要設計検証
+
+`MentsuPartition` と `WinningPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
+各段階で、選んだ完成部品、その候補所属、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
+この形は `decomposeMentsu` と `winningPartitions` の健全性・完全性を直接証明しやすい一方、利用側が
+必要とする外延的な性質を得るたび、操作履歴を順列の意味へ変換し直す必要がある。
+
+ドキュメント整備で、次の小定理と証明パターンが連続して現れた。
+
+- `MentsuPartition.of_perm`: 除去履歴を別の入力順へ移す。
+- `MentsuPartition.tiles_perm`: 各除去履歴から牌全体の保存則を復元する。
+- `MentsuPartition.all_mentsu`: 各構築段階の候補所属を列全体の条件として取り出す。
+- `MentsuPartition.chunks_length`: 帰納段階と `fuel` の対応を列長として取り出す。
+- `WinningPartition.of_perm`: 雀頭除去後の残り長を揃えて、面子分解証拠を移す。
+- `WinningPartition.tiles_perm`: 面子側の保存則へ雀頭除去の保存則を再び連結する。
+
+証明の粒度が細かく見える主因は、必要な数学的性質が細かいというより、順序依存の操作履歴と
+順序非依存の仕様が同じ証拠表現に重なっていることかもしれない。
+
+既存定理から、少なくとも `MentsuPartition` は次の外延的な条件と同値になると予想できる。
+
+```lean
+chunks.length = fuel ∧
+	(∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates) ∧
+	(chunks.flatMap TileChunk.tiles).Perm tiles
+```
+
+左から右は `chunks_length`、`all_mentsu`、`tiles_perm` で示せる。右から左は、まず
+`mentsuPartition_flatMap` で部品順に連結した牌列の分解証拠を作り、`of_perm` で入力牌列へ移し、
+列長の等式で `fuel` を揃えれば示せるはずである。この同値定理は、仮説を安価に検証できる最初の対象になる。
+
+後で確認すること:
+
+- 上の外延的特徴づけ定理を追加し、証明が既存補助定理の短い合成で閉じるか。
+- `DirectWaitReading` の利用側を、帰納的証拠の `cases` ではなく外延的仕様経由で簡潔にできるか。
+- `WinningPartition` も「先頭が雀頭候補」「末尾がすべて面子候補」「全完成部品牌が入力牌列の順列」
+	という外延的条件で特徴づけられるか。
+- `remaining.length / mentsuTileCount` は実行器の再帰回数としてだけ計算し、宣言的仕様の基本表現から
+	外せるか。特に `WinningPartition.of_perm` の `sameLength` と添字の書き換えが不要になるか。
+- 帰納的関係は実行器との対応証明専用に残し、公開仕様には外延的述語または構造体を使う二層構成が
+	読みやすいか。置き換える場合も、計算可能な列挙器と健全性・完全性定理は維持する。
+- 外延的仕様を新しい構造体にするなら、候補所属、列長、牌の順列を個別フィールドにする価値があるか、
+	単一の `Prop` と特徴づけ定理で十分か。
+
 ### `amb`型の探索抽象で候補生成と成功条件を表す
 
 状態: 検討
