@@ -63,7 +63,25 @@ theorem exists_removeTiles_eq_some_iff_perm (available wanted remaining : List T
         rw [if_pos (by simpa using member)]
         exact removed
 
-/-- 牌列の先頭に置いた牌群を除くと、後続部分がそのまま残る。 -/
+example :
+    removeTiles
+        [.numbered .Manzu 4, .numbered .Manzu 4, .numbered .Pinzu 0]
+        [.numbered .Manzu 4] =
+      some [.numbered .Manzu 4, .numbered .Pinzu 0] := by
+  native_decide
+
+/--
+除去対象 `wanted` の後ろに残したい牌列 `remaining` を連結した入力から `wanted` を除くと、
+`remaining` がそのまま返る。
+
+`removeTiles` は同じ牌種を一度にすべて消すのではなく、`wanted` の各要素について最初の1枚だけを消す。
+そのため `wanted` と `remaining` に同じ牌種が含まれていても、`remaining` 側の出現回数は保存される。
+
+証明は `wanted` に対する帰納法で行う。空列なら何も除かず、先頭牌がある場合はその1枚を消した計算を
+`simp` で進め、残りの除去が成功するという帰納法の仮定を使う。
+
+読むためのLean語彙: `++`, `Option`, `induction`, `nil`, `cons`, `rfl`, `simp`。
+-/
 theorem removeTiles_append_left (wanted remaining : List Tile) :
     removeTiles (wanted ++ remaining) wanted = some remaining := by
   induction wanted with

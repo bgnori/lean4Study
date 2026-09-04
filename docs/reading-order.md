@@ -315,6 +315,36 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 これにより、後続のReading生成は、和了分割の部品が偶然どの順番で発見されたかに影響されず、
 含まれる完成部品とその個数に基づいて比較できる。
 
+## 牌種列から指定した枚数だけ取り除く
+
+次の実例は、`WaitCompletionFinder.lean` の `removeTiles` と `removeTiles_append_left` である。
+
+読む前に知る語彙:
+
+- `List Tile`
+- `Option`
+- `List.erase`
+- `++`
+- `induction`
+- `nil` と `cons`
+- `rfl`
+- `simp`
+
+`removeTiles available wanted` は、利用可能な牌種列 `available` から、必要な牌種列 `wanted` を
+1枚ずつ取り除く。すべて取り除ければ残りを `some` で返し、途中で必要な牌がなければ `none` を返す。
+ここで扱うのは集合ではなくリストなので、同じ牌種の出現回数が区別される。
+
+ソース中の `example` では、利用可能な牌列を `55m 1p`、除去対象を `5m` とする。
+`removeTiles` は `5m` を1枚だけ除くため、もう1枚の `5m` と `1p` が残る。
+
+`removeTiles_append_left` は、利用可能な牌列を `wanted ++ remaining` として作れば、`wanted` の除去が
+必ず成功して `remaining` をそのまま返すことを保証する。この定理が直接扱うのは、この連結順で作った入力である。
+入力順一般に対する成功条件は、直前の `exists_removeTiles_eq_some_iff_perm` が順列を使って別に特徴づけている。
+
+証明は `wanted` の長さに沿った帰納法で読む。空なら何も除かない。先頭牌がある場合はその1枚を除き、
+残りの牌列について帰納法の仮定を使う。この保証により、後続の分割探索は、候補の牌を元の牌列へ
+連結して作った場合に、その候補を確実に取り戻せる。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。
