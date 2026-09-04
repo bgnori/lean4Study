@@ -486,8 +486,19 @@ private theorem mem_shape_tiles_of_mem_chunk
 /--
 生成した牌姿へ待ち牌を戻すと、元の雀頭と `n` 面子からなる和了形に戻る。
 
-これは全牌姿を探索する計算ではなく、選択部品に待ち牌が含まれることと、リストから1要素を
-消して戻す操作が順列を保つことだけから得られる semantic soundness である。
+ここで「戻る」はリストとして同じ順番になることではなく、同じ牌を同じ枚数だけ持つ `List.Perm` を意味する。
+`hand` は待ち牌を除いた後に牌種順へ整列するため、元の完成形とは並び順が異なり得るからである。
+
+証明ではまず、`Seed.valid` の「選択部品から待ち牌を除ける」という条件から、待ち牌が選択部品に含まれることを
+得る。`mem_shape_tiles_of_mem_chunk` でその所属を完成形全体へ持ち上げると、`List.perm_cons_erase` により
+待ち牌を除いて再び先頭へ加えた列が元の完成形の順列だと分かる。さらに `List.mergeSort_perm` により、
+`hand` が行う整列も牌と重複数を変えないことをつなぐ。
+
+したがって `hand` は、不正な牌を作ったり必要な牌を失ったりせず、完成形から待ち牌をちょうど1枚除いた
+テンパイ牌姿を表す。この保存則は、後でReadingを既存の待ち判定とFinderへ接続する根拠になる。
+
+読むためのLean語彙: `List.erase`, `List.Perm`, `List.mergeSort_perm`,
+`List.perm_cons_erase`, `.trans`, `.symm`。
 -/
 theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
     (reading.1.wait :: hand reading).Perm reading.1.shape.tiles := by
@@ -504,6 +515,17 @@ theorem wait_cons_hand_perm_winningShape (reading : Reading n) :
     reading.1.shape reading.1.selected reading.1.wait waitInChunk
   exact (List.mergeSort_perm _ _).cons reading.1.wait |>.trans
     (List.perm_cons_erase waitInShape).symm
+
+example :
+    let seed : Seed 0 :=
+      { shape :=
+          { pair := .toitsu (.honor .Red)
+            mentsu := fun index => Fin.elim0 index }
+        selected := .pair
+        wait := .honor .Red }
+    let reading : Reading 0 := ⟨seed, by native_decide⟩
+    (reading.1.wait :: hand reading).Perm reading.1.shape.tiles := by
+  native_decide
 
 private theorem mentsuChunk_tiles_length (mentsu : MentsuCandidate) :
   (TileChunk.tiles (.inr mentsu)).length = mentsuTileCount := by

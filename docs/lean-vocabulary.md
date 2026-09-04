@@ -175,6 +175,13 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `(value :: xs).Perm (value :: ys)` の証拠を作る。`CompletionFor.of_perm` では、手牌間の順列の両側へ
 同じ待ち牌を加え、加牌後の和了形どうしも順列であることを示す。
 
+### `List.perm_cons_erase`
+
+`List.perm_cons_erase member` は、`x ∈ xs` の証拠 `member` から、`xs.erase x` の先頭へ `x` を戻した列が
+元の `xs` の順列であることを示す。`erase` は最初の1個だけを除き、先頭へ同じ1個を戻すため、並び順は
+変わり得るが各要素の個数は保存される。`wait_cons_hand_perm_winningShape` では、完成形から待ち牌を除いて
+再び戻す操作に使う。
+
 ### `List.Perm.nil_eq`
 
 `List.Perm.nil_eq proof` は、空列とあるリストが順列関係にあるという証拠から、そのリストも空列であると示す。
@@ -204,6 +211,9 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。
 `TileChunk.canonicalize` では、完成部品を `orderKey` の昇順に並べるために使う。
 整列は要素を追加・削除せず、入力リストの順列を返す。
+
+`List.mergeSort_perm xs le` は、この最後の性質を `(xs.mergeSort le).Perm xs` という証拠として得る定理である。
+`wait_cons_hand_perm_winningShape` では、牌種順への整列が牌とその重複数を変えないことを保証する。
 
 ### Bool
 

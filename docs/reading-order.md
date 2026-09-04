@@ -1497,3 +1497,38 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 
 ソース中の例は、直前と同じ赤牌対子のSeedに `native_decide` で妥当性証拠を付けて `Reading 0` を作り、
 `mem_directReadings` だけで実行用列挙への所属が得られることを示す。
+
+## 生成した牌姿へ待ち牌を戻せることを読む
+
+次に `DirectWaitReading.lean` の `hand` と `wait_cons_hand_perm_winningShape` を読む。
+
+読む前に知る語彙:
+
+- `List.erase`
+- `List.Perm`
+- `List.mergeSort_perm`
+- `List.perm_cons_erase`
+- `.trans`
+- `.symm`
+
+`hand reading` は、Readingが持つ完成形から待ち牌を `erase` で1枚だけ除き、残った牌を牌種順に整列する。
+結果は `1 + 3n` 枚のテンパイ牌姿になる。整列するのは、同じ牌を持つ牌姿を入力順に依存しない標準表現で
+比較するためである。
+
+`wait_cons_hand_perm_winningShape` は、除いた待ち牌を `hand reading` の先頭へ戻すと、Readingが持つ元の
+完成形と順列関係になることを保証する。等号ではなく `List.Perm` なのは、`hand` の整列により牌の並び順が
+変わる一方で、各牌種の枚数は保存されるからである。
+
+証明で最初に必要なのは、除こうとした待ち牌が完成形に本当に含まれることである。Readingの妥当性条件から、
+待ち牌が選択部品に含まれることを `wait_mem_chunk_of_componentKind_isSome` で取り出す。
+`mem_shape_tiles_of_mem_chunk` は、選択部品への所属を完成形全体への所属へ持ち上げる。
+
+待ち牌の所属が分かれば、`List.perm_cons_erase` により「待ち牌を1枚除き、同じ牌を先頭へ戻した列」は
+元の完成形の順列になる。一方、`List.mergeSort_perm` は `hand` の整列前後が順列であることを保証する。
+整列後の列の先頭へ待ち牌を加えた順列と、除去して戻した列の順列を `.trans` でつなぐことで結論を得る。
+
+これは全牌姿を探索して結果を確認したものではなく、任意のReadingについて成り立つ牌の保存則である。
+後続の `reading_waitFor` はこの順列を使い、元の完成形の分割証拠を生成された牌姿へ移す。
+
+ソース中の例では、赤牌対子だけから作った `Reading 0` について同じ保存則を有限計算で確認する。
+`hand` は赤牌1枚となり、待ち牌の赤牌を戻した2枚が元の対子と同じ牌を同数持つ。
