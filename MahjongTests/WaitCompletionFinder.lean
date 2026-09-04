@@ -18,17 +18,17 @@ private def testHand3335567 : List Tile := manzu [2, 2, 2, 4, 4, 5, 6]
 private def testHand3335777 : List Tile := manzu [2, 2, 2, 4, 6, 6, 6]
 private def testHand2345555678 : List Tile := manzu [1, 2, 3, 4, 4, 4, 4, 5, 6, 7]
 
-private def manzuPair (rank : Rank) : TileChunk :=
+private def manzuPair (rank : Rank) : WinningComponent :=
   .pair (.numbered .Manzu rank)
 
-private def manzuShuntsu (start : Nat) (valid : start < shuntsuStartCount := by decide) : TileChunk :=
+private def manzuShuntsu (start : Nat) (valid : start < shuntsuStartCount := by decide) : WinningComponent :=
   .shuntsu .Manzu ⟨start, valid⟩
 
-private def manzuKoutsu (rank : Rank) : TileChunk :=
+private def manzuKoutsu (rank : Rank) : WinningComponent :=
   .koutsu (.numbered .Manzu rank)
 
-private def manzuWaitCompletion (wait : Rank) (winningChunks : List TileChunk) : WaitCompletion :=
-  { wait := .numbered .Manzu wait, winningChunks }
+private def manzuWaitCompletion (wait : Rank) (winningComponents : List WinningComponent) : WaitCompletion :=
+  { wait := .numbered .Manzu wait, winningComponents }
 
 example :
     waitingTiles testHandA = manzu [1, 4] ++ souzu [7] ∧

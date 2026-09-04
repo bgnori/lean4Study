@@ -92,23 +92,23 @@ structure WaitReadingCodeEntry where
   code : Nat
 deriving BEq, DecidableEq, Repr
 
-private def completeComponent (chunk : TileChunk) : ConcreteWaitReadingComponent :=
-  { kind := match chunk with
+private def completeComponent (component : WinningComponent) : ConcreteWaitReadingComponent :=
+  { kind := match component with
       | .inl _ => .toitsu
       | .inr (.shuntsu _) => .shuntsu
       | .inr (.koutsu _) => .koutsu
-    tiles := chunk.tiles }
+    tiles := component.tiles }
 
 /--
-通常形の和了分割に現れる完成部品から、指定した待ち牌を1枚除いたときに見える不完全部品の種別を返す。
+通常形の和了分割に現れる和了構成部品から、指定した待ち牌を1枚除いたときに見える不完全部品の種別を返す。
 
 同種2枚の対子から1枚除けば単騎、同種3枚の刻子から1枚除けば対子になる。
 順子では、除く位置と端の順子かどうかから両面・嵌張・辺張を区別する。
-指定牌がその和了分割の完成部品を構成しない場合は `none` を返す。
+指定牌がその和了構成部品を構成しない場合は `none` を返す。
 -/
-def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
+def componentKindAfterRemovingWait (wait : Tile) (component : WinningComponent) :
     Option WaitReadingComponentKind :=
-  match chunk with
+  match component with
     | .inl (.toitsu tile) =>
       if tile == wait then some .tanki else none
     | .inr (.koutsu tile) =>
@@ -127,34 +127,34 @@ def componentKindAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
           else none
 
       example : componentKindAfterRemovingWait
-        (.numbered .Manzu 4) (TileChunk.pair (.numbered .Manzu 4)) = some .tanki := rfl
+        (.numbered .Manzu 4) (WinningComponent.pair (.numbered .Manzu 4)) = some .tanki := rfl
 
       example : componentKindAfterRemovingWait
-        (.numbered .Pinzu 6) (TileChunk.koutsu (.numbered .Pinzu 6)) = some .toitsu := rfl
+        (.numbered .Pinzu 6) (WinningComponent.koutsu (.numbered .Pinzu 6)) = some .toitsu := rfl
 
       example : componentKindAfterRemovingWait
-        (.numbered .Souzu 1) (TileChunk.shuntsu .Souzu ⟨1, by decide⟩) = some .ryanmen := rfl
+        (.numbered .Souzu 1) (WinningComponent.shuntsu .Souzu ⟨1, by decide⟩) = some .ryanmen := rfl
 
       example : componentKindAfterRemovingWait
-        (.numbered .Souzu 2) (TileChunk.shuntsu .Souzu ⟨1, by decide⟩) = some .kanchan := rfl
+        (.numbered .Souzu 2) (WinningComponent.shuntsu .Souzu ⟨1, by decide⟩) = some .kanchan := rfl
 
       example : componentKindAfterRemovingWait
-        (.numbered .Souzu 2) (TileChunk.shuntsu .Souzu ⟨0, by decide⟩) = some .penchan := rfl
+        (.numbered .Souzu 2) (WinningComponent.shuntsu .Souzu ⟨0, by decide⟩) = some .penchan := rfl
 
 /--
-完成部品から指定した待ち牌を1枚除き、種別と残った牌種列を持つ具体的な不完全部品を作る。
+和了構成部品から指定した待ち牌を1枚除き、種別と残った牌種列を持つ具体的な不完全部品を作る。
 
-`componentKindAfterRemovingWait` が `some kind` を返した場合だけ、完成部品の牌種列から
+`componentKindAfterRemovingWait` が `some kind` を返した場合だけ、和了構成部品の牌種列から
 待ち牌を最初の1枚だけ除き、`ConcreteWaitReadingComponent` にまとめる。
 指定牌を除けず種別が `none` の場合は、この関数も `none` を返す。
 -/
-private def componentAfterRemovingWait (wait : Tile) (chunk : TileChunk) :
+private def componentAfterRemovingWait (wait : Tile) (component : WinningComponent) :
     Option ConcreteWaitReadingComponent :=
-  (componentKindAfterRemovingWait wait chunk).map fun kind =>
-    { kind, tiles := chunk.tiles.erase wait }
+  (componentKindAfterRemovingWait wait component).map fun kind =>
+    { kind, tiles := component.tiles.erase wait }
 
 example : componentAfterRemovingWait
-    (.numbered .Manzu 4) (TileChunk.pair (.numbered .Manzu 4)) =
+    (.numbered .Manzu 4) (WinningComponent.pair (.numbered .Manzu 4)) =
       some { kind := .tanki, tiles := [.numbered .Manzu 4] } := rfl
 
 private def componentProduct (components : List WaitReadingComponentKind) : Nat :=
@@ -208,29 +208,29 @@ private def deduplicateAndSortBy {α : Type} [BEq α]
   values.eraseDups.mergeSort fun first second => key first ≤ key second
 
 /--
-1つの待ち牌と和了分割から、待ち牌を除く完成部品の選び方をすべて列挙する。
+1つの待ち牌と和了分割から、待ち牌を除く和了構成部品の選び方をすべて列挙する。
 
-各結果では、分割中の完成部品をちょうど1つ選んで `componentAfterRemovingWait` で不完全部品へ変え、
+各結果では、分割中の和了構成部品をちょうど1つ選んで `componentAfterRemovingWait` で不完全部品へ変え、
 それ以外は `completeComponent` で完成した種別のまま残す。指定牌を除けない部品は選択肢にせず、
 同じ待ち牌を除ける部品が複数あれば、除去元ごとに別のReadingを作る。
 -/
 private def waitReadings (completion : WaitCompletion) :
     List (List ConcreteWaitReadingComponent) :=
-  let rec selectCompletedChunk : List TileChunk → List (List ConcreteWaitReadingComponent)
+  let rec selectWinningComponent : List WinningComponent → List (List ConcreteWaitReadingComponent)
     | [] => []
-    | chunk :: rest =>
-        let later := (selectCompletedChunk rest).map fun extraction =>
-          completeComponent chunk :: extraction
-        match componentAfterRemovingWait completion.wait chunk with
+    | component :: rest =>
+        let later := (selectWinningComponent rest).map fun extraction =>
+          completeComponent component :: extraction
+        match componentAfterRemovingWait completion.wait component with
         | some incomplete =>
             (incomplete :: rest.map completeComponent) :: later
         | none => later
-  selectCompletedChunk completion.winningChunks
+  selectWinningComponent completion.winningComponents
 
 example : waitReadings
     { wait := .numbered .Manzu 4
-      winningChunks :=
-        [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] } =
+      winningComponents :=
+        [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] } =
     [[{ kind := .tanki, tiles := [.numbered .Manzu 4] },
       { kind := .shuntsu, tiles :=
         [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }]] := rfl
@@ -252,11 +252,11 @@ def concreteWaitReadings
 
 example : concreteWaitReadings
     [{ wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.shuntsu .Pinzu ⟨0, by decide⟩, TileChunk.pair (.numbered .Manzu 4)] },
+       winningComponents :=
+         [WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩, WinningComponent.pair (.numbered .Manzu 4)] },
      { wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4
        components :=
          [{ kind := .tanki, tiles := [.numbered .Manzu 4] },
@@ -319,11 +319,11 @@ def abstractWaitReadings
 
 example : abstractWaitReadings
     [{ wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] },
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
      { wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨3, by decide⟩] }] =
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨3, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4, components := [.tanki, .shuntsu] }] := by
   native_decide
 
@@ -344,8 +344,8 @@ def waitReadingCodeEntries
 
 example : waitReadingCodeEntries
     [{ wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4, code := 26 }] := by
   native_decide
 
@@ -362,8 +362,8 @@ def abstractWaitReadingCodeWithWait
 
 example : abstractWaitReadingCodeWithWait
     [{ wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [(26, .numbered .Manzu 4)] := by
   native_decide
 
@@ -381,11 +381,11 @@ def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
 
 example : abstractWaitReadingCode
     [{ wait := .numbered .Manzu 4
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 4), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] },
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
      { wait := .numbered .Manzu 5
-       winningChunks :=
-         [TileChunk.pair (.numbered .Manzu 5), TileChunk.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+       winningComponents :=
+         [WinningComponent.pair (.numbered .Manzu 5), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [26] := by
   native_decide
 

@@ -31,7 +31,7 @@ This directory contains the Mahjong wait-classification formalization used as th
 
 7. `WaitCompletion.lean`
    - The `WaitCompletion` data type: one wait tile and one winning partition.
-   - Completed chunk types and canonical ordering.
+   - Winning components and their canonical ordering.
 
 8. `WaitCompletionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.

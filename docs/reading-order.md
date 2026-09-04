@@ -28,7 +28,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 この文書は、次の順番で実装と正しさをたどる。
 
-1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、完成部品、物理牌を表す。
+1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、和了構成部品、物理牌を表す。
 2. `WaitCompletionFinder.lean` で牌の除去、面子分解、通常和了分割、待ち牌、Finderを結ぶ。
 3. `Wait.lean`、`Wait/Specification.lean`、`Wait/Analysis.lean` で待ち核と名前付き分類を定義・判定する。
 4. `WaitReadingCode.lean` でFinderが得た具体的なReadingから段階的に情報を抽象化し、コード化する。
@@ -229,11 +229,11 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 麻雀上、順子は同じスートの連続する数牌だけからなる。Lean上では、`Shuntsu.tiles` が数牌だけを返すため、
 字牌が含まれるという仮定と両立しないことを `simp` で確認している。
 
-## 雀頭と完成面子を同じ完成部品として読む
+## 雀頭と完成面子を同じ和了構成部品として読む
 
-次のまとまりは、`TileChunk` と `TileChunk.tiles` である。
+次のまとまりは、`WinningComponent` と `WinningComponent.tiles` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「和了分割の完成部品」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」を読む。
 
 読む前に知る語彙:
 
@@ -245,18 +245,18 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `example`
 
 通常形の和了分割では、雀頭と完成面子をどちらも完成した部品として並べて扱う。
-`TileChunk` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
+`WinningComponent` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
 
-- `TileChunk.pair`: 雀頭を完成部品として作る。
-- `TileChunk.shuntsu`: 順子を完成部品として作る。
-- `TileChunk.koutsu`: 刻子を完成部品として作る。
-- `TileChunk.tiles`: 完成部品を構成する牌種列を返す。
+- `WinningComponent.pair`: 雀頭を和了構成部品として作る。
+- `WinningComponent.shuntsu`: 順子を和了構成部品として作る。
+- `WinningComponent.koutsu`: 刻子を和了構成部品として作る。
+- `WinningComponent.tiles`: 和了構成部品を構成する牌種列を返す。
 
 ここでも `Tile.format .mpsz` を使った `example` により、雀頭 `55m`、順子 `456p`、刻子 `777z` を確認する。
 
-## 完成部品の整列キーが情報を失わないことを読む
+## 和了構成部品の整列キーが情報を失わないことを読む
 
-次の実例は、`WaitCompletion.lean` の `TileChunk.orderKey` と `TileChunk.orderKey_injective` である。
+次の実例は、`WaitCompletion.lean` の `WinningComponent.orderKey` と `WinningComponent.orderKey_injective` である。
 
 読む前に知る語彙:
 
@@ -264,22 +264,22 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `Function.Injective`
 - `native_decide`
 
-和了分割では、同じ完成部品が異なる順番で並ぶことがある。後続処理で順番の違いをなくすため、
-`TileChunk.orderKey` は雀頭、順子、刻子を自然数へ写し、その数値順で並べられるようにする。
+和了分割では、同じ和了構成部品が異なる順番で並ぶことがある。後続処理で順番の違いをなくすため、
+`WinningComponent.orderKey` は雀頭、順子、刻子を自然数へ写し、その数値順で並べられるようにする。
 
-3種類の完成部品には互いに重ならない数値範囲を使う。雀頭の範囲の後に全順子、その後に全刻子を置き、
+3種類の和了構成部品には互いに重ならない数値範囲を使う。雀頭の範囲の後に全順子、その後に全刻子を置き、
 各範囲内では牌種、スート、順子の開始位置を使って区別する。ソース中の `example` は、雀頭 `55m`、
 順子 `456p`、刻子 `111z` がそれぞれ異なる範囲のキー `4`、`44`、`82` を持つことを確認する。
 
-`orderKey_injective` は、キーが等しい2つの完成部品は元から等しいことを保証する。
-したがって、整列のために数値キーを使っても、異なる完成部品が同じものとして扱われることはない。
-証明は、有限個の `TileChunk` の全組合せを `native_decide` で計算して確認する。
+`orderKey_injective` は、キーが等しい2つの和了構成部品は元から等しいことを保証する。
+したがって、整列のために数値キーを使っても、異なる和了構成部品が同じものとして扱われることはない。
+証明は、有限個の `WinningComponent` の全組合せを `native_decide` で計算して確認する。
 
-## 完成部品列を標準順で表す
+## 和了構成部品列を標準順で表す
 
-次の実例は、`WaitCompletion.lean` の `TileChunk.canonicalize` と `TileChunk.canonicalize_eq_of_perm` である。
+次の実例は、`WaitCompletion.lean` の `WinningComponent.canonicalize` と `WinningComponent.canonicalize_eq_of_perm` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「完成部品列の標準順表現」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品列の標準順表現」を読む。
 
 読む前に知る語彙:
 
@@ -293,23 +293,23 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `exact`
 
 同じ和了分割でも、探索過程によって雀頭や面子が異なる順番で列に入ることがある。
-`canonicalize` は、前節で読んだ `orderKey` の昇順に完成部品を並べ、入力時の順番の違いをなくす。
+`canonicalize` は、前節で読んだ `orderKey` の昇順に和了構成部品を並べ、入力時の順番の違いをなくす。
 整列は部品を追加・削除しないため、各部品とその個数はそのまま残る。
 
-ここで標準化される対象は `TileChunk` 単体ではなく、和了分割を表す `List TileChunk` である。
+ここで標準化される対象は `WinningComponent` 単体ではなく、和了分割を表す `List WinningComponent` である。
 また、同一視するのはリスト上の順番だけであり、異なる分割や牌姿を同じものにする処理ではない。
-返り値は通常の `List TileChunk` なので、標準順であること自体は型から判別できない。
+返り値は通常の `List WinningComponent` なので、標準順であること自体は型から判別できない。
 
 ソース中の `example` は、雀頭 `55m` と順子 `456p` の順番を入れ替えた2つの列が、
 標準順へ変換した後には同じ列になることを計算で確認する。
 
-`canonicalize_eq_of_perm` は、この具体例を任意の完成部品列へ一般化する。
+`canonicalize_eq_of_perm` は、この具体例を任意の和了構成部品列へ一般化する。
 仮定 `first.Perm second` は、2つの列が同じ要素を同じ個数だけ持ち、順番だけが異なり得ることを表す。
 証明は、両方の結果がキー順に整列済みであることと、整列前後で要素と個数が変わらないことを使う。
 さらに `orderKey_injective` がキーの衝突を除外するため、2つの整列結果は要素ごとに一致する。
 
 これにより、後続のReading生成は、和了分割の部品が偶然どの順番で発見されたかに影響されず、
-含まれる完成部品とその個数に基づいて比較できる。
+含まれる和了構成部品とその個数に基づいて比較できる。
 
 ## 牌種列から指定した枚数だけ取り除く
 
@@ -343,8 +343,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 雀頭候補の列挙に過不足がないことを読む
 
-次の実例は、`WaitCompletionFinder.lean` の `pairChunkCandidates`、
-`pair_mem_pairChunkCandidates`、`pair_of_mem_pairChunkCandidates` である。
+次の実例は、`WaitCompletionFinder.lean` の `pairComponentCandidates`、
+`pair_mem_pairComponentCandidates`、`pair_of_mem_pairComponentCandidates` である。
 
 読む前に知る語彙:
 
@@ -359,22 +359,22 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `rfl`
 
 和了分割の探索では、34種類の牌種それぞれについて、その牌種2枚を雀頭とする候補を試す。
-`pairChunkCandidates` は `Tile.all` の各牌種を `TileChunk.pair` で雀頭の完成部品へ変換したリストである。
+`pairComponentCandidates` は `Tile.all` の各牌種を `WinningComponent.pair` で雀頭の和了構成部品へ変換したリストである。
 ソース中の `example` は、赤牌の雀頭もこの候補列に含まれることを計算で確認する。
 
 候補列挙には、必要な候補を取りこぼさない完全性と、余計な種類を混ぜない健全性の両方が必要になる。
 
-- `pair_mem_pairChunkCandidates`: 任意の雀頭が候補列に含まれるため、雀頭を取りこぼさない。
-- `pair_of_mem_pairChunkCandidates`: 候補列の各要素は何らかの雀頭なので、順子や刻子が混ざらない。
+- `pair_mem_pairComponentCandidates`: 任意の雀頭が候補列に含まれるため、雀頭を取りこぼさない。
+- `pair_of_mem_pairComponentCandidates`: 候補列の各要素は何らかの雀頭なので、順子や刻子が混ざらない。
 
 完全性の証明は、雀頭を構成する牌種が `Tile.all` に含まれるという、先に読んだ `Tile.mem_all` を使う。
 健全性の証明は、候補が `map` 元のどの牌種から作られたかを取り出し、その牌種の対子を存在例として返す。
 この2定理を合わせると、後続の和了分割探索が調べる雀頭候補は、全雀頭とちょうど一致する。
 
-## 完成面子候補を完成部品として列挙する
+## 完成面子候補を和了構成部品として列挙する
 
-次の実例は、`WaitCompletionFinder.lean` の `mentsuChunkCandidates`、
-`mentsu_mem_mentsuChunkCandidates`、`mentsu_of_mem_mentsuChunkCandidates` である。
+次の実例は、`WaitCompletionFinder.lean` の `mentsuComponentCandidates`、
+`mentsu_mem_mentsuComponentCandidates`、`mentsu_of_mem_mentsuComponentCandidates` である。
 
 先に、`MentsuCandidate.candidates` と `MentsuCandidate.mem_candidates` の節を読む。
 
@@ -392,17 +392,17 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `rfl`
 
 先の節では、すべての順子・刻子が `MentsuCandidate.candidates` に含まれることを確認した。
-`mentsuChunkCandidates` は、その各候補を直和 `TileChunk` の完成面子側 `.inr` に包む。
-順子や刻子の内容を変えるのではなく、雀頭と同じ完成部品列へ入れられる形に持ち上げる処理である。
+`mentsuComponentCandidates` は、その各候補を直和 `WinningComponent` の完成面子側 `.inr` に包む。
+順子や刻子の内容を変えるのではなく、雀頭と同じ和了構成部品列へ入れられる形に持ち上げる処理である。
 
 雀頭候補と同様に、2つの定理が列挙の両方向を保証する。
 
-- `mentsu_mem_mentsuChunkCandidates`: 任意の順子・刻子を包んだ値が候補列に含まれる。
-- `mentsu_of_mem_mentsuChunkCandidates`: 候補列の各要素は何らかの順子・刻子を包んだ値である。
+- `mentsu_mem_mentsuComponentCandidates`: 任意の順子・刻子を包んだ値が候補列に含まれる。
+- `mentsu_of_mem_mentsuComponentCandidates`: 候補列の各要素は何らかの順子・刻子を包んだ値である。
 
 完全性は、既存の `MentsuCandidate.mem_candidates` を `List.mem_map.mpr` で写像後の所属へ移す。
 健全性は、`List.mem_map.mp` で写像元の完成面子候補を取り出す。
-ソース中の `example` は、字牌の刻子 `777z` も完成部品候補に含まれることを確認する。
+ソース中の `example` は、字牌の刻子 `777z` も和了構成部品候補に含まれることを確認する。
 
 この2定理により、後続の分割探索が完成面子として試す候補は、先に列挙した全順子・刻子とちょうど一致し、
 雀頭候補とは直和の左右で区別される。
@@ -415,7 +415,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 - `fuel`
 - `fuel + 1`
-- `List (List TileChunk)`
+- `List (List WinningComponent)`
 - `List.flatten`
 - `map`
 - `match`
@@ -424,7 +424,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `decomposeMentsu fuel tiles` は、牌種列全体をちょうど `fuel` 個の順子・刻子へ分解する方法を列挙する。
 `fuel` は「最大で何個まで試すか」ではなく、求める完成面子の個数である。
 
-返り値の外側のリストは、異なる分解方法の列である。各内側の `List TileChunk` が、
+返り値の外側のリストは、異なる分解方法の列である。各内側の `List WinningComponent` が、
 1つの分解を構成する完成面子列になる。したがって、次の2つは意味が異なる。
 
 - `[]`: 条件を満たす分解方法が1つもない。
@@ -433,7 +433,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `fuel = 0` の場合、入力牌列も空なら `[[]]`、牌が1枚でも残っていれば `[]` を返す。
 ソース中の2つの `example` は、この基底ケースの違いを `rfl` で確認する。
 
-`fuel + 1` の場合は、前節の `mentsuChunkCandidates` から最初の完成面子を1つずつ試す。
+`fuel + 1` の場合は、前節の `mentsuComponentCandidates` から最初の完成面子を1つずつ試す。
 その牌を `removeTiles` で除けた枝だけについて、残りの牌をちょうど `fuel` 個へ再帰的に分解する。
 各候補から得た分解列を `List.flatten` で1つにつなぐため、可能な分解を1つに決めず、すべて返す。
 
@@ -454,13 +454,13 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `apply`
 - `exact`
 
-`decomposeMentsu` は可能な分解をすべてリストとして計算した。`MentsuPartition fuel tiles chunks` は、
-特定の完成面子列 `chunks` が、牌種列 `tiles` をちょうど `fuel` 個へ分解した結果として正しいことを表す。
+`decomposeMentsu` は可能な分解をすべてリストとして計算した。`MentsuPartition fuel tiles components` は、
+特定の完成面子列 `components` が、牌種列 `tiles` をちょうど `fuel` 個へ分解した結果として正しいことを表す。
 3つの引数は次の意味を持つ。
 
 - `fuel`: 分解に使う完成面子の個数
 - `tiles`: 分解前の牌種列
-- `chunks`: 分解結果の完成面子列
+- `components`: 分解結果の完成面子列
 
 これは分解結果を新たに探索する関数ではなく、3者の関係が正しいことを表す命題である。
 証拠は2つのconstructorで組み立てる。
@@ -468,14 +468,14 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `done`: 空の牌種列を0個の完成面子へ分解した基底ケース
 - `next`: 完成面子を1つ選び、残りの牌種列に対する分解証拠の前へ追加する再帰ケース
 
-`next`を使うには、選んだ値が`mentsuChunkCandidates`に含まれること、入力からその面子の牌を除けること、
+`next`を使うには、選んだ値が`mentsuComponentCandidates`に含まれること、入力からその面子の牌を除けること、
 除去後の牌種列も残りの面子へ分解できることの3つを示す必要がある。この条件により、雀頭を完成面子として
 混ぜたり、入力にない牌を使った分解証拠を作ったりできない。
 
 ソース中の`777z`の例は、`next`で字牌刻子を1つ選び、候補所属、3枚の除去、残りの空列に対する`done`を
 順に与える。これにより、`777z`がちょうど1個の完成面子へ分解できることをLeanが確認する。
 
-次の`mem_decomposeMentsu_iff`では、実行器の返すリストに`chunks`が含まれることと、
+次の`mem_decomposeMentsu_iff`では、実行器の返すリストに`components`が含まれることと、
 この`MentsuPartition`の証拠が存在することが同値だと示す。
 
 ## 面子分解の実行器と宣言的仕様の一致を読む
@@ -497,8 +497,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `▸`
 - `rename_i`
 
-定理の左辺 `chunks ∈ decomposeMentsu fuel tiles` は、実行器が列挙した分解の中に`chunks`があることを表す。
-右辺 `MentsuPartition fuel tiles chunks` は、同じ`chunks`が正しい分解であるという宣言的な証拠を表す。
+定理の左辺 `components ∈ decomposeMentsu fuel tiles` は、実行器が列挙した分解の中に`components`があることを表す。
+右辺 `MentsuPartition fuel tiles components` は、同じ`components`が正しい分解であるという宣言的な証拠を表す。
 定理はこの2つが同値であり、実行と仕様の間にずれがないことを保証する。
 
 左から右は健全性に対応する。列挙結果に含まれる分解について、`flatten`から最初の候補の枝を、
@@ -510,7 +510,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `map`と`flatten`の枝に存在することを組み立てる。したがって、仕様上正しい分解を実行器が取りこぼさない。
 
 証明は`fuel`に対する帰納法で進むが、再帰呼び出しでは入力牌列と完成面子列が変化する。
-そのため`generalizing tiles chunks`で両者を固定せず、各帰納段階で任意の値に対して使える仮定にする。
+そのため`generalizing tiles components`で両者を固定せず、各帰納段階で任意の値に対して使える仮定にする。
 `fuel = 0`では、両側とも入力牌列と完成面子列が空の場合だけ成立することを確認する。
 
 ソース末尾の`777z`の例は、前節で作った`MentsuPartition`の証拠を同値定理の`.mpr`方向へ渡し、
@@ -529,8 +529,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `.trans` と `.symm`
 - `subst`
 
-定理は `MentsuPartition fuel tiles chunks` と `tiles.Perm other` から、
-`MentsuPartition fuel other chunks` を作る。完成面子列 `chunks` とその個数 `fuel` は変えず、
+定理は `MentsuPartition fuel tiles components` と `tiles.Perm other` から、
+`MentsuPartition fuel other components` を作る。完成面子列 `components` とその個数 `fuel` は変えず、
 入力牌列だけを同じ牌種を同じ枚数持つ `other` へ置き換える。
 
 これは、分解証拠の意味が入力リストの偶然の並び順に依存しないことを保証する。ただし、牌種やその枚数を
@@ -565,8 +565,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `List.Perm.append_left`
 - `.trans`
 
-`chunks.flatMap TileChunk.tiles` は、分解結果の各完成面子を3枚の牌種列へ戻し、それらを順番に連結する。
-定理の結論 `(chunks.flatMap TileChunk.tiles).Perm tiles` は、この復元した牌列と元の入力牌列 `tiles` が、
+`components.flatMap WinningComponent.tiles` は、分解結果の各完成面子を3枚の牌種列へ戻し、それらを順番に連結する。
+定理の結論 `(components.flatMap WinningComponent.tiles).Perm tiles` は、この復元した牌列と元の入力牌列 `tiles` が、
 同じ牌種を同じ枚数だけ含むことを表す。
 
 ここで等号ではなく `List.Perm` を使うのは、分解結果では牌が面子ごとにまとまる一方、入力牌列では
@@ -586,7 +586,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `List.Perm.append_left` で両方の先頭へ `mentsu.tiles` を加えれば、全完成面子の牌列と
 `mentsu.tiles ++ remaining` の順列になる。最後に `.trans removedPerm` で入力牌列まで関係をつなぐ。
 
-ソース中の例は、赤牌刻子 `777z` と萬子順子 `123m` の完成部品列を使う。入力側では両面子の牌を
+ソース中の例は、赤牌刻子 `777z` と萬子順子 `123m` の和了構成部品列を使う。入力側では両面子の牌を
 交互に並べているため列としては等しくないが、`tiles_perm` により同じ牌を同じ枚数だけ持つことを取り出せる。
 
 ## 面子分解の全要素が完成面子候補であることを読む
@@ -603,10 +603,10 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `rfl | restMember`
 - `exact`
 
-定理の結論 `∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates` は、分解結果`chunks`から
-任意の要素`chunk`を1つ選ぶと、それが完成面子候補列に含まれることを表す。
+定理の結論 `∀ component ∈ components, component ∈ mentsuComponentCandidates` は、分解結果`components`から
+任意の要素`component`を1つ選ぶと、それが完成面子候補列に含まれることを表す。
 
-`MentsuPartition.next`は、完成面子を追加するたびに、その値が`mentsuChunkCandidates`に含まれるという
+`MentsuPartition.next`は、完成面子を追加するたびに、その値が`mentsuComponentCandidates`に含まれるという
 `candidate`証拠を要求していた。`all_mentsu`は、この局所的な条件が完成した分解列の全要素について
 保存されていることを取り出す定理である。
 
@@ -618,7 +618,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `rcases List.mem_cons.mp member with rfl | restMember`は、調べている要素が先頭そのものの場合と、
 末尾に含まれる場合へ分ける。先頭の場合は`rfl`によってその要素を現在の完成面子と同一視する。
 
-この定理だけでは候補の内部構造までは展開しない。前に読んだ`mentsu_of_mem_mentsuChunkCandidates`と合わせると、
+この定理だけでは候補の内部構造までは展開しない。前に読んだ`mentsu_of_mem_mentsuComponentCandidates`と合わせると、
 各要素が何らかの順子または刻子を`.inr`に包んだ値であり、雀頭は混ざらないことが分かる。
 ソース中の例は、`777z`の1面子分解から、その刻子が完成面子候補に含まれることを取り出す。
 
@@ -636,24 +636,24 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `rfl`
 - `⟨...⟩`
 
-`TileChunk` は雀頭または完成面子を持てる型だが、面子分解の `chunks` に雀頭は現れない。
+`WinningComponent` は雀頭または完成面子を持てる型だが、面子分解の `components` に雀頭は現れない。
 定理はこの事実を、次のように列全体の形として表す。
 
 ```lean
 ∃ candidates : List MentsuCandidate,
-  chunks = candidates.map fun candidate => (Sum.inr candidate : TileChunk)
+  components = candidates.map fun candidate => (Sum.inr candidate : WinningComponent)
 ```
 
-右辺は、順子または刻子だけを持つ `candidates` の各要素を、`TileChunk` の完成面子側である
-`.inr` へ入れた列である。この列が `chunks` と等しいため、雀頭が混ざらないだけでなく、
+右辺は、順子または刻子だけを持つ `candidates` の各要素を、`WinningComponent` の完成面子側である
+`.inr` へ入れた列である。この列が `components` と等しいため、雀頭が混ざらないだけでなく、
 元の要素の順番と重複を保ったまま `MentsuCandidate` の列へ戻せる。
 
 証明は `MentsuPartition` の証拠に対する帰納法で進む。
 
 - `done`: 分解結果は空なので、復元する候補列にも `[]` を選ぶ。
-- `next`: 先頭の `candidate` 証拠へ `mentsu_of_mem_mentsuChunkCandidates` を使い、具体的な順子または刻子 `first` を取り出す。残りの分解から帰納法で得た `rest` の先頭へ `first` を追加する。
+- `next`: 先頭の `candidate` 証拠へ `mentsu_of_mem_mentsuComponentCandidates` を使い、具体的な順子または刻子 `first` を取り出す。残りの分解から帰納法で得た `rest` の先頭へ `first` を追加する。
 
-2回の `obtain` にある `rfl` は、取り出した値に合わせて先頭の完成部品と末尾の列をその場で
+2回の `obtain` にある `rfl` は、取り出した値に合わせて先頭の和了構成部品と末尾の列をその場で
 書き換える。その結果、最後に選ぶ復元列 `first :: rest` を `map` した値と元の列は定義上同じになり、
 `rfl` で証明できる。
 
@@ -662,7 +662,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ## 面子分解の個数保証を読む
 
-次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.chunks_length` である。
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.components_length` である。
 
 読む前に知る語彙:
 
@@ -671,14 +671,14 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `rfl`
 - `simp [inductionHypothesis]`
 
-定理の結論 `chunks.length = fuel` は、分解結果に含まれる完成面子の個数が、分解証拠の
+定理の結論 `components.length = fuel` は、分解結果に含まれる完成面子の個数が、分解証拠の
 `fuel` と一致することを表す。ここから、`fuel` は探索を途中で打ち切るための上限ではなく、
 その分解が実際に含む完成面子の個数だと確認できる。
 
 この一致は `MentsuPartition` の2つの構築規則に埋め込まれている。
 
-- `done`: `chunks` は空列で `fuel` は `0` なので、両辺は定義上同じである。
-- `next`: 先頭に完成面子を1つ追加すると `chunks.length` は1増え、構築規則も `fuel + 1` を結論にする。
+- `done`: `components` は空列で `fuel` は `0` なので、両辺は定義上同じである。
+- `next`: 先頭に完成面子を1つ追加すると `components.length` は1増え、構築規則も `fuel + 1` を結論にする。
 
 証明は分解証拠に対する帰納法で、この2規則をそのまま辿る。`done` は `rfl` で閉じる。
 `next` では、残りの列について得た `inductionHypothesis` を `simp` に渡すと、両辺から共通の
@@ -686,7 +686,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ソース中の `777z` の例では、1個の赤牌刻子からなる分解証拠にこの定理を適用し、
 結果列の長さが `1` であることを確認する。`all_mentsu` が各要素の種類を保証したのに対し、
-`chunks_length` は列全体の要素数を保証する。
+`components_length` は列全体の要素数を保証する。
 
 ## 完成面子列から分解証拠を組み立てる
 
@@ -701,15 +701,15 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `simp`
 - inductive型のconstructor `.done` と `.next`
 
-これまでの `all_mentsu`、`exists_candidates`、`chunks_length` は、すでにある `MentsuPartition` の
+これまでの `all_mentsu`、`exists_candidates`、`components_length` は、すでにある `MentsuPartition` の
 証拠から性質を取り出す定理だった。`mentsuPartition_flatMap` は逆向きに、すべての要素が
-`mentsuChunkCandidates` に含まれる部品列 `chunks` から分解証拠を組み立てる。
+`mentsuComponentCandidates` に含まれる部品列 `components` から分解証拠を組み立てる。
 
-`chunks.flatMap TileChunk.tiles` は、各完成面子を構成する3枚の牌種列を、部品の順番どおりに
-すべて連結する。定理の結論は、この牌列をちょうど `chunks.length` 個へ分解すると、元の
-`chunks` 自身が正しい分解になることを述べる。
+`components.flatMap WinningComponent.tiles` は、各完成面子を構成する3枚の牌種列を、部品の順番どおりに
+すべて連結する。定理の結論は、この牌列をちょうど `components.length` 個へ分解すると、元の
+`components` 自身が正しい分解になることを述べる。
 
-証明は `chunks` に対する帰納法で進む。
+証明は `components` に対する帰納法で進む。
 
 - `nil`: 部品も牌もないため、空の分解を表す `.done` を使う。
 - `cons`: `allMentsu` から先頭 `first` の候補所属と、末尾 `rest` の全要素の候補所属を取り出す。帰納法の仮定へ後者を渡して末尾の分解証拠 `tail` を作る。
@@ -744,10 +744,10 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `▸`
 
 `winningPartitions tiles` は、牌種列を雀頭1つと完成面子列へ分解する方法をすべて列挙する実行器である。
-各 `pairChunkCandidates` を雀頭として試し、実際に2枚を除けた枝だけを残す。その残り牌列を
+各 `pairComponentCandidates` を雀頭として試し、実際に2枚を除けた枝だけを残す。その残り牌列を
 `decomposeMentsu` で分解し、得られた各完成面子列の先頭へ雀頭を追加する。
 
-`WinningPartition tiles chunks` は、特定の完成部品列 `chunks` が正しい通常和了分割であることを表す
+`WinningPartition tiles components` は、特定の和了構成部品列 `components` が正しい通常和了分割であることを表す
 宣言的仕様である。唯一の構築規則 `intro` は次の情報を要求する。
 
 - `pair`: 分割結果の先頭に置く雀頭
@@ -758,7 +758,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `intro` の結論は `WinningPartition tiles (pair :: rest)` なので、雀頭が必ず先頭に1つあり、
 その後ろは順子・刻子だけになる。
 
-`mem_winningPartitions_iff` は、実行器が `chunks` を列挙することと、この宣言的証拠を作れることが
+`mem_winningPartitions_iff` は、実行器が `components` を列挙することと、この宣言的証拠を作れることが
 同値だと示す。左から右の健全性により、実行器は不正な分割を返さない。右から左の完全性により、
 正しい分割を実行器が取りこぼさない。
 
@@ -775,7 +775,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 新しく扱うのは雀頭候補の選択と除去だけである。
 
 ソース中の例は、雀頭 `55m` と順子 `123m` を持つ `WinningPartition` の証拠を直接作り、同値定理の
-`.mpr` 方向へ渡す。これにより、その完成部品列が `winningPartitions 55m123m` の実行結果へ実際に
+`.mpr` 方向へ渡す。これにより、その和了構成部品列が `winningPartitions 55m123m` の実行結果へ実際に
 含まれることをLeanが確認する。
 
 ## 通常和了分割が入力牌を保存することを読む
@@ -792,7 +792,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `List.Perm.append_left`
 - `.trans`
 
-`WinningPartition.tiles_perm` の結論は、分割結果の全完成部品を牌種列へ戻して連結すると、入力牌列と
+`WinningPartition.tiles_perm` の結論は、分割結果の全和了構成部品を牌種列へ戻して連結すると、入力牌列と
 同じ牌種を同じ枚数だけ含むことである。前に読んだ `MentsuPartition.tiles_perm` が面子部分を保証し、
 この定理はそこへ雀頭を加えて通常和了分割全体の保存則にする。
 
@@ -801,7 +801,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 順列であるという `removedPerm` を得る。
 
 一方、`mentsuPartition.tiles_perm` は、末尾の完成面子列を牌へ戻した列が `remaining` の順列であると保証する。
-`List.Perm.append_left` で両側へ `pair.tiles` を加えると、雀頭を含む全完成部品の牌列と
+`List.Perm.append_left` で両側へ `pair.tiles` を加えると、雀頭を含む全和了構成部品の牌列と
 `pair.tiles ++ remaining` の順列になる。これを `.trans removedPerm` で入力牌列までつなぐ。
 
 ソース中の例は、雀頭 `55m` と順子 `123m` からなる分割を使う。入力側では `5m 1m 5m 2m 3m` と
@@ -821,8 +821,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `List.Perm.length_eq`
 - `rw [← ...] at ...`
 
-定理は `WinningPartition tiles chunks` と `tiles.Perm other` から、同じ完成部品列 `chunks` を持つ
-`WinningPartition other chunks` を作る。牌種と枚数が同じなら、入力牌列の順番を変えても通常和了分割の
+定理は `WinningPartition tiles components` と `tiles.Perm other` から、同じ和了構成部品列 `components` を持つ
+`WinningPartition other components` を作る。牌種と枚数が同じなら、入力牌列の順番を変えても通常和了分割の
 証拠を保てるという主張である。
 
 証明では `cases partition` により、雀頭 `pair`、元の除去結果 `remaining`、残りの面子分解証拠を取り出す。
@@ -941,13 +941,13 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 `findWaitCompletions tiles` は、単に待ち牌だけでなく、その牌を加えたときの通常和了分割も返す実行器である。
 まず `waitingTiles tiles` の各待ち牌について `winningPartitions` を実行し、待ち牌と分割を
-`WaitCompletion` にまとめる。分割内の部品順を `TileChunk.canonicalize` で標準化し、最後に `dedup` で
+`WaitCompletion` にまとめる。分割内の部品順を `WinningComponent.canonicalize` で標準化し、最後に `dedup` で
 同じ結果の重複を除く。
 
 `CompletionFor tiles completion` は、返り値 `completion` の宣言的仕様である。その証拠は、
 `IsWaitFor tiles wait` を満たす待ち牌と、加牌後の牌列に対する `WinningPartition` を持つ。
-一方、返り値に記録される分割は正規化済みであるため、仕様は正規化前の `rawChunks` が存在し、
-`completion.winningChunks` がその標準順表現になるという形を帰納型の結論で表している。
+一方、返り値に記録される分割は正規化済みであるため、仕様は正規化前の `rawComponents` が存在し、
+`completion.winningComponents` がその標準順表現になるという形を帰納型の結論で表している。
 
 `CompletionFor.of_perm` は、入力牌姿を並べ替えても同じ `completion` の証拠を移せることを保証する。
 証拠を `cases` で分解すると、待ち牌の正しさ `IsWaitFor` と加牌後の分割 `WinningPartition` が得られる。
@@ -1239,11 +1239,11 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 これにより、`Analysis.lean` の `reducibility` は `CanReduceMentsuPreservingWaitCores tiles` を `if` の条件にでき、
 後続の同値定理では同じ名前を可約性の意味として使える。
 
-## 完成部品から待ち牌を除いた形を読む
+## 和了構成部品から待ち牌を除いた形を読む
 
 次の実例は、`WaitReadingCode.lean` の `componentKindAfterRemovingWait` と `componentAfterRemovingWait` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「和了分割の完成部品」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」を読む。
 
 読む前に知る語彙:
 
@@ -1257,7 +1257,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `example`
 - `rfl`
 
-この関数は、1つの和了分割の完成部品 `TileChunk` と指定した待ち牌を受け取り、その牌を1枚除いたときに見える
+この関数は、1つの和了構成部品 `WinningComponent` と指定した待ち牌を受け取り、その牌を1枚除いたときに見える
 不完全部品の種別を返す。最初は次の単純な対応を読む。
 
 - 対子 `55m` から `5m` を除くと、単騎 `5m` が残る。
@@ -1271,7 +1271,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 ソース中の `example` は、この5つの対応をLeanの計算で確認する。
 指定牌が対子・刻子と同じ牌種でない場合、または順子とスートやランクが合わない場合は `none` を返す。
-ここでの `none` は待ち全体が存在しないという意味ではなく、この1つの完成部品から指定牌を除く形を作れないという意味である。
+ここでの `none` は待ち全体が存在しないという意味ではなく、この1つの和了構成部品から指定牌を除く形を作れないという意味である。
 
 `componentAfterRemovingWait` は、その種別判定に具体的な牌の除去を加える。
 種別が得られた場合だけ `List.erase` で待ち牌を最初の1枚だけ除き、種別と残った牌種列を
@@ -1284,7 +1284,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 次の実例は、`WaitReadingCode.lean` の `waitReadings` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「和了分割の完成部品」と「Reading」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」と「Reading」を読む。
 
 読む前に知る語彙:
 
@@ -1295,14 +1295,14 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `map`
 
 `WaitCompletion` は、1つの待ち牌と、その牌を加えた和了分割を持つ。
-`waitReadings` は分割の完成部品を先頭から調べ、待ち牌を除ける部品を1つ選んで不完全部品へ変える。
+`waitReadings` は分割の和了構成部品を先頭から調べ、待ち牌を除ける部品を1つ選んで不完全部品へ変える。
 選ばなかった部品は、対子・順子・刻子という完成した種別のままReadingに残す。
 
 最初は、待ち牌が `5m`、和了分割が雀頭 `55m` と順子 `123p` からなる例を読む。
 待ち牌を除けるのは雀頭だけなので、結果は「単騎 `5m`、完成順子 `123p`」という1つのReadingになる。
 ソース中の `example` は、この列挙結果を `rfl` で確認する。
 
-同じ待ち牌を除ける完成部品が複数ある場合は、どの部品を除去元として選ぶかごとに別のReadingを返す。
+同じ待ち牌を除ける和了構成部品が複数ある場合は、どの部品を除去元として選ぶかごとに別のReadingを返す。
 つまり、この処理は1つの分割を決め打ちで読むのではなく、その分割から生じるすべての観測結果を列挙する。
 
 ## 複数の和了分割から具体的なReadingをまとめる
@@ -1454,7 +1454,7 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 `directSeeds_complete` は逆に、任意の妥当なSeedが候補生成の3段階を通ることを示す。
 全完成形と全部品位置への所属は `mem_winningShapes` と `mem_componentIndices` が保証する。
 残る待ち牌について、`Seed.valid` の最初の条件は、選択部品からその牌を除くと不完全形が得られることを表す。
-`wait_mem_chunk_of_componentKind_isSome` は、この成功条件から待ち牌が選択部品に含まれることを導く。
+`wait_mem_component_of_componentKind_isSome` は、この成功条件から待ち牌が選択部品に含まれることを導く。
 その所属を `dedup` と `map`、さらに外側の二つの `flatMap` へ戻せば、Seedが `seedCandidates` に含まれる。
 最後に妥当性証拠をフィルタへ渡すため、正しいSeedは取りこぼされない。これが完全性である。
 
@@ -1516,8 +1516,8 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 変わる一方で、各牌種の枚数は保存されるからである。
 
 証明で最初に必要なのは、除こうとした待ち牌が完成形に本当に含まれることである。Readingの妥当性条件から、
-待ち牌が選択部品に含まれることを `wait_mem_chunk_of_componentKind_isSome` で取り出す。
-`mem_shape_tiles_of_mem_chunk` は、選択部品への所属を完成形全体への所属へ持ち上げる。
+待ち牌が選択部品に含まれることを `wait_mem_component_of_componentKind_isSome` で取り出す。
+`mem_shape_tiles_of_mem_component` は、選択部品への所属を完成形全体への所属へ持ち上げる。
 
 待ち牌の所属が分かれば、`List.perm_cons_erase` により「待ち牌を1枚除き、同じ牌を先頭へ戻した列」は
 元の完成形の順列になる。一方、`List.mergeSort_perm` は `hand` の整列前後が順列であることを保証する。
@@ -1543,7 +1543,7 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `WinningPartition.of_perm`
 
 `completion reading` は、Readingが持つ待ち牌と完成形の部品列を、既存Finderが返す `WaitCompletion` の形へ
-写す。部品列は `TileChunk.canonicalize` で正規化するため、面子の並び順だけが異なる同じ分割は同じ結果になる。
+写す。部品列は `WinningComponent.canonicalize` で正規化するため、面子の並び順だけが異なる同じ分割は同じ結果になる。
 
 `completion_mem_findWaitCompletions` は、面子数 `n` が通常手の上限4以下なら、このcompletionが
 `findWaitCompletions (hand reading)` に必ず含まれると述べる。直接生成器とFinderは実装の探索方向が異なる。

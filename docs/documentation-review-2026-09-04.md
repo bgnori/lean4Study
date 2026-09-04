@@ -92,7 +92,7 @@
 
 重要度: 低
 
-[docs/review-backlog.md](review-backlog.md) は、ドキュメント作業中に見つかった設計・命名課題をソース改変から切り離して管理できている。特に `TileChunk`、`Reading`、`abstractWaitReadingCode` のような概念設計の未決事項が具体例付きで残っている点は有用である。
+[docs/review-backlog.md](review-backlog.md) は、ドキュメント作業中に見つかった設計・命名課題をソース改変から切り離して管理できている。特に `Reading`、`abstractWaitReadingCode` のような概念設計の未決事項と、`WinningComponent` 改名時の判断記録が具体例付きで残っている点は有用である。
 
 一方で、状態が `要設計検証`、`検討`、`要仕様変更`、`保留`、`対応中` などに分かれており、優先度や次の作業が一目では比較しにくい。
 

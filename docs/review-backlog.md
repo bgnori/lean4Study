@@ -17,7 +17,7 @@
 状態: 要設計検証
 
 `MentsuPartition` と `WinningPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
-各段階で、選んだ完成部品、その候補所属、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
+各段階で、選んだ和了構成部品、その候補所属、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
 この形は `decomposeMentsu` と `winningPartitions` の健全性・完全性を直接証明しやすい一方、利用側が
 必要とする外延的な性質を得るたび、操作履歴を順列の意味へ変換し直す必要がある。
 
@@ -26,7 +26,7 @@
 - `MentsuPartition.of_perm`: 除去履歴を別の入力順へ移す。
 - `MentsuPartition.tiles_perm`: 各除去履歴から牌全体の保存則を復元する。
 - `MentsuPartition.all_mentsu`: 各構築段階の候補所属を列全体の条件として取り出す。
-- `MentsuPartition.chunks_length`: 帰納段階と `fuel` の対応を列長として取り出す。
+- `MentsuPartition.components_length`: 帰納段階と `fuel` の対応を列長として取り出す。
 - `WinningPartition.of_perm`: 雀頭除去後の残り長を揃えて、面子分解証拠を移す。
 - `WinningPartition.tiles_perm`: 面子側の保存則へ雀頭除去の保存則を再び連結する。
 
@@ -36,12 +36,12 @@
 既存定理から、少なくとも `MentsuPartition` は次の外延的な条件と同値になると予想できる。
 
 ```lean
-chunks.length = fuel ∧
-	(∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates) ∧
-	(chunks.flatMap TileChunk.tiles).Perm tiles
+components.length = fuel ∧
+	(∀ component ∈ components, component ∈ mentsuComponentCandidates) ∧
+	(components.flatMap WinningComponent.tiles).Perm tiles
 ```
 
-左から右は `chunks_length`、`all_mentsu`、`tiles_perm` で示せる。右から左は、まず
+左から右は `components_length`、`all_mentsu`、`tiles_perm` で示せる。右から左は、まず
 `mentsuPartition_flatMap` で部品順に連結した牌列の分解証拠を作り、`of_perm` で入力牌列へ移し、
 列長の等式で `fuel` を揃えれば示せるはずである。この同値定理は、仮説を安価に検証できる最初の対象になる。
 
@@ -49,7 +49,7 @@ chunks.length = fuel ∧
 
 - 上の外延的特徴づけ定理を追加し、証明が既存補助定理の短い合成で閉じるか。
 - `DirectWaitReading` の利用側を、帰納的証拠の `cases` ではなく外延的仕様経由で簡潔にできるか。
-- `WinningPartition` も「先頭が雀頭候補」「末尾がすべて面子候補」「全完成部品牌が入力牌列の順列」
+- `WinningPartition` も「先頭が雀頭候補」「末尾がすべて面子候補」「全和了構成部品牌が入力牌列の順列」
 	という外延的条件で特徴づけられるか。
 - `remaining.length / mentsuTileCount` は実行器の再帰回数としてだけ計算し、宣言的仕様の基本表現から
 	外せるか。特に `WinningPartition.of_perm` の `sameLength` と添字の書き換えが不要になるか。
@@ -68,7 +68,7 @@ chunks.length = fuel ∧
 
 現行コードでも、この非決定性はすでに `List` で表現されている。
 
-- `mentsuChunkCandidates`: 取り除く完成面子を選ぶ。
+- `mentsuComponentCandidates`: 取り除く完成面子を選ぶ。
 - `filterMap (removeTiles tiles)`: 実際に取り除けない候補を失敗枝として捨てる。
 - `mentsuReductions`: 成功した残り牌列をすべて列挙する。
 - `List.any`: 聴牌と待ち核集合保存の条件を満たす枝が存在するか判定する。
@@ -156,8 +156,10 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 - `AbstractWaitReading` の `Abstract` が、待ち牌を抽象化せず、部品の具体的な牌種列だけを忘れることを十分に表すか。
 - `ConcreteWaitReading` と `AbstractWaitReading` の対比を、具体牌付き・部品種別のみという情報差が分かる名前にするべきか。
 - `IrreducibleWaitReading` が牌姿全体の既約判定と誤解されないか。実際には完成面子を核成分列から分離した観測結果である。
-- `WaitReadingComponentKind`、`ConcreteWaitReadingComponent` の `Component` が、`TileChunk` や説明語彙「完成部品」とどう対応するか。
-- `Reading`、`TileChunk`、`Component`、`Core` を個別に改名せず、入力となる和了分割から情報を段階的に忘れる流れ全体で一貫した名前を選べるか。
+
+`WinningComponent` と Reading 側の `Component` の関係は整理済み。
+前者は待ち牌を除く前の和了構成部品、後者は除去後または保持後の観測成分であり、
+[domain-vocabulary.md](domain-vocabulary.md) に変換関係を明記した。
 
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
@@ -176,40 +178,41 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 - `Mahjong.Wait.Specification` と `Mahjong.Wait.Analysis` の定理名・返り値への影響。
 - 既存レポートや `WaitReadingCode` の表示語彙への影響。
 
-### `TileChunk` という名前が概念を誤解させる可能性がある
+### `TileChunk` と周辺の `Chunk` 系識別子を改名する
+
+状態: 対応済み
+
+旧 `TileChunk := Toitsu ⊕ MentsuCandidate` は、通常形の和了分割に現れる
+「雀頭または完成面子候補」を表していた。一方、`Basic.lean` の `Chunk` は物理牌の有限集合であり、
+同じ `Chunk` 語幹が異なる概念を指していた。
+
+対応では `WinningComponent` を採用した。`CompletedComponent` は待ち牌除去後の観測成分との
+「完成・不完全」の対比を強くしすぎ、`StandardComponent` は標準形以外との比較を想定させ、
+`MeldOrPair` は実装表現を列挙するだけで和了分割との関係を示さないため採用しなかった。
+
+同時に次を改名した。
+
+- `WaitCompletion.winningChunks` → `winningComponents`
+- `pairChunkCandidates` / `mentsuChunkCandidates` → `pairComponentCandidates` / `mentsuComponentCandidates`
+- `WinningShape.chunk` / `chunks` → `component` / `components`
+- 和了構成部品を指す補助変数・定理名の `chunk(s)` → `component(s)`
+
+物理牌集合 `Chunk` とその引数名 `chunk` は別概念として維持した。コード検索で残る `Chunk` は、
+この物理牌集合を指すものに限定した。
+
+`AbstractWaitReading` は維持した。これは `WinningComponent` の別名ではなく、待ち牌を除いた観測結果から
+具体牌列だけを忘れた型である。`ConcreteWaitReadingComponent` と `WaitReadingComponentKind` も同様に
+Reading内部の観測成分を指すため、`WinningComponent` と役割を分けて読める。
+
+日本語説明は「完成部品」から「和了構成部品」へ変更し、コードの `WinningComponent` と対応させた。
+これにより、完成面子、待ち牌除去後の観測成分、物理牌集合 `Chunk` との区別を明示する。
+
+### 和了構成部品列の標準順が型で保証されていない
 
 状態: 保留
 
-`TileChunk := Toitsu ⊕ MentsuCandidate` は、通常形の和了分割に現れる「雀頭または完成面子候補」を表す。
-一方で、`Basic.lean` には物理牌集合を表す `Chunk` があり、`TileChunk` という名前だけでは
-「牌の集合」なのか「和了分割の完成部品」なのかが分かりにくい。
-
-また、`TileChunk` は雀頭も含むため、`Mentsu` に近い名前へ寄せると誤解を招く。
-意味としては「完成済み部品」に近い。
-
-候補名:
-
-- `CompletedComponent`
-- `WinningComponent`
-- `StandardComponent`
-- `MeldOrPair`
-
-現時点の第一候補は `CompletedComponent`。雀頭と完成面子候補の両方を含められ、物理牌集合 `Chunk` とも区別しやすい。
-
-後で確認すること:
-
-- `TileChunk` の参照範囲。
-- `WaitCompletion.winningChunks` など、周辺の `Chunk` 系の名前も同時に見直すべきか。
-- `AbstractWaitReading`、`ConcreteWaitReadingComponent` など、変換後の `Reading`・`Component` 系の名前と一体で見直すべきか。
-- `DirectWaitReading`、`WaitCompletionFinder`、`WaitReadingCode` の読者向け語彙への影響。
-- リネームする場合、既存の証明・レポート生成・テストへの影響。
-
-### 完成部品列の標準順が型で保証されていない
-
-状態: 保留
-
-`TileChunk.canonicalize` は `List TileChunk` を標準順へ並べるが、返り値も通常の `List TileChunk` である。
-そのため、任意の順番の列と標準順の列を型で区別できず、`WaitCompletion.winningChunks` が標準順であるかも
+`WinningComponent.canonicalize` は `List WinningComponent` を標準順へ並べるが、返り値も通常の `List WinningComponent` である。
+そのため、任意の順番の列と標準順の列を型で区別できず、`WaitCompletion.winningComponents` が標準順であるかも
 値だけからは分からない。
 
 現在の `canonicalize_eq_of_perm` は、順列関係にある2入力が同じ標準順表現へ写ることを保証する。
@@ -218,6 +221,6 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 後で確認すること:
 
 - 標準順であることを示す述語と仕様定理を公開するだけで十分か。
-- `WaitCompletion.winningChunks` を、標準順の証拠を持つ構造体や専用型にすべきか。
+- `WaitCompletion.winningComponents` を、標準順の証拠を持つ構造体や専用型にすべきか。
 - Finder以外から `WaitCompletion` を直接構築する既存コードやテストへの影響。
-- `TileChunk` の改名と同時に、完成部品列を表す型の名前も設計すべきか。
+- 和了構成部品列を表す専用型を設計すべきか。

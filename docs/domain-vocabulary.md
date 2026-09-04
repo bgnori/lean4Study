@@ -3,41 +3,42 @@
 この文書は、麻雀の一般語彙と、このプロジェクト内で使う説明語彙を管理する。
 Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に置き、ここでは麻雀待ち分類の概念を扱う。
 
-## 和了分割の完成部品
+## 和了構成部品
 
-和了分割の完成部品は、通常形の和了を雀頭1つと面子4つに分けたときの、分割済みの各部品を指す
-このプロジェクトの説明語彙である。コード上では `TileChunk` に対応する。
+和了構成部品は、通常形の和了を雀頭1つと面子4つに分けたときの、分割済みの各部品を指す
+このプロジェクトの説明語彙である。コード上では `WinningComponent` に対応する。
 
-`TileChunk := Toitsu ⊕ MentsuCandidate` なので、値は次のどれかである。
+`WinningComponent := Toitsu ⊕ MentsuCandidate` なので、値は次のどれかである。
 
 - 雀頭となる対子
 - 完成面子となる順子
 - 完成面子となる刻子
 
-ここでの「完成」は、その部品が通常形の和了分割にそのまま置けることを意味する。
-手牌全体が和了しているという意味ではなく、待ち牌を除いた後の単騎・対子・ターツのような
-不完全部品も含まない。本文では初出時に「和了分割の完成部品」と書き、文脈が明らかな箇所では
-「完成部品」と略す。
+`Winning` は「その部品だけで和了している」という意味ではなく、通常形の和了分割を構成する側に
+属することを示す。待ち牌を除いた後の単騎・対子・ターツのような観測成分は含まない。
 
-## 完成部品列の標準順表現
+旧名 `TileChunk` と説明語「完成部品」は、物理牌集合 `Chunk` や完成面子との関係が曖昧だったため使わない。
+コード上の型名 `WinningComponent` と日本語の「和了構成部品」を一対一に対応させる。
 
-和了分割は、完成部品を並べた `List TileChunk` として保持される。同じ完成部品を同じ個数だけ含むなら、
+## 和了構成部品列の標準順表現
+
+和了分割は、和了構成部品を並べた `List WinningComponent` として保持される。同じ和了構成部品を同じ個数だけ含むなら、
 リスト上の順番が違っても同じ和了分割として扱いたい。この関係はコード上の `List.Perm` に対応する。
 
-このプロジェクトで完成部品列の「標準順表現」というときは、次の範囲だけを指す。
+このプロジェクトで和了構成部品列の「標準順表現」というときは、次の範囲だけを指す。
 
-- 対象: 和了分割を表す `List TileChunk`
-- 同一視する差: 完成部品のリスト上の順番
-- 保存する情報: 各完成部品とその個数
-- 代表の選び方: `TileChunk.orderKey` の昇順
-- 変換する関数: `TileChunk.canonicalize`
+- 対象: 和了分割を表す `List WinningComponent`
+- 同一視する差: 和了構成部品のリスト上の順番
+- 保存する情報: 各和了構成部品とその個数
+- 代表の選び方: `WinningComponent.orderKey` の昇順
+- 変換する関数: `WinningComponent.canonicalize`
 
 したがって、牌姿、待ち牌、和了分割の選び方まで同一視する一般的な「正規形」ではない。
-`TileChunk.canonicalize_eq_of_perm` が保証するのは、`List.Perm` の関係にある2列が同じ標準順表現へ
+`WinningComponent.canonicalize_eq_of_perm` が保証するのは、`List.Perm` の関係にある2列が同じ標準順表現へ
 変換されることだけである。
 
-現状では標準順表現も通常の `List TileChunk` であり、「標準順である」という証拠を型に保持しない。
-そのため、任意の `List TileChunk` と `canonicalize` の出力は型だけでは区別できない。
+現状では標準順表現も通常の `List WinningComponent` であり、「標準順である」という証拠を型に保持しない。
+そのため、任意の `List WinningComponent` と `canonicalize` の出力は型だけでは区別できない。
 
 ## Reading
 
@@ -53,6 +54,16 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 
 `Reading` は、待ちを人間が推測する行為ではなく、すでに見つかった待ち牌と和了分割から得られる構造的な見え方を指す。
 日本語本文では、混乱を避けるため、必要に応じて「観測結果」や「生成元」と補って説明する。
+
+名前の変換関係は次のように読む。
+
+- `WinningComponent`: 待ち牌を除く前の、和了分割を構成する対子・順子・刻子。
+- `ConcreteWaitReadingComponent`: 1つの `WinningComponent` から待ち牌を除いた結果、または除去せず保持した結果。
+- `WaitReadingComponentKind`: 具体的な牌種列を忘れた観測成分の種別。
+- `AbstractWaitReading`: 待ち牌は保持し、各観測成分の具体的な牌種列だけを忘れたReading。
+
+したがって `Abstract` は待ち牌やReading全体を捨てることを意味しない。抽象化される対象は
+`ConcreteWaitReadingComponent.tiles` であり、`wait` と部品種別列は残る。
 
 ## 待ちReadingコード
 

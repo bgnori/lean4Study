@@ -29,7 +29,7 @@
 ### `let rec`
 
 `let rec name ...` は、定義の途中で、自分自身を呼び出せる局所的な再帰関数を作る。
-`waitReadings` の `selectCompletedChunk` は、完成部品列の先頭を調べた後、残りの列に対して自分自身を呼び出す。
+`waitReadings` の `selectWinningComponent` は、和了構成部品列の先頭を調べた後、残りの列に対して自分自身を呼び出す。
 
 ### fuel
 
@@ -60,7 +60,7 @@
 
 ### 添字付きinductive family
 
-`MentsuPartition : Nat → List Tile → List TileChunk → Prop` のように、引数によって異なる命題や型を返す
+`MentsuPartition : Nat → List Tile → List WinningComponent → Prop` のように、引数によって異なる命題や型を返す
 `inductive` 定義を、添字付きinductive familyと呼ぶ。constructorごとに、どの引数の組について値を
 作れるかを制限できる。`MentsuPartition.done` は `0, [], []` の組だけを作り、`next` は面子数を1増やす。
 
@@ -84,7 +84,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `Function.Injective f` は、関数 `f` が異なる入力を同じ出力へ潰さないことを表す。
 言い換えると、`f a = f b` なら必ず `a = b` になるという主張である。
-`TileChunk.orderKey_injective` は、完成部品の数値キーが等しければ、元の完成部品も等しいことを保証する。
+`WinningComponent.orderKey_injective` は、和了構成部品の数値キーが等しければ、元の和了構成部品も等しいことを保証する。
 
 ### `Function.Surjective` と `Function.Bijective`
 
@@ -231,7 +231,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### mergeSort
 
 `xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。
-`TileChunk.canonicalize` では、完成部品を `orderKey` の昇順に並べるために使う。
+`WinningComponent.canonicalize` では、和了構成部品を `orderKey` の昇順に並べるために使う。
 整列は要素を追加・削除せず、入力リストの順列を返す。
 
 `List.mergeSort_perm xs le` は、この最後の性質を `(xs.mergeSort le).Perm xs` という証拠として得る定理である。
@@ -255,12 +255,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### 直和 `⊕`
 
 `A ⊕ B` は、A型の値またはB型の値のどちらかを持つ型である。
-`TileChunk := Toitsu ⊕ MentsuCandidate` は、完成部品が雀頭または完成面子候補のどちらかであることを表す。
+`WinningComponent := Toitsu ⊕ MentsuCandidate` は、和了構成部品が雀頭または完成面子候補のどちらかであることを表す。
 
 ### `.inl` と `.inr`
 
 `.inl value` は直和 `A ⊕ B` の左側、`.inr value` は右側に値を入れる。
-`TileChunk.pair` は雀頭を `.inl` に入れ、`TileChunk.shuntsu` と `TileChunk.koutsu` は完成面子候補を `.inr` に入れる。
+`WinningComponent.pair` は雀頭を `.inl` に入れ、`WinningComponent.shuntsu` と `WinningComponent.koutsu` は完成面子候補を `.inr` に入れる。
 
 ### 部分型 `{ x : α // 条件 }`
 
@@ -347,7 +347,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `List.mem_map` は、値 `result` が `xs.map f` に含まれることを、元のリスト `xs` に
 `f source = result` となる要素 `source` が存在することとして読み替える定理である。
-`pair_of_mem_pairChunkCandidates` では、雀頭候補が `Tile.all` のどの牌種から作られたかを取り出す。
+`pair_of_mem_pairComponentCandidates` では、雀頭候補が `Tile.all` のどの牌種から作られたかを取り出す。
 
 ### `List.mem_dedup`
 
@@ -412,7 +412,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `native_decide` は、真偽を計算できる命題をLeanの実行系で評価し、その計算結果が真であることを証明する
 タクティクである。有限個の値についてすべての場合を確認できる主張に向いている。
-`TileChunk.orderKey_injective` では、有限個の完成部品の組合せを計算し、同じキーを持つ異なる部品がないことを確認する。
+`WinningComponent.orderKey_injective` では、有限個の和了構成部品の組合せを計算し、同じキーを持つ異なる部品がないことを確認する。
 
 ### cases
 
@@ -437,12 +437,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `List.length`
 
 `xs.length` または `List.length xs` は、リスト `xs` の要素数を返す。空列の長さは `0` で、
-`first :: rest` の長さは `rest.length + 1` である。`MentsuPartition.chunks_length` では、
+`first :: rest` の長さは `rest.length + 1` である。`MentsuPartition.components_length` では、
 分解証拠へ完成面子を1つ追加するたび、結果列の長さと `fuel` がともに1増えることを使う。
 
 ### `induction ... generalizing`
 
-`induction fuel generalizing tiles chunks` は、`fuel`について帰納法を行うとき、`tiles`と`chunks`を
+`induction fuel generalizing tiles components` は、`fuel`について帰納法を行うとき、`tiles`と`components`を
 特定の値に固定せず、任意の値について使える帰納法の仮定を作る。`mem_decomposeMentsu_iff`では、
 再帰呼び出しで残りの牌種列と完成面子列へ変わるため、この一般化が必要になる。
 
@@ -495,7 +495,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### obtain
 
 `obtain ⟨...⟩ := proof` は、存在や複数の部品を持つ証拠を分解し、中身に名前を付ける。
-`pair_of_mem_pairChunkCandidates` では、候補が `map` 元のどの牌種から作られたかを取り出す。
+`pair_of_mem_pairComponentCandidates` では、候補が `map` 元のどの牌種から作られたかを取り出す。
 
 ### rintro
 
@@ -624,7 +624,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `∀`
 
 `∀ x, P x`は、任意の値`x`について条件`P x`が成り立つことを表す。
-`∀ chunk ∈ chunks, P chunk`は、リスト`chunks`に含まれるすべての`chunk`について`P chunk`が成り立つ、
+`∀ component ∈ components, P component`は、リスト`components`に含まれるすべての`component`について`P component`が成り立つ、
 という意味である。
 
 ### `List.mem_cons`
@@ -635,7 +635,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `∃`
 
 `∃ x, P x` は、条件 `P` を満たす値 `x` が少なくとも1つ存在することを表す。
-`pair_of_mem_pairChunkCandidates` の結論は、候補の完成部品を作った雀頭が存在することを述べる。
+`pair_of_mem_pairComponentCandidates` の結論は、候補の和了構成部品を作った雀頭が存在することを述べる。
 
 ### `↔`
 

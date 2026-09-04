@@ -6,7 +6,7 @@ import Mahjong.Basic
 このモジュールでは、待ち分類を構成する小さな部品を定義する。
 `Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` はいずれも
 `HasTilePattern` インスタンスを持ち、必要な牌種列を共通の方法で取り出せる。
-完成部品 `TileChunk` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
+和了構成部品 `WinningComponent` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
 
 /-!
@@ -356,42 +356,42 @@ noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
 end MentsuCandidate
 
 /-!
-## 雀頭と完成面子を同じ完成部品として扱う
+## 雀頭と完成面子を同じ和了構成部品として扱う
 
 通常形の和了分割では、雀頭と完成面子をどちらも「完成した部品」として並べて扱う。
-`TileChunk` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
+`WinningComponent` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
 
-`pair`、`shuntsu`、`koutsu` は、麻雀上の呼び名から `TileChunk` を作る入口である。
-`TileChunk.tiles` は、どちらの部品であっても構成する牌種列を返す。
+`pair`、`shuntsu`、`koutsu` は、麻雀上の呼び名から `WinningComponent` を作る入口である。
+`WinningComponent.tiles` は、どちらの部品であっても構成する牌種列を返す。
 -/
 
-/-- 通常形の和了分割に現れる完成部品。雀頭または完成面子。 -/
-abbrev TileChunk := Toitsu ⊕ MentsuCandidate
+/-- 通常形の和了分割に現れる和了構成部品。雀頭または完成面子。 -/
+abbrev WinningComponent := Toitsu ⊕ MentsuCandidate
 
-namespace TileChunk
+namespace WinningComponent
 
-/-- 指定した牌種の雀頭を完成部品として作る。 -/
-def pair (tile : Tile) : TileChunk :=
+/-- 指定した牌種の雀頭を和了構成部品として作る。 -/
+def pair (tile : Tile) : WinningComponent :=
   .inl (.toitsu tile)
 
-/-- 指定した順子を完成部品として作る。 -/
-def shuntsu (suit : Suit) (start : ShuntsuStart) : TileChunk :=
+/-- 指定した順子を和了構成部品として作る。 -/
+def shuntsu (suit : Suit) (start : ShuntsuStart) : WinningComponent :=
   .inr (.shuntsu (.shuntsu suit start))
 
-/-- 指定した牌種の刻子を完成部品として作る。 -/
-def koutsu (tile : Tile) : TileChunk :=
+/-- 指定した牌種の刻子を和了構成部品として作る。 -/
+def koutsu (tile : Tile) : WinningComponent :=
   .inr (.koutsu tile)
 
-/-- 完成部品を構成する牌種列。 -/
-def tiles : TileChunk → List Tile
+/-- 和了構成部品を構成する牌種列。 -/
+def tiles : WinningComponent → List Tile
   | .inl pair => pair.tiles
   | .inr mentsu => mentsu.tiles
 
-example : (TileChunk.pair (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
-example : (TileChunk.shuntsu .Pinzu ⟨3, by decide⟩).tiles.map (Tile.format .mpsz) = ["4p", "5p", "6p"] := rfl
-example : (TileChunk.koutsu (.honor .Red)).tiles.map (Tile.format .mpsz) = ["7z", "7z", "7z"] := rfl
+example : (WinningComponent.pair (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
+example : (WinningComponent.shuntsu .Pinzu ⟨3, by decide⟩).tiles.map (Tile.format .mpsz) = ["4p", "5p", "6p"] := rfl
+example : (WinningComponent.koutsu (.honor .Red)).tiles.map (Tile.format .mpsz) = ["7z", "7z", "7z"] := rfl
 
-instance : HasTilePattern TileChunk where
-  tiles := TileChunk.tiles
+instance : HasTilePattern WinningComponent where
+  tiles := WinningComponent.tiles
 
-end TileChunk
+end WinningComponent

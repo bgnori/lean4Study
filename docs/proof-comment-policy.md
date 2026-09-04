@@ -247,7 +247,7 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 
 この例では、麻雀上の制約がLean上のデータ構造ではどの定義に現れているかを明示する。
 
-## 補助定義と `TileChunk` のブロック例
+## 補助定義と `WinningComponent` のブロック例
 
 補助的な `def` が続く箇所では、読者がその後の概念に進むための足場としてまとめる。
 
@@ -263,17 +263,17 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 -/
 ```
 
-`TileChunk` のように複数の概念を1つの型へまとめる箇所では、どの概念を合流させているかを明示する。
+`WinningComponent` のように複数の概念を1つの型へまとめる箇所では、どの概念を合流させているかを明示する。
 
 ```lean
 /-!
-## 雀頭と完成面子を同じ完成部品として扱う
+## 雀頭と完成面子を同じ和了構成部品として扱う
 
 通常形の和了分割では、雀頭と完成面子をどちらも「完成した部品」として並べて扱う。
-`TileChunk` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
+`WinningComponent` は、雀頭 `Toitsu` または完成面子候補 `MentsuCandidate` のどちらかを持つ型である。
 
-`pair`、`shuntsu`、`koutsu` は、麻雀上の呼び名から `TileChunk` を作る入口である。
-`TileChunk.tiles` は、どちらの部品であっても構成する牌種列を返す。
+`pair`、`shuntsu`、`koutsu` は、麻雀上の呼び名から `WinningComponent` を作る入口である。
+`WinningComponent.tiles` は、どちらの部品であっても構成する牌種列を返す。
 -/
 ```
 
