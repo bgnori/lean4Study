@@ -412,6 +412,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `obtain ⟨...⟩ := proof` は、存在や複数の部品を持つ証拠を分解し、中身に名前を付ける。
 `pair_of_mem_pairChunkCandidates` では、候補が `map` 元のどの牌種から作られたかを取り出す。
 
+### rintro
+
+`rintro pattern` は、仮定を受け取る `intro` と、その仮定をパターンで分解する `rcases` をまとめて行う。
+`waitingTiles_ne_nil_iff` の `rintro ⟨candidate, valid⟩ empty` は、まず存在証拠から待ち牌 `candidate` と
+その正しさ `valid` を取り出し、続けて列挙結果が空だという仮定 `empty` を受け取る。
+
 ### rename_i
 
 `rename_i name ...` は、Leanが自動的に導入した無名または内部名の変数へ、証明中で使う名前を付ける。

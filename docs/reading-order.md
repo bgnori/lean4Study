@@ -849,7 +849,7 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ## 待ち牌の実行器と宣言的仕様の一致を読む
 
 次の実例は、`WaitCompletionFinder.lean` の `IsLegalTenpaiHand`、`IsWaitFor`、`waitingTiles`、
-`mem_waitingTiles_iff` である。
+`mem_waitingTiles_iff`、`waitingTiles_ne_nil_iff` である。
 
 読む前に知る語彙:
 
@@ -860,6 +860,8 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `↔`
 - 健全性と完全性
 - `by_cases`
+- `obtain`
+- `rintro`
 - `simp`
 - `Bool.and_eq_true`
 
@@ -891,6 +893,21 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース中の例は、赤牌1枚の手牌について赤牌自身が単騎待ちとして `waitingTiles` に含まれることを示す。
 同値定理の `.mpr` で目標を `IsWaitFor` へ変換し、具体的な有限計算を `native_decide` で確認する。
 `unfold` は、この具体例で判定手続きが見えるように宣言的仕様を展開するために使っている。
+
+`IsTenpai tiles` は、`IsWaitFor tiles candidate` を満たす牌種 `candidate` が少なくとも1つ存在するという、
+牌姿全体の宣言的な聴牌仕様である。`waitingTiles_ne_nil_iff` は、待ち牌列挙の結果が空でないことと
+`IsTenpai tiles` が同値だと示す。前の定理が個々の候補牌について健全性と完全性を保証したのに対し、
+この定理はそれを「待ち牌が存在するか」という手牌単位の判定へ集約する。
+
+左から右へは、空でない `waitingTiles tiles` から `List.exists_mem_of_ne_nil` で候補牌を1つ取り出し、
+`mem_waitingTiles_iff` の `.mp` でその所属証拠を `IsWaitFor` の証拠へ変換する。右から左へは、
+`IsTenpai` が持つ候補牌と待ちの証拠を `rintro` で取り出し、同値定理の `.mpr` で列挙結果への所属を得る。
+列挙結果が空だと仮定するとその牌は所属できないため、矛盾する。
+
+続く例は、赤牌1枚の手牌が意味論上も聴牌であることを確認する。ここでは具体的な列挙への所属を
+`native_decide` で計算し、`List.ne_nil_of_mem` で列挙結果が空でないことへ変え、
+`waitingTiles_ne_nil_iff` によって `IsTenpai` の証明として受け取る。この流れにより、有限な実行結果が
+宣言的な聴牌仕様の証拠になることを小さな入力で確かめられる。
 
 ## 核成分列の抽出パターンを読む
 

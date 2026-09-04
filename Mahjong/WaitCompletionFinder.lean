@@ -792,7 +792,18 @@ example : .honor .Red ∈ waitingTiles [.honor .Red] := by
   unfold IsWaitFor IsStandardAgari
   native_decide
 
-/-- `waitingTiles` が空でないことと意味論上の聴牌は同値である。 -/
+/--
+`waitingTiles` が少なくとも1種類の牌を返すことと、意味論上の通常形聴牌 `IsTenpai` は同値である。
+
+左辺は列挙器を実行して確認できる条件、右辺は `IsWaitFor` を満たす牌種が存在するという宣言的な条件である。
+したがってこの定理により、`waitingTiles tiles ≠ []` を通常形聴牌の決定手続きとして利用できる。
+
+左から右へは、空でない列から要素 `candidate` を1つ取り出し、`mem_waitingTiles_iff` の健全性方向で
+`IsWaitFor tiles candidate` を得る。右から左へは、仕様が与える待ち牌を同定理の完全性方向で列挙結果へ戻す。
+列挙結果が空だと仮定すれば、その所属証拠と矛盾する。
+
+読むためのLean語彙: `≠`, `∃`, `constructor`, `obtain`, `rintro`, `simp`。
+-/
 theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
     waitingTiles tiles ≠ [] ↔ IsTenpai tiles := by
   constructor
@@ -802,6 +813,10 @@ theorem waitingTiles_ne_nil_iff (tiles : List Tile) :
   · rintro ⟨candidate, valid⟩ empty
     have member := (mem_waitingTiles_iff tiles candidate).mpr valid
     simp [empty] at member
+
+example : IsTenpai [.honor .Red] := by
+  apply (waitingTiles_ne_nil_iff _).mp
+  exact List.ne_nil_of_mem (a := .honor .Red) (by native_decide)
 
 /-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
 def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
