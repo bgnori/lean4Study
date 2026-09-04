@@ -187,6 +187,18 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 順列は要素の順番だけを変え、追加や削除をしないため、リストの長さも保存する。
 `WinningPartition.of_perm` では、雀頭を除いた新旧の残り牌列から計算される面子数の型を揃えるために使う。
 
+### `List.Perm.count`
+
+`proof.count value` は、`xs.Perm ys` の証拠 `proof` から、両方のリストに含まれる `value` の個数が
+等しいことを得る。`IsWaitFor.of_perm` では、各牌種が4枚以下であることと、候補牌をもう1枚加えられることを
+並べ替え後の牌姿へ移す。
+
+### `List.isEmpty_iff`
+
+`List.isEmpty_iff` は、`xs.isEmpty = true` というBoolの計算結果と `xs = []` という命題を対応させる。
+`IsWaitFor.of_perm` ではその否定側を `simp` で使い、`isWinning` が真であることを
+`winningPartitions` が空でないことへ読み替える。
+
 ### mergeSort
 
 `xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。

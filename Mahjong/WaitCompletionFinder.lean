@@ -725,7 +725,20 @@ def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
     tiles.count candidate < copiesPerTile ∧
     IsStandardAgari (candidate :: tiles)
 
-/-- 待ちの意味論は牌姿リストの並び順に依存しない。 -/
+/--
+同じ牌種を同じ枚数だけ含む牌姿へ並べ替えても、候補牌 `candidate` が通常形待ちであることは変わらない。
+
+`IsWaitFor` の3条件のうち、合法な手牌枚数は `permutation.length_eq`、各牌種の合法枚数と候補牌を
+もう1枚使えることは `permutation.count` で新しい入力へ移す。加牌後の和了条件はBool値を直接移さず、
+`winningPartitions` が空でないことから分割を1つ取り出し、`mem_winningPartitions_iff` で
+`WinningPartition` の証拠へ変換する。その証拠を `WinningPartition.of_perm` で並べ替え後へ移し、
+対応する分割が列挙されることから再び `IsStandardAgari` を得る。
+
+したがって待ちの意味は、牌姿リストの入力順ではなく、各牌種が何枚あるかだけで決まる。
+
+読むためのLean語彙: `List.Perm`, `rcases`, `List.Perm.length_eq`, `List.Perm.count`,
+`List.isEmpty_iff`, `obtain`, `.mp`, `.mpr`, `List.Perm.cons`。
+-/
 theorem IsWaitFor.of_perm {tiles other : List Tile} {candidate : Tile}
     (waitFor : IsWaitFor tiles candidate) (permutation : tiles.Perm other) :
     IsWaitFor other candidate := by
@@ -747,6 +760,15 @@ theorem IsWaitFor.of_perm {tiles other : List Tile} {candidate : Tile}
       have otherNonempty : winningPartitions (candidate :: other) ≠ [] :=
         List.ne_nil_of_mem otherMember
       simp [otherNonempty]
+
+example : IsWaitFor
+    [.honor .Red, .honor .East, .honor .East, .honor .East] (.honor .Red) := by
+  have original : IsWaitFor
+      [.honor .East, .honor .East, .honor .East, .honor .Red] (.honor .Red) := by
+    unfold IsWaitFor IsStandardAgari
+    native_decide
+  apply original.of_perm
+  native_decide
 
 /-- 牌種列が少なくとも1種類の通常形待ちを持つこと。 -/
 def IsTenpai (tiles : List Tile) : Prop :=
