@@ -132,21 +132,46 @@ theorem pair_of_mem_pairChunkCandidates {chunk : TileChunk}
   obtain ⟨tile, _, rfl⟩ := List.mem_map.mp member
   exact ⟨.toitsu tile, rfl⟩
 
-/-- 完成面子候補を完成部品として扱う候補列。 -/
+/-!
+## 完成面子候補の完成部品への持ち上げ
+
+`mentsuChunkCandidates` は、列挙済みの全順子・刻子を、和了分割で使う完成部品へ変換した探索候補である。
+`mentsu_mem_mentsuChunkCandidates` は任意の完成面子を取りこぼさないこと、
+`mentsu_of_mem_mentsuChunkCandidates` は候補に雀頭が混ざらないことをそれぞれ保証する。
+-/
+
+/-- 全順子・刻子を、完成面子側の `TileChunk` として包んだ候補列。 -/
 def mentsuChunkCandidates : List TileChunk :=
   (MentsuCandidate.candidates).map fun mentsu => (Sum.inr mentsu : TileChunk)
 
-  /-- 任意の完成面子は完成面子候補リストに含まれる。 -/
-  theorem mentsu_mem_mentsuChunkCandidates (mentsu : MentsuCandidate) :
-    (Sum.inr mentsu : TileChunk) ∈ mentsuChunkCandidates := by
-    exact List.mem_map.mpr ⟨mentsu, _root_.MentsuCandidate.mem_candidates mentsu, rfl⟩
+/--
+任意の完成面子候補を包んだ完成部品は `mentsuChunkCandidates` に含まれる。
 
-  /-- 完成面子候補リストの要素は必ず面子チャンクである。 -/
-  theorem mentsu_of_mem_mentsuChunkCandidates {chunk : TileChunk}
-      (member : chunk ∈ mentsuChunkCandidates) :
-      ∃ mentsu : MentsuCandidate, chunk = .inr mentsu := by
-    obtain ⟨mentsu, _, rfl⟩ := List.mem_map.mp member
-    exact ⟨mentsu, rfl⟩
+これは完成面子側の候補列挙の完全性を保証する。先に `MentsuCandidate.mem_candidates` が
+全順子・刻子を列挙できることを示しているため、その候補を直和の右側 `.inr` に包めばよい。
+
+読むためのLean語彙: `List.mem_map`, `.mpr`, `_root_`, `exact`, `∈`, `rfl`。
+-/
+theorem mentsu_mem_mentsuChunkCandidates (mentsu : MentsuCandidate) :
+    (Sum.inr mentsu : TileChunk) ∈ mentsuChunkCandidates := by
+  exact List.mem_map.mpr ⟨mentsu, _root_.MentsuCandidate.mem_candidates mentsu, rfl⟩
+
+/--
+`mentsuChunkCandidates` に含まれる完成部品は、必ず何らかの順子または刻子である。
+
+これは完成面子側の候補列挙の健全性を保証し、雀頭が完成面子候補へ混ざらないことを示す。
+証明では `map` 元の `MentsuCandidate` を取り出し、それを求める完成面子として返す。
+
+読むためのLean語彙: `∃`, `obtain`, `List.mem_map`, `.mp`, `exact`, `rfl`。
+-/
+theorem mentsu_of_mem_mentsuChunkCandidates {chunk : TileChunk}
+    (member : chunk ∈ mentsuChunkCandidates) :
+    ∃ mentsu : MentsuCandidate, chunk = .inr mentsu := by
+  obtain ⟨mentsu, _, rfl⟩ := List.mem_map.mp member
+  exact ⟨mentsu, rfl⟩
+
+example : TileChunk.koutsu (.honor .Red) ∈ mentsuChunkCandidates := by
+  exact mentsu_mem_mentsuChunkCandidates (.koutsu (.honor .Red))
 
 /-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
 def decomposeMentsu : Nat → List Tile → List (List TileChunk)

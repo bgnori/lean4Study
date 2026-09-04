@@ -375,6 +375,42 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 健全性の証明は、候補が `map` 元のどの牌種から作られたかを取り出し、その牌種の対子を存在例として返す。
 この2定理を合わせると、後続の和了分割探索が調べる雀頭候補は、全雀頭とちょうど一致する。
 
+## 完成面子候補を完成部品として列挙する
+
+次の実例は、`WaitCompletionFinder.lean` の `mentsuChunkCandidates`、
+`mentsu_mem_mentsuChunkCandidates`、`mentsu_of_mem_mentsuChunkCandidates` である。
+
+先に、`MentsuCandidate.candidates` と `MentsuCandidate.mem_candidates` の節を読む。
+
+読む前に知る語彙:
+
+- `map`
+- `.inr`
+- `List.mem_map`
+- `.mp` と `.mpr`
+- `_root_`
+- `∈`
+- `∃`
+- `obtain`
+- `exact`
+- `rfl`
+
+先の節では、すべての順子・刻子が `MentsuCandidate.candidates` に含まれることを確認した。
+`mentsuChunkCandidates` は、その各候補を直和 `TileChunk` の完成面子側 `.inr` に包む。
+順子や刻子の内容を変えるのではなく、雀頭と同じ完成部品列へ入れられる形に持ち上げる処理である。
+
+雀頭候補と同様に、2つの定理が列挙の両方向を保証する。
+
+- `mentsu_mem_mentsuChunkCandidates`: 任意の順子・刻子を包んだ値が候補列に含まれる。
+- `mentsu_of_mem_mentsuChunkCandidates`: 候補列の各要素は何らかの順子・刻子を包んだ値である。
+
+完全性は、既存の `MentsuCandidate.mem_candidates` を `List.mem_map.mpr` で写像後の所属へ移す。
+健全性は、`List.mem_map.mp` で写像元の完成面子候補を取り出す。
+ソース中の `example` は、字牌の刻子 `777z` も完成部品候補に含まれることを確認する。
+
+この2定理により、後続の分割探索が完成面子として試す候補は、先に列挙した全順子・刻子とちょうど一致し、
+雀頭候補とは直和の左右で区別される。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

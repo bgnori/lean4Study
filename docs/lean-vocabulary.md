@@ -221,6 +221,18 @@
 `f source = result` となる要素 `source` が存在することとして読み替える定理である。
 `pair_of_mem_pairChunkCandidates` では、雀頭候補が `Tile.all` のどの牌種から作られたかを取り出す。
 
+### `.mp` と `.mpr`
+
+同値 `P ↔ Q` の証拠に対して、`.mp` は `P` の証拠を `Q` の証拠へ、`.mpr` は逆向きに変換する。
+`List.mem_map.mp` は写像後のリストに含まれることから写像元を取り出し、`List.mem_map.mpr` は
+写像元とその所属証拠から、写像後のリストに含まれることを示す。
+
+### `_root_`
+
+`_root_.Name` は、現在の名前空間の外にある最上位の名前 `Name` を明示する書き方である。
+`WaitCompletionFinder` 名前空間の中から `_root_.MentsuCandidate.mem_candidates` と書くと、
+最上位の `MentsuCandidate` 名前空間にある定理を指定できる。
+
 ### flatMap
 
 `xs.flatMap f` は、リストの各要素に `f` を適用してリストを作り、それらを1つにつなげる。
