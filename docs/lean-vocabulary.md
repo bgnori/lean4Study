@@ -157,6 +157,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `prefix` を連結した `(prefix ++ xs).Perm (prefix ++ ys)` の証拠を作る。
 `MentsuPartition.tiles_perm` では、残り牌について得た順列の両側へ、現在の完成面子の牌を加える。
 
+### `List.Perm.nil_eq`
+
+`List.Perm.nil_eq proof` は、空列とあるリストが順列関係にあるという証拠から、そのリストも空列であると示す。
+空列は要素を持たず、`List.Perm` は要素とその個数を保存するためである。`MentsuPartition.of_perm` の
+`done` の場合に、並べ替え後の入力も空であることを確認する。
+
 ### mergeSort
 
 `xs.mergeSort le` は、比較関数 `le` を使ってリスト `xs` を整列する。

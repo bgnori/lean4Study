@@ -307,7 +307,22 @@ example :
   · rfl
   · exact .done
 
-/-- 面子分解の導出は入力牌列の並び替えに依存しない。 -/
+/--
+正しい面子分解の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
+
+`tiles.Perm other` は、`other` が `tiles` の順番だけを変えた牌列であることを表す。結論では
+完成面子列 `chunks` と面子数 `fuel` を変えず、入力牌列だけを `other` へ置き換える。
+したがって、`MentsuPartition` が表す分解可能性は入力リストの並び順に依存しない。
+
+証明は分解証拠に対する帰納法で行い、並べ替え後の入力 `other` は各段階で変わるため一般化する。
+`done` では空列の順列も空列なので、再び `done` を作れる。`next` では、元の除去結果と入力間の順列を
+`exists_removeTiles_eq_some_iff_perm` から取り出し、仮定の順列とつなぐ。同じ先頭面子を `other` から
+除去できることと、その新しい残りが元の残りの順列であることが得られるので、帰納法の仮定で末尾の
+分解証拠を移し、`next` を作り直す。
+
+読むためのLean語彙: `List.Perm`, `induction ... generalizing`, `List.Perm.nil_eq`, `obtain`,
+`.trans`, `.symm`, `subst`。
+-/
 theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}
     {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks)
     (permutation : tiles.Perm other) : MentsuPartition fuel other chunks := by
@@ -326,6 +341,21 @@ theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}
           (removedPerm.trans permutation)
       exact .next mentsu candidate removeOther
         (inductionHypothesis outputPerm.symm)
+
+example :
+    MentsuPartition 1
+      [.numbered .Manzu 2, .numbered .Manzu 0, .numbered .Manzu 1]
+      [TileChunk.shuntsu .Manzu ⟨0, by decide⟩] := by
+  have ordered : MentsuPartition 1
+      [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2]
+      [TileChunk.shuntsu .Manzu ⟨0, by decide⟩] := by
+    apply MentsuPartition.next (TileChunk.shuntsu .Manzu ⟨0, by decide⟩)
+    · exact mentsu_mem_mentsuChunkCandidates
+        (.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩))
+    · rfl
+    · exact .done
+  apply ordered.of_perm
+  decide
 
 /--
 面子分割の全完成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。

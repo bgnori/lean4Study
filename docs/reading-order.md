@@ -520,6 +520,43 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース末尾の`777z`の例は、前節で作った`MentsuPartition`の証拠を同値定理の`.mpr`方向へ渡し、
 実際に`decomposeMentsu 1`の列挙結果へ含まれることを確認する。
 
+## 面子分解が入力順に依存しないことを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.of_perm` である。
+
+読む前に知る語彙:
+
+- `List.Perm`
+- `induction ... generalizing`
+- `List.Perm.nil_eq`
+- `obtain`
+- `.trans` と `.symm`
+- `subst`
+
+定理は `MentsuPartition fuel tiles chunks` と `tiles.Perm other` から、
+`MentsuPartition fuel other chunks` を作る。完成面子列 `chunks` とその個数 `fuel` は変えず、
+入力牌列だけを同じ牌種を同じ枚数持つ `other` へ置き換える。
+
+これは、分解証拠の意味が入力リストの偶然の並び順に依存しないことを保証する。ただし、牌種やその枚数を
+変えてよいわけではない。`List.Perm` が許すのは順番の変更だけで、重複数は保存される。
+
+証明は分解証拠に対する帰納法で進むが、帰納段階では並べ替え後の入力から先頭面子を除いた新しい残り牌列へ
+移る。そのため `generalizing other` により、特定の `other` に固定しない帰納法の仮定を用意する。
+
+- `done`: 元の入力 `tiles` は空である。空列と順列関係にある `other` も `List.Perm.nil_eq` により空なので、`subst other` の後に `.done` を返す。
+- `next`: 元の入力から先頭面子を除いた結果 `remaining` と、並べ替え後の入力から同じ面子を除いた結果 `output` を対応させる。
+
+`remove` を `exists_removeTiles_eq_some_iff_perm` へ渡すと、`mentsu.tiles ++ remaining` と元の入力 `tiles` の
+順列 `removedPerm` が得られる。これを仮定の `tiles.Perm other` と `.trans` でつなぐと、同じ先頭面子を
+`other` からも除けることが分かる。同値定理の逆向きは、実際の除去結果 `output` と、
+`output.Perm remaining` も同時に返す。
+
+帰納法の仮定が必要とする向きは `remaining` から新しい残り `output` なので、`outputPerm.symm` で順列を反転する。
+これにより末尾の分解証拠を `output` へ移し、新しい除去結果と合わせて `.next` を作り直せる。
+
+ソース中の例は、整列した `123m` の順子分解を直接構築し、入力だけを `312m` へ並べ替えた分解証拠を
+`of_perm` で得る。完成面子は同じ `123m` の順子のままである。
+
 ## 面子分解が入力牌を保存することを読む
 
 次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.tiles_perm` である。
