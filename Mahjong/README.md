@@ -99,9 +99,11 @@ For a single file:
 lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
-## Documentation Style
+## Development Notes
 
 Keep small proof examples near the definitions they explain. Put expensive
 `native_decide` regression tests under `MahjongTests/` so they are checked by
 the explicit test target without slowing normal library builds. Put broader
 enumerations and exploratory computations under `MahjongComputations/`.
+
+For the full documentation policy, see [docs/documentation-policy.md](../docs/documentation-policy.md).

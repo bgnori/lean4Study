@@ -1,18 +1,8 @@
 # Lean未経験者向けの読む順番
 
 この文書は、Leanを知らない読者が麻雀待ち分類の成果と正しさを追うための読み順を定める。
-Leanの構文説明をすべてソースコメントに詰め込まず、必要な語彙を先に導入してから定義や定理を読む。
-
-## 基本方針
-
-文章は1次元にしか読めないため、コード上の依存関係と説明上の依存関係を分けて扱う。
-
-- コード上の依存関係: Leanファイルがどの定義や定理を使っているか。
-- 説明上の依存関係: 読者がその説明を理解するために先に知るべき概念や語彙。
-
-読書体験では、説明上の依存関係を優先する。同じLean語彙の説明を各定理で繰り返さず、初出時に
-[lean-vocabulary.md](lean-vocabulary.md) へ集約する。
-麻雀待ち分類のプロジェクト語彙は [domain-vocabulary.md](domain-vocabulary.md) に集約する。
+未知のLean語彙は [lean-vocabulary.md](lean-vocabulary.md)、麻雀待ち分類のプロジェクト語彙は
+[domain-vocabulary.md](domain-vocabulary.md) を参照する。
 
 ## 最初の入口
 
@@ -36,7 +26,6 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 
 各節の「読む前に知る語彙」に未知の項目があれば、先に [lean-vocabulary.md](lean-vocabulary.md) を参照する。
 麻雀固有の「待ち核」「可約」「Reading」などは [domain-vocabulary.md](domain-vocabulary.md) にまとめている。
-設計や命名について説明中に見つかった検討事項は [review-backlog.md](review-backlog.md) に分離している。
 
 ## 物理牌の枚数を読む
 

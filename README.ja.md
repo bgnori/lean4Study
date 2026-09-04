@@ -74,16 +74,18 @@ lake build sevenTileReport
 lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
-## ドキュメント方針
+## ドキュメント
 
-ソースコメントは局所説明、`docs/` はLean未経験者向けに線形化された読書体験、語彙ページは重複回避の辞書として使います。
+読者向け:
 
 - [docs/reading-order.md](docs/reading-order.md): Lean未経験者向けの読む順番。
 - [docs/lean-vocabulary.md](docs/lean-vocabulary.md): `namespace`、`theorem`、`cases`、`simp` などの初出説明。
 - [docs/domain-vocabulary.md](docs/domain-vocabulary.md): 待ち核、可約、既約など、このプロジェクト内の説明語彙。
+
+作成・保守側の方針:
+
+- [docs/documentation-policy.md](docs/documentation-policy.md): 読者向け文書、語彙ページ、保守用文書の役割分担。
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): 定義・定理コメントに書くことと、語彙ページへ逃がすことの切り分け。
 - [docs/review-backlog.md](docs/review-backlog.md): ドキュメント整備後に検討する設計・命名課題。
 
 麻雀モジュール単位の概要は [Mahjong/README.md](Mahjong/README.md) を参照してください。
-
-Lean ソース内の module doc comment と doc comment は、定義や定理が麻雀待ち分類の中で何を意味するかに集中します。一般的なLean構文やタクティクの説明は `docs/lean-vocabulary.md` に集約します。

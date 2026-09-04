@@ -78,13 +78,17 @@ To check a single file directly:
 lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
-## Documentation Style
+## Documentation
 
-Lean source files are the primary documentation.  Module comments explain the intent, while checked `example` blocks serve as executable specifications.  README files give navigation and project context rather than duplicating every definition.
+Reader-facing guides:
 
 - [docs/reading-order.md](docs/reading-order.md): linear reading path for readers new to Lean.
 - [docs/lean-vocabulary.md](docs/lean-vocabulary.md): recurring Lean syntax and proof vocabulary.
 - [docs/domain-vocabulary.md](docs/domain-vocabulary.md): project-specific Mahjong terminology.
+
+Writer and maintenance notes:
+
+- [docs/documentation-policy.md](docs/documentation-policy.md): division between reader-facing guides, vocabulary pages, and maintenance notes.
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): division of responsibility between source comments and guides.
 - [docs/review-backlog.md](docs/review-backlog.md): design and naming questions discovered during documentation.
 - [Mahjong/README.md](Mahjong/README.md): module-level overview.
