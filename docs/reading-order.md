@@ -1569,3 +1569,46 @@ Finderの各結果に対応するReadingが存在することは、後続の `ex
 
 ソース中の短い例は `n = 0` の任意のReadingへ公開定理を適用する。この場合 `0 ≤ 4` は `omega` で解けるため、
 Readingの具体的な牌を調べずにFinder所属を得られる。
+
+## Finderと直接生成Readingが完全に対応することを読む
+
+次に `DirectWaitReading.lean` の `exists_reading_of_mem_findWaitCompletions` と
+`mem_findWaitCompletions_iff_exists_reading` を読む。
+
+読む前に知る語彙:
+
+- 存在量化 `∃`
+- 健全性と完全性
+- `constructor`
+- `rintro`
+- `.mp` と `.mpr`
+- `List.Perm`
+- `List.mergeSort_perm`
+
+直前の `completion_mem_findWaitCompletions` は、直接生成したReadingから既存Finderへ進む一方向を保証した。
+逆方向の `exists_reading_of_mem_findWaitCompletions` は、Finderが返した任意のcompletionから、同じ牌姿、待ち牌、
+正規化分割を持つReadingを復元する。復元される面子数 `n` は固定の入力ではなく、Finderが見つけた完成分割から
+決まるため、結論では `∃ n, ∃ reading : Reading n` と存在量化されている。
+
+復元では、Finderの `WinningPartition` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
+待ち牌が雀頭に含まれる場合は `.pair`、そうでなければ待ち牌を含む最初の面子位置を `.mentsu` として選ぶ。
+この選び方により、面子順と同一面子の選択位置に関する `Seed.valid` の正規化条件も満たせる。
+Finder側の `IsWaitFor` からは、通常手の面子数上限と4枚制限を復元する。
+
+`mem_findWaitCompletions_iff_exists_reading` は、この復元と直前の一方向を組み合わせた公開境界である。
+左辺は `found` が既存Finderの実行結果に含まれることを述べる。右辺は、通常手範囲のReadingが存在し、
+その `hand` が入力牌姿の標準表現に等しく、`completion` が `found` に等しいことを述べる。
+
+左から右は `exists_reading_of_mem_findWaitCompletions` をそのまま使う。これはFinderが返す結果をReading側が
+取りこぼさない完全性に当たる。右から左は存在証拠を `rintro` で取り出し、
+`completion_mem_findWaitCompletions` により、まず `hand reading` に対するFinder所属を得る。
+
+ここで `hand reading` は整列済みだが、元の `tiles` は任意の順番でよい。`List.mergeSort_perm` は
+`canonicalTiles tiles` と `tiles` が同じ牌を同数持つことを保証する。Finder所属を一度
+`mem_findWaitCompletions_iff` の宣言的仕様へ変換し、その順列に沿って元の入力順へ移し、再び実行結果への
+所属へ戻す。この方向は、Readingが表す結果をFinderが取りこぼさないというFinder側の完全性であり、
+同時に直接生成したcompletionがFinderの仕様に照らして正しいという直接生成側の健全性でもある。
+
+したがって、完成形から待ち牌を除く直接生成と、牌姿へ候補牌を加えるFinderは、入力順を正規化すれば
+同じcompletionを過不足なく表す。`MahjongTests/DirectWaitReading.lean` の7枚形の例は、任意の `found` について
+この同値定理をそのまま適用している。

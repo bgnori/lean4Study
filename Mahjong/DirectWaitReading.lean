@@ -695,6 +695,14 @@ private theorem selectedCanonical_at_idxOf {candidate : MentsuCandidate}
 /--
 既存 Finder が返す各 completion には、それと同じ牌姿・待ち牌・正規化分割を持つ
 直接生成 Reading が存在する。面子数は Finder の分割から復元する。
+
+Finderの `WinningPartition` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
+待ち牌が雀頭に含まれれば雀頭を選択し、そうでなければ待ち牌を含む最初の面子を選択する。これにより
+面子順と同一面子の選択位置に関する正規化条件を満たす。Finder側の待ち証拠から4枚制限と通常手の
+面子数上限も復元できるため、得られたSeedへ妥当性証拠を付けて `Reading` にできる。
+
+結論の牌姿は `canonicalTiles tiles` と比較する。Finderの入力順は任意だが、Readingの `hand` は
+牌種順へ整列された標準表現だからである。
 -/
 theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
     {found : WaitCompletion} (member : found ∈ findWaitCompletions tiles) :
@@ -823,7 +831,20 @@ theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
 /--
 既存 Finder の出力と直接生成 Reading は、牌姿のリスト順を正規化すれば完全に同値である。
 
-右辺は牌姿全体を列挙せず、1つの Reading とその通常手範囲の証拠だけを要求する。
+左辺は既存の加牌方向の探索結果への所属、右辺は完成形から待ち牌を除く方向で作られたReadingの存在を表す。
+右辺は牌姿全体を列挙せず、同じ正規化牌姿とcompletionを持つ1つのReading、およびその面子数が
+通常手の範囲内であるという証拠だけを要求する。
+
+左から右は `exists_reading_of_mem_findWaitCompletions` で、Finderが持つ待ち牌と完成分割からReadingを復元する。
+右から左は `completion_mem_findWaitCompletions` で、そのReadingをFinderへ戻す。ただし右辺が保証するのは
+`hand reading = canonicalTiles tiles` であり、元の `tiles` とは並び順が異なり得る。そのため、一度得た
+Finder所属を `mem_findWaitCompletions_iff` で宣言的仕様へ変換し、`List.mergeSort_perm` が与える順列に沿って
+元の入力順へ移してから、再び実行結果への所属へ戻す。
+
+したがって二つの生成方法は探索手順こそ異なるが、通常手について同じ待ち牌と正規化分割を過不足なく表す。
+
+読むためのLean語彙: 存在量化 `∃`, `constructor`, `rintro`, `.mp`, `.mpr`,
+`List.Perm`, `List.mergeSort_perm`。
 -/
 theorem mem_findWaitCompletions_iff_exists_reading
     (tiles : List Tile) (found : WaitCompletion) :
