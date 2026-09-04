@@ -323,6 +323,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `cons` の場合には、残りの列について同じ命題が成り立つという帰納法の仮定も使える。
 `removeTiles_append_left` では、除去対象の牌を先頭から1枚ずつ処理する再帰と同じ構造で証明を進める。
 
+### `List.length`
+
+`xs.length` または `List.length xs` は、リスト `xs` の要素数を返す。空列の長さは `0` で、
+`first :: rest` の長さは `rest.length + 1` である。`MentsuPartition.chunks_length` では、
+分解証拠へ完成面子を1つ追加するたび、結果列の長さと `fuel` がともに1増えることを使う。
+
 ### `induction ... generalizing`
 
 `induction fuel generalizing tiles chunks` は、`fuel`について帰納法を行うとき、`tiles`と`chunks`を
@@ -380,6 +386,9 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 定義や定理だけを使う。
 
 `simp [all]` のように `only` を付けない場合は、角括弧内の指定に加えて、Leanが標準的に知っている単純化規則も使う。
+
+角括弧には定義や定理だけでなく、`simp [inductionHypothesis]` のように手元の等式も指定できる。
+この場合、`simp` は帰納法の仮定を現在の目標の書き換え規則として使う。
 
 `simp [tiles, Shuntsu.tiles] at honor_mem` のように `at` を付けると、現在の目標ではなく、手元にある仮定
 `honor_mem` を単純化する。

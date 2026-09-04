@@ -382,7 +382,15 @@ example
         obtain ⟨rest, rfl⟩ := inductionHypothesis
         exact ⟨first :: rest, rfl⟩
 
-  /-- 面子分割の `fuel` は生成される面子数に一致する。 -/
+  /--
+  面子分割の `fuel` は、生成される完成面子列の長さに一致する。
+
+  したがって `fuel` は探索回数の上限ではなく、この分解が含む完成面子の個数として読める。
+  証明は分解証拠に対する帰納法で行う。`done` では両辺が `0` であり、`next` では
+  完成面子列の長さと `fuel` がともに1増えるので、残りの分解に対する帰納法の仮定から従う。
+
+  読むためのLean語彙: `List.length`, `induction`, `rfl`, `simp [inductionHypothesis]`。
+  -/
   theorem MentsuPartition.chunks_length {fuel : Nat} {tiles : List Tile}
       {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
       chunks.length = fuel := by
@@ -390,6 +398,13 @@ example
     | done => rfl
     | next mentsu candidate remove tail inductionHypothesis =>
         simp [inductionHypothesis]
+
+  example
+      (partition : MentsuPartition 1
+        [.honor .Red, .honor .Red, .honor .Red]
+        [TileChunk.koutsu (.honor .Red)]) :
+      [TileChunk.koutsu (.honor .Red)].length = 1 := by
+    exact partition.chunks_length
 
 /-- 完成面子候補列を平坦化した牌列は、その面子列自身へ分解できる。 -/
 theorem mentsuPartition_flatMap (chunks : List TileChunk)
