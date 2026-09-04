@@ -173,7 +173,23 @@ theorem mentsu_of_mem_mentsuChunkCandidates {chunk : TileChunk}
 example : TileChunk.koutsu (.honor .Red) ∈ mentsuChunkCandidates := by
   exact mentsu_mem_mentsuChunkCandidates (.koutsu (.honor .Red))
 
-/-- 牌種リストを完成面子だけに分解する。`fuel` は残り面子数の上限として使う。 -/
+/-!
+## 牌種列を指定個数の完成面子へ分解する
+
+`decomposeMentsu fuel tiles` は、牌種列 `tiles` 全体をちょうど `fuel` 個の順子・刻子へ分解する方法を
+すべて列挙する。ここで `fuel` は再帰回数の単なる上限ではなく、求める完成面子の個数である。
+
+`fuel = 0` では牌が残っていない場合だけ、空の分解を1件返す。`fuel + 1` では
+`mentsuChunkCandidates` から最初の完成面子を選び、`removeTiles` に成功した候補について、
+残りをちょうど `fuel` 個へ再帰的に分解する。除去できない候補や、指定個数を選んだ後に牌が余る枝は捨てる。
+
+結果は `List (List TileChunk)` であり、外側のリストが異なる分解方法、内側のリストが
+1つの分解を構成する完成面子列を表す。
+
+読むためのLean語彙: `fuel`, `fuel + 1`, `List.flatten`, `map`, `match`, `[]`, `::`。
+-/
+
+/-- 牌種列全体を、ちょうど指定個数の順子・刻子へ分解する方法を列挙する。 -/
 def decomposeMentsu : Nat → List Tile → List (List TileChunk)
   | 0, tiles =>
       if tiles.isEmpty then [[]] else []
@@ -183,6 +199,9 @@ def decomposeMentsu : Nat → List Tile → List (List TileChunk)
         | some remaining =>
             (decomposeMentsu fuel remaining).map fun winningChunks => mentsu :: winningChunks
         | none => [])
+
+    example : decomposeMentsu 0 [] = [[]] := rfl
+    example : decomposeMentsu 0 [.numbered .Manzu 0] = [] := rfl
 
 /--
 `tiles` をちょうど `fuel` 個の完成面子へ分解できることを表す宣言的な導出関係。
