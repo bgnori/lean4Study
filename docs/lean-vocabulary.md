@@ -96,6 +96,18 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `Decidable P` は、命題 `P` が成り立つかどうかをLeanが判定できることを表す。
 `instance ... : Decidable (...)` は、その命題を条件分岐や計算で使えるようにするための登録である。
 
+### decide
+
+`decide P` は、Leanが見つけた `Decidable P` の手続きを実行し、命題 `P` の真偽をBool値で返す。
+`decidableIsTenpai` が登録されているため、`decide (IsTenpai tiles)` は待ち牌列挙を通じて
+牌姿が通常形聴牌かどうかを計算できる。
+
+### infer_instance
+
+`infer_instance` は、現在の目標を満たす型クラスのインスタンスをLeanに探索させるタクティクである。
+`decidableIsTenpai` では、目標を待ち牌列が空でないことの `Decidable` へ書き換えた後、
+リストに対する標準の判定手続きを選ばせる。
+
 ### example
 
 `example` は、名前を付けずにLeanへ確認させる小さな主張である。

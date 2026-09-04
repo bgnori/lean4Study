@@ -958,6 +958,33 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `native_decide` で計算し、その等式で所属目標を書き換える。最後に同値定理の `.mp` によって、
 計算で得た所属を宣言的な正しさの証拠へ変換する。
 
+## 宣言的な聴牌仕様を計算で判定する
+
+次の短い実例は、`WaitCompletionFinder.lean` の `decidableIsTenpai` である。
+
+読む前に知る語彙:
+
+- `Prop`
+- `Decidable`
+- `instance`
+- `rw`
+- `infer_instance`
+- `decide`
+
+`IsTenpai tiles` は「`IsWaitFor tiles candidate` を満たす牌種が存在する」という宣言的な命題である。
+命題として意味を記述するだけなら十分だが、プログラムがその真偽で分岐したり、具体的な手牌を
+`decide` で評価したりするには `Decidable (IsTenpai tiles)`、つまり判定手続きが必要になる。
+
+`decidableIsTenpai` は、新しい探索処理を別に実装するのではなく、すでに正しさを示した
+`waitingTiles` を判定手続きとして再利用する。証明中の `rw [← waitingTiles_ne_nil_iff]` は、
+求める `Decidable (IsTenpai tiles)` を `Decidable (waitingTiles tiles ≠ [])` へ置き換える。
+後者は具体的なリストが空かどうかの判定なので、`infer_instance` がLean標準の手続きを見つけられる。
+
+`instance` として登録されるため、利用側はこの変換を毎回指定する必要がない。
+`decide (IsTenpai tiles)` と書けば、Leanが `decidableIsTenpai` を自動的に選び、`waitingTiles` の計算を
+通してBool値を返す。ソース中の二つの例は、赤牌1枚が単騎聴牌として `true`、空手牌が合法な
+通常形聴牌ではないため `false` になることを `native_decide` で確認する。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

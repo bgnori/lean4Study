@@ -903,9 +903,27 @@ example : CompletionFor [.honor .Red]
 def waitCompletionCount (tiles : List Tile) : Nat :=
   (findWaitCompletions tiles).length
 
+/--
+宣言的な通常形聴牌 `IsTenpai tiles` が成り立つかを、Leanが計算で判定できるようにする。
+
+`IsTenpai` は待ち牌の存在として定義されているため、そのままでは判定手続きが明示されていない。
+`waitingTiles_ne_nil_iff` を逆向きに使うと、判定対象を実行可能な列挙 `waitingTiles tiles` が
+空でないことへ置き換えられる。リストが空でないかは標準の `Decidable` で判定できるため、
+`infer_instance` がその手続きを選ぶ。
+
+このインスタンスにより、`IsTenpai tiles` を `decide` や `if` の条件として利用できる。
+
+読むためのLean語彙: `Decidable`, `instance`, `rw`, `infer_instance`, `decide`。
+-/
 instance decidableIsTenpai (tiles : List Tile) : Decidable (IsTenpai tiles) := by
   rw [← waitingTiles_ne_nil_iff]
   infer_instance
+
+example : decide (IsTenpai [.honor .Red]) = true := by
+  native_decide
+
+example : decide (IsTenpai ([] : List Tile)) = false := by
+  native_decide
 
 /-- `tiles` から完成面子を1つ取り除いて得られる牌種リストの候補。 -/
 def mentsuReductions (tiles : List Tile) : List (List Tile) :=
