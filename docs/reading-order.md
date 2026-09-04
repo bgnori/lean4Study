@@ -1468,3 +1468,32 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 ソース中の例は、面子を持たない赤牌対子だけの完成形を作り、雀頭から赤牌を除く単騎Seedが
 `directSeeds 0` に含まれることを示す。`Seed.valid` は具体的な有限計算として `native_decide` で確認し、
 `directSeeds_complete` に渡して生成結果への所属を得る。
+
+## 妥当なSeedを証拠付きReadingとして公開することを読む
+
+次に `DirectWaitReading.lean` の `directReadings` と `mem_directReadings` を読む。
+
+読む前に知る語彙:
+
+- 部分型 `{ x : α // 条件 }`
+- `List.attach`
+- `List.map`
+- `List.mem_map`
+- `Subtype.ext`
+
+`Reading n` は新しい実行データを加えた構造体ではなく、Seedと、そのSeedが `Seed.valid` を満たす証拠の組である。
+直前の `directSeeds` はSeedの列なので、利用側へReadingとして公開するには各要素へ妥当性証拠を付ける必要がある。
+
+`directReadings` はまず `attach` により、各Seedを「そのSeed本体」と「`directSeeds n` に含まれる証拠」の組へ変える。
+次の `map` では `directSeeds_sound` を使い、所属証拠を `Seed.valid` の証拠へ変換する。値の候補を追加したり
+削除したりする処理ではなく、直前に確立した健全性を使って同じSeedを証拠付きの型へ持ち上げている。
+
+`mem_directReadings` は、この持ち上げで妥当なReadingを失わないことを示す。任意の `reading : Reading n` は
+すでに `reading.2` として妥当性証拠を持つため、`directSeeds_complete reading.2` からSeed本体が
+`directSeeds n` に含まれると分かる。この所属証拠をSeed本体と組にすれば、`attach` 後の列の要素を構成できる。
+
+最後の `Subtype.ext` は、二つのReadingが持つ妥当性証拠そのものを比較せず、Seed本体が同じならReadingも同じだと
+結論する。数学的な対象はSeedであり、それが妥当であることの証明手順の違いは別のReadingを生まない。
+
+ソース中の例は、直前と同じ赤牌対子のSeedに `native_decide` で妥当性証拠を付けて `Reading 0` を作り、
+`mem_directReadings` だけで実行用列挙への所属が得られることを示す。

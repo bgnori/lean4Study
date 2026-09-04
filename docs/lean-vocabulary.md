@@ -236,6 +236,10 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `tile : { pt : PhysicalTile // pt ∈ chunk.tiles }` は、`tile` が単なる物理牌ではなく、
 `chunk.tiles` に含まれていることも一緒に持っている値である、という意味になる。
 
+部分型の値 `value` からは、`value.1` で元の値、`value.2` で条件の証拠を取り出せる。
+`Subtype.ext` は、条件の証拠を作った手順が異なっていても、`.1` の元の値が等しければ部分型の値も等しいと示す。
+`mem_directReadings` では、同じSeedに別の経路で妥当性証拠を付けた二つのReadingを同一視する。
+
 ### 直積 `×`
 
 `A × B` は、A型の値とB型の値をペアで持つ型である。
@@ -300,6 +304,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `xs.map f` は、リスト `xs` の各要素に関数 `f` を適用し、結果を同じ順番で並べたリストを作る。
 `waitCores` では、各 `IrreducibleWaitReading` から待ち牌と核成分列だけを持つ `WaitCore` を作る。
+
+### `List.attach`
+
+`xs.attach` は各要素 `x` に、`x ∈ xs` という所属証拠を付けたリストを返す。要素の追加や削除は行わない。
+`directReadings` では、`directSeeds n` の各Seedへ所属証拠を付け、その証拠を健全性定理に渡して
+`Seed.valid` の証拠へ変換するために使う。
 
 ### `List.mem_map`
 

@@ -360,11 +360,27 @@ example :
   apply directSeeds_complete
   native_decide
 
-/-- 妥当性証拠を付け、直接生成器の出力を Reading の集合として公開する。 -/
+/--
+`directSeeds` の各要素に妥当性証拠を付け、同じ生成結果を `Reading` の列として公開する。
+
+`attach` が各Seedに `directSeeds n` への所属証拠を付け、`directSeeds_sound` がその証拠を
+`Seed.valid` の証拠へ変換する。Seed自体を選別し直す処理ではない。
+-/
 def directReadings (n : Nat) : List (Reading n) :=
   (directSeeds n).attach.map fun seed => ⟨seed.1, directSeeds_sound seed.2⟩
 
-/-- すべての Reading は、全 Seed を走査しない直接生成器から得られる。 -/
+/--
+すべての `Reading` は、全Seedを走査しない `directReadings` に含まれる。
+
+`Reading n` は、Seed本体 `reading.1` と妥当性証拠 `reading.2` を持つ部分型である。
+`directSeeds_complete reading.2` によりSeed本体が `directSeeds n` に含まれると分かるので、
+その値と所属証拠の組 `generated` は `attach` 後の列に含まれる。`map` が付け直す妥当性証拠は
+元の `reading.2` と同じ証明項である必要はないため、最後は `Subtype.ext` でSeed本体だけを比較する。
+
+したがって、実行用の列挙は宣言的に定義された任意のReadingを取りこぼさない。
+
+読むためのLean語彙: 部分型, `List.attach`, `List.mem_map`, `Subtype.ext`。
+-/
 theorem mem_directReadings (reading : Reading n) :
     reading ∈ directReadings n := by
   apply List.mem_map.mpr
@@ -373,6 +389,18 @@ theorem mem_directReadings (reading : Reading n) :
   refine ⟨generated, by simp [generated], ?_⟩
   apply Subtype.ext
   rfl
+
+example :
+    let seed : Seed 0 :=
+      { shape :=
+          { pair := .toitsu (.honor .Red)
+            mentsu := fun index => Fin.elim0 index }
+        selected := .pair
+        wait := .honor .Red }
+    let reading : Reading 0 := ⟨seed, by native_decide⟩
+    reading ∈ directReadings 0 := by
+  dsimp only
+  exact mem_directReadings _
 
 /-!
 ## 疎な構造コード
