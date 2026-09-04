@@ -60,7 +60,8 @@ private theorem orderKeyLE_total (a b : WinningComponent) :
 ここで同一視するのは、同じ和了構成部品を同じ個数だけ含み、リスト上の順番だけが異なる列である。
 入力に含まれる和了構成部品とその個数は変えず、その同値な列から標準順の1列を選ぶ。
 
-返り値の型は通常の `List WinningComponent` であり、「標準順である」という証拠を型としては保持しない。
+この関数単体の返り値は通常の `List WinningComponent` である。公開結果として保持するときは、
+`CanonicalWinningComponents.ofList` で標準順の証拠付きの型へ包む。
 -/
 def canonicalize (winningComponents : List WinningComponent) : List WinningComponent :=
   winningComponents.mergeSort orderLE
@@ -100,10 +101,68 @@ theorem canonicalize_eq_of_perm {first second : List WinningComponent}
   · exact (List.mergeSort_perm _ _).trans
       (permutation.trans (List.mergeSort_perm _ _).symm)
 
+/-- 標準化済みの列をもう一度標準化しても結果は変わらない。 -/
+theorem canonicalize_idempotent (winningComponents : List WinningComponent) :
+    canonicalize (canonicalize winningComponents) = canonicalize winningComponents := by
+  apply canonicalize_eq_of_perm
+  exact List.mergeSort_perm _ _
+
 end WinningComponent
 
-/-- 1つの待ち牌と、その牌を加えた和了形の1つの分割。 -/
+/-- 標準順へ正規化済みである証拠を持つ和了構成部品列。 -/
+structure CanonicalWinningComponents where
+  components : List WinningComponent
+  canonical : components = WinningComponent.canonicalize components
+
+namespace CanonicalWinningComponents
+
+/-- 任意の和了構成部品列を標準順へ正規化し、証拠付きの値として包む。 -/
+def ofList (components : List WinningComponent) : CanonicalWinningComponents :=
+  { components := WinningComponent.canonicalize components
+    canonical := (WinningComponent.canonicalize_idempotent components).symm }
+
+/-- 証拠を忘れて、標準順の和了構成部品列を通常のリストとして取り出す。 -/
+def toList (components : CanonicalWinningComponents) : List WinningComponent :=
+  components.components
+
+@[simp] theorem toList_ofList (components : List WinningComponent) :
+    (ofList components).toList = WinningComponent.canonicalize components := rfl
+
+theorem ext {first second : CanonicalWinningComponents}
+    (componentsEq : first.components = second.components) : first = second := by
+  cases first with
+  | mk firstComponents firstCanonical =>
+      cases second with
+      | mk secondComponents secondCanonical =>
+          simp at componentsEq
+          subst secondComponents
+          simp
+
+theorem ofList_eq_of_perm {first second : List WinningComponent}
+    (permutation : first.Perm second) :
+    ofList first = ofList second := by
+  apply ext
+  exact WinningComponent.canonicalize_eq_of_perm permutation
+
+instance : BEq CanonicalWinningComponents where
+  beq first second := first.components == second.components
+
+instance : DecidableEq CanonicalWinningComponents := fun first second =>
+  if componentsEq : first.components = second.components then
+    isTrue (ext componentsEq)
+  else
+    isFalse (fun equal => by
+      apply componentsEq
+      cases equal
+      rfl)
+
+instance : Repr CanonicalWinningComponents where
+  reprPrec components prec := reprPrec components.components prec
+
+end CanonicalWinningComponents
+
+/-- 1つの待ち牌と、その牌を加えた和了形の標準順分割。 -/
 structure WaitCompletion where
   wait : Tile
-  winningComponents : List WinningComponent
+  winningComponents : CanonicalWinningComponents
 deriving BEq, DecidableEq, Repr

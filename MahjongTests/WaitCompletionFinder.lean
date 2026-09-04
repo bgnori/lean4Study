@@ -28,7 +28,7 @@ private def manzuKoutsu (rank : Rank) : WinningComponent :=
   .koutsu (.numbered .Manzu rank)
 
 private def manzuWaitCompletion (wait : Rank) (winningComponents : List WinningComponent) : WaitCompletion :=
-  { wait := .numbered .Manzu wait, winningComponents }
+  { wait := .numbered .Manzu wait, winningComponents := CanonicalWinningComponents.ofList winningComponents }
 
 example :
     waitingTiles testHandA = manzu [1, 4] ++ souzu [7] ∧

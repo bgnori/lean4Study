@@ -267,13 +267,15 @@
 
 ## 和了構成部品列を標準順で表す
 
-次の実例は、`WaitCompletion.lean` の `WinningComponent.canonicalize` と `WinningComponent.canonicalize_eq_of_perm` である。
+次の実例は、`WaitCompletion.lean` の `WinningComponent.canonicalize`、
+`CanonicalWinningComponents`、`WinningComponent.canonicalize_eq_of_perm` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品列の標準順表現」を読む。
 
 読む前に知る語彙:
 
 - `List.Perm`
+- `structure`
 - `mergeSort`
 - `apply`
 - `intro`
@@ -288,10 +290,15 @@
 
 ここで標準化される対象は `WinningComponent` 単体ではなく、和了分割を表す `List WinningComponent` である。
 また、同一視するのはリスト上の順番だけであり、異なる分割や牌姿を同じものにする処理ではない。
-返り値は通常の `List WinningComponent` なので、標準順であること自体は型から判別できない。
+`canonicalize` 単体の返り値は通常のリストだが、公開結果では `CanonicalWinningComponents` が
+リスト本体と標準順であることの証拠をまとめて持つ。
 
 ソース中の `example` は、雀頭 `55m` と順子 `456p` の順番を入れ替えた2つの列が、
 標準順へ変換した後には同じ列になることを計算で確認する。
+
+`CanonicalWinningComponents.ofList` は、任意の和了構成部品列を標準順へ変換し、証拠付きの値として包む。
+`WaitCompletion.winningComponents` はこの型なので、Finderが外部へ返す和了分割は型の時点で標準順である。
+Reading生成のように通常のリスト処理へ渡す場面では、`CanonicalWinningComponents.toList` で本体を取り出す。
 
 `canonicalize_eq_of_perm` は、この具体例を任意の和了構成部品列へ一般化する。
 仮定 `first.Perm second` は、2つの列が同じ要素を同じ個数だけ持ち、順番だけが異なり得ることを表す。

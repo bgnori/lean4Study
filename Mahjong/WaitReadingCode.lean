@@ -225,15 +225,17 @@ private def waitReadings (completion : WaitCompletion) :
         | some incomplete =>
             (incomplete :: rest.map completeComponent) :: later
         | none => later
-  selectWinningComponent completion.winningComponents
+  selectWinningComponent completion.winningComponents.toList
 
 example : waitReadings
     { wait := .numbered .Manzu 4
       winningComponents :=
-        [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] } =
+        CanonicalWinningComponents.ofList
+          [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] } =
     [[{ kind := .tanki, tiles := [.numbered .Manzu 4] },
       { kind := .shuntsu, tiles :=
-        [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }]] := rfl
+        [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }]] := by
+  native_decide
 
 /--
 発見済みの待ちと和了分割をすべて処理し、待ち牌ごとの具体牌付きReadingを正規化して列挙する。
@@ -253,10 +255,12 @@ def concreteWaitReadings
 example : concreteWaitReadings
     [{ wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩, WinningComponent.pair (.numbered .Manzu 4)] },
+         CanonicalWinningComponents.ofList
+           [WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩, WinningComponent.pair (.numbered .Manzu 4)] },
      { wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4
        components :=
          [{ kind := .tanki, tiles := [.numbered .Manzu 4] },
@@ -320,10 +324,12 @@ def abstractWaitReadings
 example : abstractWaitReadings
     [{ wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
      { wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨3, by decide⟩] }] =
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨3, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4, components := [.tanki, .shuntsu] }] := by
   native_decide
 
@@ -345,7 +351,8 @@ def waitReadingCodeEntries
 example : waitReadingCodeEntries
     [{ wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [{ wait := .numbered .Manzu 4, code := 26 }] := by
   native_decide
 
@@ -363,7 +370,8 @@ def abstractWaitReadingCodeWithWait
 example : abstractWaitReadingCodeWithWait
     [{ wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [(26, .numbered .Manzu 4)] := by
   native_decide
 
@@ -382,10 +390,12 @@ def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
 example : abstractWaitReadingCode
     [{ wait := .numbered .Manzu 4
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] },
      { wait := .numbered .Manzu 5
        winningComponents :=
-         [WinningComponent.pair (.numbered .Manzu 5), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
+         CanonicalWinningComponents.ofList
+           [WinningComponent.pair (.numbered .Manzu 5), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [26] := by
   native_decide
 

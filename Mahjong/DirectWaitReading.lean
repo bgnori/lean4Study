@@ -633,7 +633,7 @@ private theorem reading_waitFor (reading : Reading n) (standard : n ≤ standard
 /-- Reading に対応する待ち牌と完成分割。既存の探索器と接続するための表示である。 -/
 def completion (reading : Reading n) : WaitCompletion :=
   { wait := reading.1.wait
-    winningComponents := WinningComponent.canonicalize reading.1.shape.components }
+    winningComponents := CanonicalWinningComponents.ofList reading.1.shape.components }
 
 /--
 通常手範囲の直接生成Readingは、同じ牌姿に対する既存Finderの出力に必ず現れる。
@@ -780,7 +780,7 @@ theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
               (List.Perm.cons_inv (List.perm_cons_erase (by simp)).symm)
           · unfold completion
             congr 1
-            exact WinningComponent.canonicalize_eq_of_perm componentsPerm
+            exact CanonicalWinningComponents.ofList_eq_of_perm componentsPerm
         · have waitInMentsu : wait ∈
               (rawMentsu.map fun candidate => (Sum.inr candidate : WinningComponent)).flatMap
                 WinningComponent.tiles := by
@@ -826,7 +826,7 @@ theorem exists_reading_of_mem_findWaitCompletions {tiles : List Tile}
               (List.Perm.cons_inv (List.perm_cons_erase (by simp)).symm)
           · unfold completion
             congr 1
-            exact WinningComponent.canonicalize_eq_of_perm componentsPerm
+            exact CanonicalWinningComponents.ofList_eq_of_perm componentsPerm
 
 /--
 既存 Finder の出力と直接生成 Reading は、牌姿のリスト順を正規化すれば完全に同値である。

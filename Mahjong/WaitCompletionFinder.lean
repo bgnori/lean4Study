@@ -844,7 +844,7 @@ example : IsTenpai [.honor .Red] := by
 def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
   ((waitingTiles tiles).flatMap fun wait =>
     (winningPartitions (wait :: tiles)).map fun winningComponents =>
-      { wait, winningComponents := WinningComponent.canonicalize winningComponents }).dedup
+      { wait, winningComponents := CanonicalWinningComponents.ofList winningComponents }).dedup
 
 /--
 `completion` が牌姿 `tiles` の待ちと和了分割を表すことの宣言的仕様。
@@ -860,7 +860,7 @@ inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
     (waitFor : IsWaitFor tiles wait)
     (partition : WinningPartition (wait :: tiles) rawComponents) :
     CompletionFor tiles
-      { wait, winningComponents := WinningComponent.canonicalize rawComponents }
+  { wait, winningComponents := CanonicalWinningComponents.ofList rawComponents }
 
 /--
 同じ牌種を同じ枚数だけ含む牌姿へ並べ替えても、`CompletionFor` の証拠をそのまま移せる。
@@ -922,10 +922,12 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
           ⟨rawComponents, (mem_winningPartitions_iff _ _).mpr partition, rfl⟩
 
 example : CompletionFor [.honor .Red]
-    { wait := .honor .Red, winningComponents := [WinningComponent.pair (.honor .Red)] } := by
+    { wait := .honor .Red
+      winningComponents := CanonicalWinningComponents.ofList [WinningComponent.pair (.honor .Red)] } := by
   apply (mem_findWaitCompletions_iff _ _).mp
   have output : findWaitCompletions [.honor .Red] =
-      [{ wait := .honor .Red, winningComponents := [WinningComponent.pair (.honor .Red)] }] := by
+      [{ wait := .honor .Red
+         winningComponents := CanonicalWinningComponents.ofList [WinningComponent.pair (.honor .Red)] }] := by
     native_decide
   simp [output]
 

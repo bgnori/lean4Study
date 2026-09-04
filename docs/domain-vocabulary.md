@@ -19,8 +19,9 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 
 ## 和了構成部品列の標準順表現
 
-和了分割は、和了構成部品を並べた `List WinningComponent` として保持される。同じ和了構成部品を同じ個数だけ含むなら、
-リスト上の順番が違っても同じ和了分割として扱いたい。この関係はコード上の `List.Perm` に対応する。
+和了分割は、内部探索では和了構成部品を並べた `List WinningComponent` として扱われる。
+同じ和了構成部品を同じ個数だけ含むなら、リスト上の順番が違っても同じ和了分割として扱いたい。
+この関係はコード上の `List.Perm` に対応する。
 
 このプロジェクトで和了構成部品列の「標準順表現」というときは、次の範囲だけを指す。
 
@@ -29,13 +30,15 @@ Leanの構文やタクティクは [lean-vocabulary.md](lean-vocabulary.md) に�
 - 保存する情報: 各和了構成部品とその個数
 - 代表の選び方: `WinningComponent.orderKey` の昇順
 - 変換する関数: `WinningComponent.canonicalize`
+- 公開結果の型: `CanonicalWinningComponents`
 
 したがって、牌姿、待ち牌、和了分割の選び方まで同一視する一般的な「正規形」ではない。
 `WinningComponent.canonicalize_eq_of_perm` が保証するのは、`List.Perm` の関係にある2列が同じ標準順表現へ
 変換されることだけである。
 
-現状では標準順表現も通常の `List WinningComponent` であり、「標準順である」という証拠を型に保持しない。
-そのため、任意の `List WinningComponent` と `canonicalize` の出力は型だけでは区別できない。
+`WaitCompletion.winningComponents` は `CanonicalWinningComponents` として保持される。
+この型は、リスト本体と「そのリストが `WinningComponent.canonicalize` の結果と一致する」という証拠を持つ。
+通常のリストとして処理したい場合は `CanonicalWinningComponents.toList` で取り出す。
 
 ## Reading
 
