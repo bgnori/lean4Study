@@ -567,7 +567,23 @@ theorem mem_winningPartitions_iff (tiles : List Tile) (chunks : List TileChunk) 
         · exact List.mem_map.mpr
             ⟨rest, (mem_decomposeMentsu_iff _ _ _).mpr partition, rfl⟩
 
-/-- 通常和了分割の導出は入力牌列の並び替えに依存しない。 -/
+/--
+正しい通常和了分割の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
+
+`tiles.Perm other` は入力牌列の順番だけが異なることを表す。結論では雀頭と完成面子列 `chunks` を
+変えず、入力だけを `other` へ置き換えるため、通常和了としての分割可能性が入力順に依存しないと分かる。
+
+証明では、元の雀頭除去から「雀頭の牌と残り牌」が `tiles` の順列であることを得て、仮定の順列とつなぐ。
+これにより `other` からも同じ雀頭を除去でき、除去後の `output` が元の `remaining` の順列になる。
+順列は長さを保存するので `outputPerm.length_eq` から両者の長さが等しいと分かる。
+
+この長さの等式は、面子分解の個数が `remaining.length / mentsuTileCount` として型に現れるため必要になる。
+`rw` で元の面子分解証拠の添字を `output.length` に揃えた後、`MentsuPartition.of_perm` でその証拠を
+新しい残り牌列へ移し、同じ雀頭と完成面子列を持つ `WinningPartition` を作り直す。
+
+読むためのLean語彙: `List.Perm`, `cases`, `obtain`, `.trans`, `.symm`, `List.Perm.length_eq`,
+`rw [← ...] at ...`。
+-/
 theorem WinningPartition.of_perm {tiles other : List Tile} {chunks : List TileChunk}
     (partition : WinningPartition tiles chunks) (permutation : tiles.Perm other) :
     WinningPartition other chunks := by
@@ -584,6 +600,19 @@ theorem WinningPartition.of_perm {tiles other : List Tile} {chunks : List TileCh
       rw [← sameLength] at mentsuPartition
       exact .intro pair pairCandidate removeOther
         (mentsuPartition.of_perm outputPerm.symm)
+
+example
+    (partition : WinningPartition
+      [.numbered .Manzu 4, .numbered .Manzu 4, .numbered .Manzu 0,
+        .numbered .Manzu 1, .numbered .Manzu 2]
+      [TileChunk.pair (.numbered .Manzu 4),
+        TileChunk.shuntsu .Manzu ⟨0, by decide⟩]) :
+    WinningPartition
+      [.numbered .Manzu 2, .numbered .Manzu 4, .numbered .Manzu 0,
+        .numbered .Manzu 4, .numbered .Manzu 1]
+      [TileChunk.pair (.numbered .Manzu 4),
+        TileChunk.shuntsu .Manzu ⟨0, by decide⟩] := by
+  exact partition.of_perm (by decide)
 
 /--
 通常和了分割の全完成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。

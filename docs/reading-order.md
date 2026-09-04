@@ -769,6 +769,40 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 牌が交互に並んでいるが、分割側では `55m` と `123m` にまとまる。両者は列として等しくなくても、
 同じ牌を同じ枚数だけ持つことを `tiles_perm` から取り出せる。
 
+## 通常和了分割が入力順に依存しないことを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `WinningPartition.of_perm` である。
+
+読む前に知る語彙:
+
+- `List.Perm`
+- `cases`
+- `obtain`
+- `.trans` と `.symm`
+- `List.Perm.length_eq`
+- `rw [← ...] at ...`
+
+定理は `WinningPartition tiles chunks` と `tiles.Perm other` から、同じ完成部品列 `chunks` を持つ
+`WinningPartition other chunks` を作る。牌種と枚数が同じなら、入力牌列の順番を変えても通常和了分割の
+証拠を保てるという主張である。
+
+証明では `cases partition` により、雀頭 `pair`、元の除去結果 `remaining`、残りの面子分解証拠を取り出す。
+`removePair` と `exists_removeTiles_eq_some_iff_perm` から得た `removedPerm` を、入力間の `permutation` と
+つなぐと、並べ替え後の `other` からも同じ雀頭を除ける。
+
+ただし、`removeTiles other pair.tiles` が返す残りは、元の `remaining` と同じ順番とは限らない。
+同値定理から新しい残り `output`、除去成功 `removeOther`、`output.Perm remaining` をまとめて取り出す。
+末尾の面子分解証拠は、前に読んだ `MentsuPartition.of_perm` で `remaining` から `output` へ移せる。
+
+ここには添字付き命題による追加の型合わせがある。元の証拠が持つ面子数は
+`remaining.length / mentsuTileCount` だが、新しい `WinningPartition` が要求する面子数は
+`output.length / mentsuTileCount` である。順列は長さを保存するため、`outputPerm.length_eq` から
+`output.length = remaining.length` を得る。`rw [← sameLength] at mentsuPartition` は、この等式で
+証拠の型に現れる長さを書き換え、新しい残り牌列へ移せる形に揃える。
+
+最後に、同じ雀頭候補、並べ替え後の除去結果、移送した面子分解証拠を `WinningPartition.intro` へ渡す。
+ソース中の例は `55m123m` の分割証拠を、入力だけ並べ替えた `3m5m1m5m2m` へ移している。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。
