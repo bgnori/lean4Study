@@ -359,6 +359,10 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `rcases` は、複数の部品を持つ値を分解して、それぞれの部品に名前を付けるタクティクである。
 `rcases shuntsuPattern with ⟨suit, start⟩` は、順子パターンからスート `suit` と開始位置 `start` を取り出している。
 
+`rcases proof with firstPattern | secondPattern`は、証拠が表す2つの可能性に分け、それぞれのパターンで
+別の証明目標を作る。`MentsuPartition.all_mentsu`では、リストの要素が先頭と等しい場合を`rfl`、
+末尾に含まれる場合を`restMember`として扱う。
+
 ### obtain
 
 `obtain ⟨...⟩ := proof` は、存在や複数の部品を持つ証拠を分解し、中身に名前を付ける。
@@ -474,6 +478,17 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `tile ∈ all` は、`tile` がリストや集合 `all` に含まれる、という意味である。
 `Tile.mem_all` の主張 `tile ∈ all` は、任意の牌種 `tile` が標準列挙 `Tile.all` に含まれることを表す。
+
+### `∀`
+
+`∀ x, P x`は、任意の値`x`について条件`P x`が成り立つことを表す。
+`∀ chunk ∈ chunks, P chunk`は、リスト`chunks`に含まれるすべての`chunk`について`P chunk`が成り立つ、
+という意味である。
+
+### `List.mem_cons`
+
+`List.mem_cons`は、値`x`が`first :: rest`に含まれることを、`x = first`または`x ∈ rest`として読み替える。
+`MentsuPartition.all_mentsu`では、分解列の要素が先頭か末尾のどちらに由来するかを分けるために使う。
 
 ### `∃`
 

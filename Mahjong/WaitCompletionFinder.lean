@@ -340,7 +340,18 @@ theorem MentsuPartition.tiles_perm {fuel : Nat} {tiles : List Tile}
           ⟨remaining, remove, .refl remaining⟩
       exact (List.Perm.append_left mentsu.tiles inductionHypothesis).trans removedPerm
 
-/-- 面子分割に現れる各チャンクは完成面子候補である。 -/
+/--
+`MentsuPartition` の分解結果に現れるすべての完成部品は、`mentsuChunkCandidates` に含まれる。
+
+これは、分解結果 `chunks` の各要素が順子または刻子の候補として選ばれたことを保証する。
+`mentsu_of_mem_mentsuChunkCandidates` と合わせると、面子分解へ雀頭が混ざらないことが分かる。
+
+証明は分解証拠に対する帰納法で行う。`done` の完成面子列は空なので主張は自明である。
+`next` では、調べる要素が列の先頭なら構築時に保存された `candidate` を使い、末尾にあれば
+残りの分解証拠に対する帰納法の仮定を使う。
+
+読むためのLean語彙: `∀`, `induction`, `intro`, `List.mem_cons`, `rcases`, `rfl | restMember`。
+-/
 theorem MentsuPartition.all_mentsu {fuel : Nat} {tiles : List Tile}
     {chunks : List TileChunk} (partition : MentsuPartition fuel tiles chunks) :
     ∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates := by
@@ -351,6 +362,13 @@ theorem MentsuPartition.all_mentsu {fuel : Nat} {tiles : List Tile}
       rcases List.mem_cons.mp member with rfl | restMember
       · exact candidate
       · exact inductionHypothesis chunk restMember
+
+example
+    (partition : MentsuPartition 1
+      [.honor .Red, .honor .Red, .honor .Red]
+      [TileChunk.koutsu (.honor .Red)]) :
+    TileChunk.koutsu (.honor .Red) ∈ mentsuChunkCandidates := by
+  exact partition.all_mentsu _ (by simp)
 
     /-- 面子分割のチャンク列は `MentsuCandidate` の列として復元できる。 -/
     theorem MentsuPartition.exists_candidates {fuel : Nat} {tiles : List Tile}

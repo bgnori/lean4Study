@@ -520,6 +520,39 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース末尾の`777z`の例は、前節で作った`MentsuPartition`の証拠を同値定理の`.mpr`方向へ渡し、
 実際に`decomposeMentsu 1`の列挙結果へ含まれることを確認する。
 
+## 面子分解の全要素が完成面子候補であることを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.all_mentsu` である。
+
+読む前に知る語彙:
+
+- `∀`
+- `induction`
+- `intro`
+- `List.mem_cons`
+- `rcases`
+- `rfl | restMember`
+- `exact`
+
+定理の結論 `∀ chunk ∈ chunks, chunk ∈ mentsuChunkCandidates` は、分解結果`chunks`から
+任意の要素`chunk`を1つ選ぶと、それが完成面子候補列に含まれることを表す。
+
+`MentsuPartition.next`は、完成面子を追加するたびに、その値が`mentsuChunkCandidates`に含まれるという
+`candidate`証拠を要求していた。`all_mentsu`は、この局所的な条件が完成した分解列の全要素について
+保存されていることを取り出す定理である。
+
+証明は`MentsuPartition`の証拠に対する帰納法で進む。
+
+- `done`: 分解結果が空なので、調べる要素は存在しない。
+- `next`: 要素が先頭なら、その段階の`candidate`が直接使える。末尾の要素なら、残りの分解に対する帰納法の仮定を使う。
+
+`rcases List.mem_cons.mp member with rfl | restMember`は、調べている要素が先頭そのものの場合と、
+末尾に含まれる場合へ分ける。先頭の場合は`rfl`によってその要素を現在の完成面子と同一視する。
+
+この定理だけでは候補の内部構造までは展開しない。前に読んだ`mentsu_of_mem_mentsuChunkCandidates`と合わせると、
+各要素が何らかの順子または刻子を`.inr`に包んだ値であり、雀頭は混ざらないことが分かる。
+ソース中の例は、`777z`の1面子分解から、その刻子が完成面子候補に含まれることを取り出す。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。
