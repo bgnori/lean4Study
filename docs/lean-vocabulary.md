@@ -270,6 +270,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `f source = result` となる要素 `source` が存在することとして読み替える定理である。
 `pair_of_mem_pairChunkCandidates` では、雀頭候補が `Tile.all` のどの牌種から作られたかを取り出す。
 
+### `List.mem_dedup`
+
+`List.mem_dedup` は、値が重複除去後の `xs.dedup` に含まれることと、元の `xs` に含まれることが
+同値だと示す。`mem_findWaitCompletions_iff` では、Finderが最後に行う重複除去を所属の目標から消し、
+どの待ち牌と和了分割から結果が生成されたかを調べられる形にする。
+
 ### `.mp` と `.mpr`
 
 同値 `P ↔ Q` の証拠に対して、`.mp` は `P` の証拠を `Q` の証拠へ、`.mpr` は逆向きに変換する。

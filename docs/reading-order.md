@@ -909,6 +909,54 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 `waitingTiles_ne_nil_iff` によって `IsTenpai` の証明として受け取る。この流れにより、有限な実行結果が
 宣言的な聴牌仕様の証拠になることを小さな入力で確かめられる。
 
+## 待ちと和了分割を返すFinderの正しさを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `findWaitCompletions`、`CompletionFor`、
+`mem_findWaitCompletions_iff` である。
+
+読む前に知る語彙:
+
+- `List.flatMap`
+- `List.map`
+- `List.dedup`
+- `List.mem_dedup`
+- `List.mem_flatMap`
+- `List.mem_map`
+- 添字付き帰納型
+- 健全性と完全性
+- `obtain`
+- `cases`
+- `refine`
+
+`findWaitCompletions tiles` は、単に待ち牌だけでなく、その牌を加えたときの通常和了分割も返す実行器である。
+まず `waitingTiles tiles` の各待ち牌について `winningPartitions` を実行し、待ち牌と分割を
+`WaitCompletion` にまとめる。分割内の部品順を `TileChunk.canonicalize` で標準化し、最後に `dedup` で
+同じ結果の重複を除く。
+
+`CompletionFor tiles completion` は、返り値 `completion` の宣言的仕様である。その証拠は、
+`IsWaitFor tiles wait` を満たす待ち牌と、加牌後の牌列に対する `WinningPartition` を持つ。
+一方、返り値に記録される分割は正規化済みであるため、仕様は正規化前の `rawChunks` が存在し、
+`completion.winningChunks` がその標準順表現になるという形を帰納型の結論で表している。
+
+`mem_findWaitCompletions_iff` は、Finderの結果への所属と `CompletionFor` が同値だと示す。
+これは `mem_waitingTiles_iff` と `mem_winningPartitions_iff` という二つの下位境界を合成した、
+探索全体の健全性・完全性である。Finderが返した組には正しい待ち牌と和了分割が必ずあり、逆に、
+仕様を満たす組はFinderの結果に必ず含まれる。
+
+証明冒頭の `rw [findWaitCompletions, List.mem_dedup]` は実行器を展開し、重複除去後への所属を
+重複除去前への所属に直す。健全性方向では、`List.mem_flatMap.mp` が結果を生成した待ち牌を、
+`List.mem_map.mp` が正規化前の分割を取り出す。それぞれの所属を下位の同値定理の `.mp` で
+`IsWaitFor` と `WinningPartition` へ変換し、`CompletionFor.intro` に渡す。
+
+完全性方向では `cases valid` により仕様の証拠から待ち牌、分割、二つの正しさの証拠を取り出す。
+下位定理の `.mpr` でそれらを実行結果への所属へ戻し、`List.mem_map.mpr` と
+`List.mem_flatMap.mpr` を使ってFinder全体への所属を組み立てる。両方向で同じ二つの境界定理を
+逆向きに使う構造が、過不足のなさを直接表している。
+
+ソース中の例は、赤牌1枚の単騎待ちについて、赤牌を加えた対子分割を持つ `WaitCompletion` が
+`CompletionFor` を満たすことを示す。具体的なFinderへの所属は `native_decide` で計算し、
+同値定理の `.mp` によって宣言的な正しさの証拠へ変換する。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

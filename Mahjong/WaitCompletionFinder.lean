@@ -827,8 +827,11 @@ def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
 /--
 `completion` が牌姿 `tiles` の待ちと和了分割を表すことの宣言的仕様。
 
-Finder が内部で見つける分割は雀頭を先頭に持つが、外部へ返す際にはチャンク順を正規化する。
-そのため仕様は、正規化前の `rawChunks` の存在として述べる。
+証拠は待ち牌 `wait` と正規化前の分割 `rawChunks` を持ち、`wait` が `IsWaitFor tiles wait` を満たすこと、
+加牌後の牌列が `rawChunks` へ通常和了分割できることを要求する。Finder が外部へ返す分割は
+`TileChunk.canonicalize rawChunks` なので、探索順の異なる同じ分割を同じ `WaitCompletion` として扱える。
+
+読むためのLean語彙: 添字付き帰納型, `structure`, `TileChunk.canonicalize`。
 -/
 inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
 | intro (wait : Tile) (rawChunks : List TileChunk)
@@ -846,7 +849,21 @@ theorem CompletionFor.of_perm {tiles other : List Tile} {completion : WaitComple
       exact .intro wait rawChunks (waitFor.of_perm permutation)
         (partition.of_perm (permutation.cons wait))
 
-/-- `findWaitCompletions` は宣言的な待ちと和了分割を過不足なく列挙する。 -/
+/--
+`findWaitCompletions` に結果が含まれることと、宣言的仕様 `CompletionFor` を満たすことは同値である。
+
+左辺は実行可能なFinderへの所属、右辺は正しい待ち牌と通常和了分割が存在することを表す。したがって、
+左から右はFinderが不正な組を返さないという健全性、右から左は正しい組を取りこぼさないという完全性を保証する。
+
+証明では、まず `List.mem_dedup` により、重複除去の前後で所属が変わらないことを使う。健全性方向では
+`List.mem_flatMap` と `List.mem_map` から、結果を生成した待ち牌と正規化前の分割を取り出す。
+それぞれの所属証拠を `mem_waitingTiles_iff` と `mem_winningPartitions_iff` で宣言的仕様へ変換すれば、
+`CompletionFor` の構築に必要な2条件が揃う。完全性方向では同じ変換を逆向きに使い、仕様が持つ待ち牌と
+分割を `map`、`flatMap` の所属証拠へ戻す。
+
+読むためのLean語彙: `↔`, 健全性と完全性, `rw`, `List.mem_dedup`, `List.mem_flatMap`,
+`List.mem_map`, `obtain`, `cases`, `refine`。
+-/
 theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitCompletion) :
     completion ∈ findWaitCompletions tiles ↔ CompletionFor tiles completion := by
   rw [findWaitCompletions, List.mem_dedup]
@@ -864,6 +881,11 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
         refine ⟨wait, (mem_waitingTiles_iff tiles wait).mpr waitFor, ?_⟩
         exact List.mem_map.mpr
           ⟨rawChunks, (mem_winningPartitions_iff _ _).mpr partition, rfl⟩
+
+example : CompletionFor [.honor .Red]
+    { wait := .honor .Red, winningChunks := [TileChunk.pair (.honor .Red)] } := by
+  apply (mem_findWaitCompletions_iff _ _).mp
+  native_decide
 
 /-!
 ## 分解に関する既約性
