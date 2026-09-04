@@ -215,6 +215,12 @@
 `xs.map f` は、リスト `xs` の各要素に関数 `f` を適用し、結果を同じ順番で並べたリストを作る。
 `waitCores` では、各 `IrreducibleWaitReading` から待ち牌と核成分列だけを持つ `WaitCore` を作る。
 
+### `List.mem_map`
+
+`List.mem_map` は、値 `result` が `xs.map f` に含まれることを、元のリスト `xs` に
+`f source = result` となる要素 `source` が存在することとして読み替える定理である。
+`pair_of_mem_pairChunkCandidates` では、雀頭候補が `Tile.all` のどの牌種から作られたかを取り出す。
+
 ### flatMap
 
 `xs.flatMap f` は、リストの各要素に `f` を適用してリストを作り、それらを1つにつなげる。
@@ -302,6 +308,11 @@
 `rcases` は、複数の部品を持つ値を分解して、それぞれの部品に名前を付けるタクティクである。
 `rcases shuntsuPattern with ⟨suit, start⟩` は、順子パターンからスート `suit` と開始位置 `start` を取り出している。
 
+### obtain
+
+`obtain ⟨...⟩ := proof` は、存在や複数の部品を持つ証拠を分解し、中身に名前を付ける。
+`pair_of_mem_pairChunkCandidates` では、候補が `map` 元のどの牌種から作られたかを取り出す。
+
 ### simp
 
 `simp` は、定義を展開したり、既知の事実で式を書き換えたりして、目標を単純な形にするタクティクである。
@@ -386,6 +397,11 @@
 
 `tile ∈ all` は、`tile` がリストや集合 `all` に含まれる、という意味である。
 `Tile.mem_all` の主張 `tile ∈ all` は、任意の牌種 `tile` が標準列挙 `Tile.all` に含まれることを表す。
+
+### `∃`
+
+`∃ x, P x` は、条件 `P` を満たす値 `x` が少なくとも1つ存在することを表す。
+`pair_of_mem_pairChunkCandidates` の結論は、候補の完成部品を作った雀頭が存在することを述べる。
 
 ### `↔`
 

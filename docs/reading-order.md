@@ -345,6 +345,36 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 残りの牌列について帰納法の仮定を使う。この保証により、後続の分割探索は、候補の牌を元の牌列へ
 連結して作った場合に、その候補を確実に取り戻せる。
 
+## 雀頭候補の列挙に過不足がないことを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `pairChunkCandidates`、
+`pair_mem_pairChunkCandidates`、`pair_of_mem_pairChunkCandidates` である。
+
+読む前に知る語彙:
+
+- `map`
+- `∈`
+- `∃`
+- `rcases`
+- `obtain`
+- `List.mem_map`
+- `simp`
+- `exact`
+- `rfl`
+
+和了分割の探索では、34種類の牌種それぞれについて、その牌種2枚を雀頭とする候補を試す。
+`pairChunkCandidates` は `Tile.all` の各牌種を `TileChunk.pair` で雀頭の完成部品へ変換したリストである。
+ソース中の `example` は、赤牌の雀頭もこの候補列に含まれることを計算で確認する。
+
+候補列挙には、必要な候補を取りこぼさない完全性と、余計な種類を混ぜない健全性の両方が必要になる。
+
+- `pair_mem_pairChunkCandidates`: 任意の雀頭が候補列に含まれるため、雀頭を取りこぼさない。
+- `pair_of_mem_pairChunkCandidates`: 候補列の各要素は何らかの雀頭なので、順子や刻子が混ざらない。
+
+完全性の証明は、雀頭を構成する牌種が `Tile.all` に含まれるという、先に読んだ `Tile.mem_all` を使う。
+健全性の証明は、候補が `map` 元のどの牌種から作られたかを取り出し、その牌種の対子を存在例として返す。
+この2定理を合わせると、後続の和了分割探索が調べる雀頭候補は、全雀頭とちょうど一致する。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

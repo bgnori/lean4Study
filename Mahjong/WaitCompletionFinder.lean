@@ -89,17 +89,43 @@ theorem removeTiles_append_left (wanted remaining : List Tile) :
   | cons tile wanted inductionHypothesis =>
       simp [removeTiles, inductionHypothesis]
 
-/-- 雀頭候補として使う全牌種の対子。 -/
+/-!
+## 雀頭候補の列挙
+
+`pairChunkCandidates` は、34種類すべての牌種を雀頭の完成部品へ変換した探索候補である。
+`pair_mem_pairChunkCandidates` は任意の雀頭を取りこぼさないこと、
+`pair_of_mem_pairChunkCandidates` は候補に雀頭以外が混ざらないことをそれぞれ保証する。
+-/
+
+/-- 雀頭候補として使う、全牌種の対子完成部品。 -/
 def pairChunkCandidates : List TileChunk :=
   Tile.all.map .pair
 
-/-- 任意の雀頭は雀頭候補リストに含まれる。 -/
+example : TileChunk.pair (.honor .Red) ∈ pairChunkCandidates := by
+  simp [pairChunkCandidates, Tile.all, Honor.all, TileChunk.pair]
+
+/--
+任意の雀頭は `pairChunkCandidates` に含まれる。
+
+これは雀頭候補列挙の完全性を保証する。証明では雀頭から牌種を取り出し、すべての牌種が
+`Tile.all` に含まれるという `Tile.mem_all` を使って、その牌種を対子にした候補が存在することを示す。
+
+読むためのLean語彙: `rcases`, `simp`, `∈`。
+-/
 theorem pair_mem_pairChunkCandidates (pair : Toitsu) :
     (Sum.inl pair : TileChunk) ∈ pairChunkCandidates := by
   rcases pair with ⟨tile⟩
   simp [pairChunkCandidates, Tile.mem_all tile, TileChunk.pair]
 
-/-- 雀頭候補リストの要素は必ず雀頭チャンクである。 -/
+/--
+`pairChunkCandidates` に含まれる完成部品は、必ず何らかの雀頭である。
+
+これは雀頭候補列挙の健全性を保証し、順子や刻子が雀頭候補へ混ざらないことを示す。
+証明ではリストの要素が `Tile.all.map .pair` のどの牌種から作られたかを取り出し、
+その牌種の対子を求める雀頭として返す。
+
+読むためのLean語彙: `∃`, `obtain`, `List.mem_map`, `exact`, `rfl`。
+-/
 theorem pair_of_mem_pairChunkCandidates {chunk : TileChunk}
     (member : chunk ∈ pairChunkCandidates) :
     ∃ pair : Toitsu, chunk = .inl pair := by
