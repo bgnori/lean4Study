@@ -885,7 +885,10 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
 example : CompletionFor [.honor .Red]
     { wait := .honor .Red, winningChunks := [TileChunk.pair (.honor .Red)] } := by
   apply (mem_findWaitCompletions_iff _ _).mp
-  native_decide
+  have output : findWaitCompletions [.honor .Red] =
+      [{ wait := .honor .Red, winningChunks := [TileChunk.pair (.honor .Red)] }] := by
+    native_decide
+  simp [output]
 
 /-!
 ## 分解に関する既約性
