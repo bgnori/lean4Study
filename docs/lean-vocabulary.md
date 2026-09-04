@@ -334,6 +334,11 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `cases kind` のように `with` を省略すると、分岐名を明示せず、Leanに各場合を順に作らせる。
 
+`cases equation : expression with` は、`expression` の値で場合分けすると同時に、各場合の計算結果を
+`equation` という等式として残す。`mem_winningPartitions_iff` の
+`cases removeEq : removeTiles tiles pair.tiles` では、除去の失敗と成功に分け、成功時の等式を
+`WinningPartition.intro` へ渡す。
+
 ### induction
 
 `induction xs with` は、再帰的に作られた値 `xs` の構造に沿って命題を証明するタクティクである。

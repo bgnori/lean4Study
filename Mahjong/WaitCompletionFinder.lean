@@ -539,7 +539,24 @@ inductive WinningPartition (tiles : List Tile) : List TileChunk → Prop
     (mentsuPartition : MentsuPartition (remaining.length / mentsuTileCount) remaining rest) :
     WinningPartition tiles (pair :: rest)
 
-/-- `winningPartitions` は通常和了分割の宣言的仕様を過不足なく列挙する。 -/
+/--
+`winningPartitions` が列挙する完成部品列と、`WinningPartition` の証拠を作れる完成部品列は一致する。
+
+左辺は実行可能な探索結果への所属、右辺は雀頭を1つ除き、残りを完成面子へ分解できるという
+宣言的な正しさを表す。左から右は健全性であり、探索が不正な通常和了分割を返さないことを保証する。
+右から左は完全性であり、宣言的に正しい通常和了分割を探索が取りこぼさないことを保証する。
+
+健全性方向では、外側の `flatten` と雀頭候補の `map` から、実際に選ばれた雀頭を取り出す。
+雀頭の除去が成功した枝では、内側の `map` から残りの完成面子列を取り出し、
+`mem_decomposeMentsu_iff` の健全性方向で `MentsuPartition` の証拠へ変換して `WinningPartition.intro` を作る。
+
+完全性方向では `WinningPartition.intro` に保存された雀頭、除去結果、面子分解証拠を取り出す。
+`mem_decomposeMentsu_iff` の完全性方向で残りの分解を実行器の結果へ戻し、対応する雀頭候補の
+`map` の枝と、その中の完成面子列の `map` への所属を順に組み立てる。
+
+読むためのLean語彙: `↔`, 健全性と完全性, `List.mem_flatten`, `List.mem_map`, `obtain`,
+`cases`, `.mp`, `.mpr`, `▸`, `refine`, `?_`。
+-/
 theorem mem_winningPartitions_iff (tiles : List Tile) (chunks : List TileChunk) :
     chunks ∈ winningPartitions tiles ↔ WinningPartition tiles chunks := by
   constructor
@@ -566,6 +583,27 @@ theorem mem_winningPartitions_iff (tiles : List Tile) (chunks : List TileChunk) 
           exact ⟨pair, pairCandidate, by simp [removePair]⟩
         · exact List.mem_map.mpr
             ⟨rest, (mem_decomposeMentsu_iff _ _ _).mpr partition, rfl⟩
+
+example :
+    [TileChunk.pair (.numbered .Manzu 4),
+      TileChunk.shuntsu .Manzu ⟨0, by decide⟩] ∈
+      winningPartitions
+        [.numbered .Manzu 4, .numbered .Manzu 4, .numbered .Manzu 0,
+          .numbered .Manzu 1, .numbered .Manzu 2] := by
+  apply (mem_winningPartitions_iff _ _).mpr
+  apply WinningPartition.intro
+    (remaining := [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2])
+    (TileChunk.pair (.numbered .Manzu 4))
+  · exact pair_mem_pairChunkCandidates (.toitsu (.numbered .Manzu 4))
+  · rfl
+  · change MentsuPartition 1
+      [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2]
+      [TileChunk.shuntsu .Manzu ⟨0, by decide⟩]
+    apply MentsuPartition.next (TileChunk.shuntsu .Manzu ⟨0, by decide⟩)
+    · exact mentsu_mem_mentsuChunkCandidates
+        (.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩))
+    · rfl
+    · exact .done
 
 /--
 正しい通常和了分割の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。

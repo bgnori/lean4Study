@@ -728,9 +728,63 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース中の例は赤牌刻子1個について一般形の `partition` を作り、最後に `simpa` で `flatMap` を
 具体的な `777z` の牌列へ計算している。
 
+## 通常和了分割の実行器と宣言的仕様の一致を読む
+
+次の実例は、`WaitCompletionFinder.lean` の `winningPartitions`、`WinningPartition`、
+`mem_winningPartitions_iff` である。
+
+読む前に知る語彙:
+
+- `List.flatten`
+- `List.map`
+- `match`
+- `inductive`
+- `↔`
+- 健全性と完全性
+- `List.mem_flatten`
+- `List.mem_map`
+- `.mp` と `.mpr`
+- `cases name : expression`
+- `▸`
+
+`winningPartitions tiles` は、牌種列を雀頭1つと完成面子列へ分解する方法をすべて列挙する実行器である。
+各 `pairChunkCandidates` を雀頭として試し、実際に2枚を除けた枝だけを残す。その残り牌列を
+`decomposeMentsu` で分解し、得られた各完成面子列の先頭へ雀頭を追加する。
+
+`WinningPartition tiles chunks` は、特定の完成部品列 `chunks` が正しい通常和了分割であることを表す
+宣言的仕様である。唯一の構築規則 `intro` は次の情報を要求する。
+
+- `pair`: 分割結果の先頭に置く雀頭
+- `pairCandidate`: その値が雀頭候補列に含まれる証拠
+- `removePair`: 入力牌列から雀頭の2枚を除いた結果 `remaining`
+- `mentsuPartition`: 残り牌列を完成面子列 `rest` へ分解する証拠
+
+`intro` の結論は `WinningPartition tiles (pair :: rest)` なので、雀頭が必ず先頭に1つあり、
+その後ろは順子・刻子だけになる。
+
+`mem_winningPartitions_iff` は、実行器が `chunks` を列挙することと、この宣言的証拠を作れることが
+同値だと示す。左から右の健全性により、実行器は不正な分割を返さない。右から左の完全性により、
+正しい分割を実行器が取りこぼさない。
+
+健全性方向では、外側の `flatten` と `map` の所属証拠から、選ばれた雀頭とその探索枝を取り出す。
+`cases removeEq : removeTiles tiles pair.tiles` で除去結果を調べ、`none` の失敗枝には要素がないことを示す。
+`some remaining` の成功枝では、内側の `map` から残りの完成面子列を取り出す。
+あとは `mem_decomposeMentsu_iff` の健全性方向で面子分解証拠へ変換し、`WinningPartition.intro` を作る。
+
+完全性方向では `WinningPartition.intro` に保存された情報を逆順に使う。面子分解証拠を
+`mem_decomposeMentsu_iff` の完全性方向で実行器の列挙結果へ戻し、雀頭を追加する内側の `map`、
+その雀頭を選ぶ外側の `map`、全枝をまとめる `flatten` への所属を順に組み立てる。
+
+この上位証明は、面子分解の再帰をもう一度証明しない。`mem_decomposeMentsu_iff` を境界として再利用し、
+新しく扱うのは雀頭候補の選択と除去だけである。
+
+ソース中の例は、雀頭 `55m` と順子 `123m` を持つ `WinningPartition` の証拠を直接作り、同値定理の
+`.mpr` 方向へ渡す。これにより、その完成部品列が `winningPartitions 55m123m` の実行結果へ実際に
+含まれることをLeanが確認する。
+
 ## 通常和了分割が入力牌を保存することを読む
 
-次の実例は、`WaitCompletionFinder.lean` の `WinningPartition` と `WinningPartition.tiles_perm` である。
+次の実例は、`WaitCompletionFinder.lean` の `WinningPartition.tiles_perm` である。
 
 読む前に知る語彙:
 
@@ -741,17 +795,6 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 - `List.Perm`
 - `List.Perm.append_left`
 - `.trans`
-
-`MentsuPartition` は順子・刻子だけの分解を表した。通常形の和了にはそれらに加えて雀頭が1つ必要なので、
-`WinningPartition tiles chunks` は次の情報を持つ宣言的仕様として定義されている。
-
-- `pair`: 分割結果の先頭に置く雀頭
-- `pairCandidate`: その値が雀頭候補列に含まれる証拠
-- `removePair`: 入力牌列から雀頭の2枚を除いた結果 `remaining`
-- `mentsuPartition`: 残り牌列を完成面子列 `rest` へ分解する証拠
-
-構築規則 `intro` の結論が `WinningPartition tiles (pair :: rest)` なので、分割結果は雀頭を先頭に1つ、
-その後ろに順子・刻子だけを並べる。この段階では、同じ完成部品を別の順番にした表現は扱わない。
 
 `WinningPartition.tiles_perm` の結論は、分割結果の全完成部品を牌種列へ戻して連結すると、入力牌列と
 同じ牌種を同じ枚数だけ含むことである。前に読んだ `MentsuPartition.tiles_perm` が面子部分を保証し、
