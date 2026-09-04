@@ -728,6 +728,47 @@ Leanの構文説明をすべてソースコメントに詰め込まず、必要�
 ソース中の例は赤牌刻子1個について一般形の `partition` を作り、最後に `simpa` で `flatMap` を
 具体的な `777z` の牌列へ計算している。
 
+## 通常和了分割が入力牌を保存することを読む
+
+次の実例は、`WaitCompletionFinder.lean` の `WinningPartition` と `WinningPartition.tiles_perm` である。
+
+読む前に知る語彙:
+
+- `inductive`
+- inductive型のconstructor
+- `cases`
+- `List.flatMap`
+- `List.Perm`
+- `List.Perm.append_left`
+- `.trans`
+
+`MentsuPartition` は順子・刻子だけの分解を表した。通常形の和了にはそれらに加えて雀頭が1つ必要なので、
+`WinningPartition tiles chunks` は次の情報を持つ宣言的仕様として定義されている。
+
+- `pair`: 分割結果の先頭に置く雀頭
+- `pairCandidate`: その値が雀頭候補列に含まれる証拠
+- `removePair`: 入力牌列から雀頭の2枚を除いた結果 `remaining`
+- `mentsuPartition`: 残り牌列を完成面子列 `rest` へ分解する証拠
+
+構築規則 `intro` の結論が `WinningPartition tiles (pair :: rest)` なので、分割結果は雀頭を先頭に1つ、
+その後ろに順子・刻子だけを並べる。この段階では、同じ完成部品を別の順番にした表現は扱わない。
+
+`WinningPartition.tiles_perm` の結論は、分割結果の全完成部品を牌種列へ戻して連結すると、入力牌列と
+同じ牌種を同じ枚数だけ含むことである。前に読んだ `MentsuPartition.tiles_perm` が面子部分を保証し、
+この定理はそこへ雀頭を加えて通常和了分割全体の保存則にする。
+
+証明では `cases partition` により、`WinningPartition` の唯一の構築規則 `intro` に保存された情報を取り出す。
+`removePair` と `exists_removeTiles_eq_some_iff_perm` から、`pair.tiles ++ remaining` が入力 `tiles` の
+順列であるという `removedPerm` を得る。
+
+一方、`mentsuPartition.tiles_perm` は、末尾の完成面子列を牌へ戻した列が `remaining` の順列であると保証する。
+`List.Perm.append_left` で両側へ `pair.tiles` を加えると、雀頭を含む全完成部品の牌列と
+`pair.tiles ++ remaining` の順列になる。これを `.trans removedPerm` で入力牌列までつなぐ。
+
+ソース中の例は、雀頭 `55m` と順子 `123m` からなる分割を使う。入力側では `5m 1m 5m 2m 3m` と
+牌が交互に並んでいるが、分割側では `55m` と `123m` にまとまる。両者は列として等しくなくても、
+同じ牌を同じ枚数だけ持つことを `tiles_perm` から取り出せる。
+
 ## 核成分列の抽出パターンを読む
 
 次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。

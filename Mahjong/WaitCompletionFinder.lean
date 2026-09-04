@@ -585,7 +585,19 @@ theorem WinningPartition.of_perm {tiles other : List Tile} {chunks : List TileCh
       exact .intro pair pairCandidate removeOther
         (mentsuPartition.of_perm outputPerm.symm)
 
-/-- 通常和了分割の全チャンク牌は入力牌列と多重集合として一致する。 -/
+/--
+通常和了分割の全完成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。
+
+`WinningPartition` は先頭に雀頭を1つ持ち、その後ろに `MentsuPartition` が保証する完成面子列を持つ。
+この定理は、雀頭を含む分割全体について牌の欠落、追加、重複数の変化がないことを `List.Perm` で表す。
+
+証明では分割証拠を `cases` で唯一の構築規則 `intro` へ分解する。雀頭の除去結果から
+`exists_removeTiles_eq_some_iff_perm` を使い、「雀頭の牌と残り牌」が入力牌列の順列であることを得る。
+残りの完成面子を牌へ戻した列と残り牌の順列は `mentsuPartition.tiles_perm` が保証する。
+その両側へ雀頭の牌を `List.Perm.append_left` で加え、`.trans` で入力牌列までつなぐ。
+
+読むためのLean語彙: `cases`, `List.flatMap`, `List.Perm`, `List.Perm.append_left`, `.trans`。
+-/
 theorem WinningPartition.tiles_perm {tiles : List Tile} {chunks : List TileChunk}
     (partition : WinningPartition tiles chunks) :
     (chunks.flatMap TileChunk.tiles).Perm tiles := by
@@ -596,6 +608,18 @@ theorem WinningPartition.tiles_perm {tiles : List Tile} {chunks : List TileChunk
         (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
           ⟨remaining, removePair, .refl remaining⟩
       exact (List.Perm.append_left pair.tiles mentsuPartition.tiles_perm).trans removedPerm
+
+example
+    (partition : WinningPartition
+      [.numbered .Manzu 4, .numbered .Manzu 0, .numbered .Manzu 4,
+        .numbered .Manzu 1, .numbered .Manzu 2]
+      [TileChunk.pair (.numbered .Manzu 4),
+        TileChunk.shuntsu .Manzu ⟨0, by decide⟩]) :
+    ([TileChunk.pair (.numbered .Manzu 4),
+      TileChunk.shuntsu .Manzu ⟨0, by decide⟩].flatMap TileChunk.tiles).Perm
+      [.numbered .Manzu 4, .numbered .Manzu 0, .numbered .Manzu 4,
+        .numbered .Manzu 1, .numbered .Manzu 2] := by
+  exact partition.tiles_perm
 
 /-- 牌種リストが通常形の和了形として分解できるか。 -/
 def isWinning (tiles : List Tile) : Bool :=
