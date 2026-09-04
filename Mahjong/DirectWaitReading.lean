@@ -635,7 +635,21 @@ def completion (reading : Reading n) : WaitCompletion :=
   { wait := reading.1.wait
     winningChunks := TileChunk.canonicalize reading.1.shape.chunks }
 
-/-- 通常手範囲の直接生成 Reading は、既存 Finder の出力に必ず現れる。 -/
+/--
+通常手範囲の直接生成Readingは、同じ牌姿に対する既存Finderの出力に必ず現れる。
+
+`standard` は面子数 `n` が通常手の上限4以下であることを表す。この範囲では `reading_waitFor` が、
+生成した `hand reading` に対して `reading.1.wait` が実際の待ち牌であることを保証する。
+また `winningShape_partition` が元の完成形の分割を与え、`wait_cons_hand_perm_winningShape` と
+`WinningPartition.of_perm` により、その分割を「待ち牌を生成牌姿へ加えた列」へ移す。
+
+この待ちの証拠と完成分割の証拠を `mem_findWaitCompletions_iff` の仕様側へ渡すことで、
+`completion reading` が探索結果に含まれると結論する。したがって直接生成器は、既存Finderから見ても
+根拠のない待ちや分割を作らない。
+
+読むためのLean語彙: `IsWaitFor`, `WinningPartition`, `mem_findWaitCompletions_iff`,
+`.mpr`, `WinningPartition.of_perm`。
+-/
 theorem completion_mem_findWaitCompletions (reading : Reading n)
     (standard : n ≤ standardHandMentsuCount) :
     completion reading ∈ findWaitCompletions (hand reading) := by
@@ -644,6 +658,10 @@ theorem completion_mem_findWaitCompletions (reading : Reading n)
     (reading_waitFor reading standard)
     ((winningShape_partition reading.1.shape).of_perm
       (wait_cons_hand_perm_winningShape reading).symm)
+
+example (reading : Reading 0) :
+    completion reading ∈ findWaitCompletions (hand reading) := by
+  exact completion_mem_findWaitCompletions reading (by omega)
 
 private theorem legal_cons_of_waitFor {tiles : List Tile} {wait : Tile}
     (waitFor : IsWaitFor tiles wait) : HasLegalTileCounts (wait :: tiles) := by

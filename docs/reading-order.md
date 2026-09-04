@@ -1532,3 +1532,40 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 
 ソース中の例では、赤牌対子だけから作った `Reading 0` について同じ保存則を有限計算で確認する。
 `hand` は赤牌1枚となり、待ち牌の赤牌を戻した2枚が元の対子と同じ牌を同数持つ。
+
+## 直接生成Readingを既存Finderへ接続することを読む
+
+次に `DirectWaitReading.lean` の `completion` と `completion_mem_findWaitCompletions` を読む。
+
+読む前に知る語彙:
+
+- `IsWaitFor`
+- `WinningPartition`
+- `WaitCompletion`
+- `mem_findWaitCompletions_iff`
+- `.mpr`
+- `WinningPartition.of_perm`
+
+`completion reading` は、Readingが持つ待ち牌と完成形の部品列を、既存Finderが返す `WaitCompletion` の形へ
+写す。部品列は `TileChunk.canonicalize` で正規化するため、面子の並び順だけが異なる同じ分割は同じ結果になる。
+
+`completion_mem_findWaitCompletions` は、面子数 `n` が通常手の上限4以下なら、このcompletionが
+`findWaitCompletions (hand reading)` に必ず含まれると述べる。直接生成器とFinderは実装の探索方向が異なる。
+前者は完成形から待ち牌を除き、後者は牌姿へ候補牌を加えて和了分割を探索する。この定理は、直接生成した
+一件がFinderの結果としても確認できることを保証する。
+
+Finder所属の仕様 `mem_findWaitCompletions_iff` が要求する証拠は二つある。一つは、候補牌が `hand reading` の
+実際の待ちであることを示す `IsWaitFor` である。内部補題 `reading_waitFor` は、完成形の牌数、Readingの
+4枚制限、待ち牌を戻した完成形の分割からこの証拠を作る。仮定 `n ≤ standardHandMentsuCount` は、生成牌姿が
+通常手として許される1、4、7、10、13枚の範囲にあることを保証するために使う。
+
+もう一つは、待ち牌を加えた牌姿の `WinningPartition` である。`winningShape_partition` は元の完成形に対する
+分割を構成する。直前に読んだ `wait_cons_hand_perm_winningShape` により、その完成形と
+`reading.1.wait :: hand reading` は順列関係にあるため、`WinningPartition.of_perm` で同じ分割証拠を移せる。
+
+最後に `mem_findWaitCompletions_iff` の `.mpr` を使い、この二つの宣言的証拠から実行結果への所属を得る。
+これは直接生成器が不正なcompletionを作らないという、既存Finderを基準にした健全性である。逆向き、つまり
+Finderの各結果に対応するReadingが存在することは、後続の `exists_reading_of_mem_findWaitCompletions` が扱う。
+
+ソース中の短い例は `n = 0` の任意のReadingへ公開定理を適用する。この場合 `0 ≤ 4` は `omega` で解けるため、
+Readingの具体的な牌を調べずにFinder所属を得られる。
