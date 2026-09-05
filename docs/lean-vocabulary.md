@@ -24,7 +24,7 @@
 ### let
 
 `let name := value` は、式の途中で一時的な名前を付ける構文である。
-`waitProfilesOfCoreExtraction` では、核成分列の種類を `coreKinds`、除去した面子の種類を `removedKinds` として使う。
+`waitCoreExtractions` では、待ち分解の変換結果に一時的な名前を付けて後続処理へ渡せる。
 
 ### `let rec`
 
@@ -325,7 +325,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### if
 
 `if condition then a else b` は、条件が成り立つかどうかで返す値を分ける構文である。
-`waitProfilesOfCoreExtraction` では、特定の部品種別が含まれるかどうかで、観測基本形を追加するか空リストにする。
+`canReduceMentsuPreservingWaitCores` では、削減候補が存在するかどうかを真偽値として判定する。
 
 ### 証拠付き `if`
 
@@ -399,7 +399,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### flatMap
 
 `xs.flatMap f` は、リストの各要素に `f` を適用してリストを作り、それらを1つにつなげる。
-`observedWaitProfiles` では、各待ち核から得られる観測基本形列をまとめて1つの列にする。
+`waitDecompositions` では、各 completion から得られる待ち分解を1つの列にまとめる。
 
 ### `List.bind_eq_flatMap`
 
@@ -561,7 +561,6 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### simp_all
 
 `simp_all` は、現在の目標だけでなく、手元の仮定も使って単純化するタクティクである。
-`expectedKind_iff` では、`Classifies` の各場合から得られる仮定を使い、`expectedKind` が対応する分類名を返すことを確認している。
 
 ### simpa と using
 
@@ -601,8 +600,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `<;>`
 
 `<;>` は、左側のタクティクでできたすべての目標に、右側のタクティクを続けて適用する記号である。
-たとえば `cases kind <;> simp [all]` は、`kind` を分類名ごとに場合分けし、それぞれの分岐を
-`simp [all]` で確認する、という意味になる。
+たとえば `cases value <;> simp` は、`value` を場合分けし、それぞれの分岐を `simp` で確認する、という意味になる。
 
 ### 角括弧 `[...]`
 

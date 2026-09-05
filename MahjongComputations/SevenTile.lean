@@ -1,5 +1,5 @@
 import Mahjong.DirectWaitGeneration
-import Mahjong.Wait.Analysis
+import Mahjong.WaitDecompositionCode
 import MahjongComputations.Common
 
 /-!

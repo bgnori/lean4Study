@@ -17,7 +17,7 @@ lean_lib «Lean4Project» where
   -- add library configuration options here
 
 lean_lib «Mahjong» where
-  -- Mahjong wait-classification study modules.
+  -- Mahjong study modules.
 
 lean_lib «MahjongTests» where
   -- Computational regression tests, built explicitly with `lake build MahjongTests`.

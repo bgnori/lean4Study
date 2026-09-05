@@ -1,6 +1,6 @@
 # Mahjong Modules
 
-This directory contains the Mahjong wait-classification formalization used as the main Lean study exercise in this repository.
+This directory contains the Mahjong formalization used as the main Lean study exercise in this repository.
 
 ## Reading Order
 
@@ -13,42 +13,33 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Taatsu, toitsu, tanki, shuntsu, and mentsu candidates.
 
 3. `Wait.lean`
-   - Size-independent wait extraction syntax and named classification vocabulary.
-   - Ambiguity metadata that is determined by each classification name.
+   - Size-independent wait extraction syntax.
 
-4. `Wait/Specification.lean`
-   - Analyzer-independent, rule-based classification evidence.
-   - A broad `ContainsNobetan` condition separated from narrow whole-profile classification.
-
-5. `Wait/Analysis.lean`
-   - Observation of profiles from standard-form wait completions.
-   - The executable classifier and its soundness/completeness theorems.
-   - Evidence-indexed reducibility computation for concrete tenpai hands.
-
-6. `Hand.lean`
+4. `Hand.lean`
    - Hand sizes used in the study project.
    - Verified enumeration of exact physical-tile extractions.
 
-7. `WaitCompletion.lean`
+5. `WaitCompletion.lean`
    - The `WaitCompletion` data type: one wait tile and one winning partition.
    - Winning components and their canonical ordering.
 
-8. `WaitCompletionFinder.lean`
+6. `WaitCompletionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
    - Legal tenpai sizes and physical copy-count validation.
    - `WaitCompletionFinder.findWaitCompletions`, executable completion discovery, and evidence-indexed irreducibility.
 
-9. `WaitDecompositionCode.lean`
+7. `WaitDecompositionCode.lean`
    - Decomposes and codes already-found `List WaitCompletion` values without performing discovery.
    - `find...` convenience functions explicitly compose `WaitCompletionFinder` with coding.
+   - Computes evidence-indexed reducibility for concrete tenpai hands.
    - The 53 one-suit irreducible seven-tile examples.
 
-10. `DirectWaitGeneration.lean`
+8. `DirectWaitGeneration.lean`
    - Generates normalized wait derivations directly from completed winning shapes.
    - Proves exact correspondence with `WaitCompletionFinder` in the standard-hand range.
    - Provides a noncomputable perfect-hash specification between all derivations and finite indices.
 
-11. `Tenpai.lean`
+9. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points

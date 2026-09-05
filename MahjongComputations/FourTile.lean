@@ -1,5 +1,4 @@
 import Mahjong.DirectWaitGeneration
-import Mahjong.Wait.Analysis
 import MahjongComputations.Common
 
 /-!
@@ -20,8 +19,6 @@ open WaitCompletionFinder
 structure FourTileShapeReport where
   tiles : List Tile
   waits : List Tile
-  kind : Option WellKnownWaitKind
-  candidateKinds : List WellKnownWaitKind
   reducibility : Option WaitReducibility
   waitDecompositionCodes : List Nat
 deriving BEq, DecidableEq, Repr
@@ -43,9 +40,7 @@ def allFourTileShapes : List (List Tile) :=
 def report (tiles : List Tile) : FourTileShapeReport :=
   { tiles
     waits := waitingTiles tiles
-    kind := WaitAnalysis.classifyWait tiles
-    candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
-    reducibility := WaitAnalysis.determineReducibility tiles
+    reducibility := determineReducibility tiles
     waitDecompositionCodes := findWaitDecompositionCodes tiles }
 
 /-- Exhaustive four-tile tenpai reports. -/
@@ -58,9 +53,7 @@ def tenpaiReports : List FourTileShapeReport :=
       some
         { tiles
           waits
-          kind := WaitAnalysis.classifyWait tiles
-          candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
-          reducibility := WaitAnalysis.determineReducibility tiles
+          reducibility := determineReducibility tiles
           waitDecompositionCodes := findWaitDecompositionCodes tiles }
 
 private structure DirectDerivationEntry where
@@ -107,17 +100,10 @@ private def directFourTileShapeReports (_ : Unit) : List DirectFourTileShapeRepo
 private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
 
-private def waitProfilesFromCompletions (completions : List WaitCompletion) : List WaitProfile :=
-  (waitCoreExtractions completions).flatMap
-    WaitAnalysis.waitProfilesOfCoreExtraction
-
 private def directReport (report : DirectFourTileShapeReport) : FourTileShapeReport :=
   let completions := report.completions
-  let profiles := waitProfilesFromCompletions completions
   { tiles := report.tiles
     waits := waitsFromCompletions completions
-    kind := WaitAnalysis.classifyWaitProfiles profiles
-    candidateKinds := WaitAnalysis.candidateWellKnownWaitKindsOfProfiles profiles
     reducibility :=
       some <| if canReduceMentsuPreservingWaitCores report.tiles then
         .reducible
@@ -133,29 +119,9 @@ def directDerivationCount : Nat :=
 def directDerivationTenpaiReports : List FourTileShapeReport :=
   (directFourTileShapeReports ()).map directReport
 
-/-- Exhaustive four-tile reports whose classified wait kind is `kind`. -/
-def reportsOfKind (kind : WellKnownWaitKind) : List FourTileShapeReport :=
-  tenpaiReports.filter fun report => report.kind == some kind
-
-/-- Count four-tile tenpai shapes by named wait kind. -/
-def countsByKind : List (WellKnownWaitKind × Nat) :=
-  WellKnownWaitKind.all.map fun kind => (kind, (reportsOfKind kind).length)
-
-/-- Four-tile tenpai shapes that the classifier did not assign to a `WellKnownWaitKind`. -/
-def unclassifiedTenpaiReports : List FourTileShapeReport :=
-  tenpaiReports.filter fun report => report.kind.isNone
-
-/-- Four-tile tenpai shapes with more than one broad candidate wait kind. -/
-def ambiguousReports : List FourTileShapeReport :=
-  tenpaiReports.filter fun report => 1 < report.candidateKinds.length
-
 /-- Irreducible four-tile tenpai shapes. -/
 def irreducibleReports : List FourTileShapeReport :=
   tenpaiReports.filter fun report => report.reducibility == some .irreducible
-
-example :
-    (report (manzu [1, 1, 2, 3])).candidateKinds = [.tanki, .toitsuRyanmen] := by
-  native_decide
 
 example : allFourTileShapes.length = 66045 := by
   native_decide

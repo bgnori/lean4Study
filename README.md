@@ -1,6 +1,6 @@
 # lean4Study
 
-Lean 4 and mathlib study repository. The main worked example is a formalization of Mahjong wait classification: tiles, tile patterns, standard-form wait semantics, named wait classifications, and executable four-tile examples that Lean checks during builds.
+Lean 4 and mathlib study repository. The main worked example formalizes Mahjong tiles, tile patterns, standard-form wait semantics, wait cores, and executable computations that Lean checks during builds.
 
 [日本語版はこちら](README.ja.md)
 
@@ -19,12 +19,10 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 ├── NaturalLimited.lean    # Finite-type/cardinality study notes
 ├── Lean4Project.lean      # Library entry point
 ├── Mahjong.lean           # Mahjong module entry point
-├── Mahjong/               # Mahjong wait-classification study modules
+├── Mahjong/               # Mahjong study modules
 │   ├── Basic.lean
 │   ├── Pattern.lean
 │   ├── Wait.lean
-│   ├── Wait/Specification.lean
-│   ├── Wait/Analysis.lean
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean

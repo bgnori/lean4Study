@@ -21,7 +21,7 @@
 
 1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、和了構成部品、物理牌を表す。
 2. `WaitCompletionFinder.lean` で牌の除去、面子分解、通常和了分割、待ち牌、Finderを結ぶ。
-3. `Wait.lean`、`Wait/Specification.lean`、`Wait/Analysis.lean` で待ち核と名前付き分類を定義・判定する。
+3. `Wait.lean` で待ち核の抽出パターンを定義する。
 4. `WaitDecompositionCode.lean` でFinderが得た待ち分解から段階的に情報を忘れ、コード化する。
 5. `DirectWaitGeneration.lean` で完成形から待ち導出を直接生成し、既存Finderとの完全対応と有限添字を示す。
 
@@ -1029,81 +1029,9 @@
 `WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。
 `Tile.format .mpsz` を使った `example` により、抽出パターンが実際の牌姿としてどう見えるかを確認する。
 
-## 待ち分類と待ち核の曖昧性を読む
-
-次のまとまりは、`WellKnownWaitKind`、`WaitAmbiguity`、`WaitClassification`、`WellKnownWaitKind.classification` である。
-
-先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核の曖昧性」を読む。
-
-読む前に知る語彙:
-
-- `inductive`
-- `structure`
-- `def`
-- `namespace`
-- `theorem`
-- `cases`
-- `simp`
-
-`WellKnownWaitKind` は、通常形聴牌に付けるよく知られた名前付き分類を表す。
-これは待ちの数学的定義そのものではなく、待ち核集合に対して人間向けの分類名を与える層である。
-`WaitAmbiguity` は、その名前付き分類が単一の待ち核に対応するか、複数の待ち核の共存に対応するかを表す。
-
-`WaitClassification` は、分類名 `kind` と待ち核の曖昧性 `ambiguity` をまとめる。
-`WellKnownWaitKind.classification` は、分類名だけからこのラベルを返す。
-可約・既約は具体的な牌姿に依存するため、ここでは扱わず `WaitReducibility` で別に読む。
-
-## 名前付き分類の仕様を読む
-
-次のまとまりは、`Wait/Specification.lean` の `WaitProfileMentsu`、`WaitProfile`、`Classifies`、`expectedKind`、`expectedKind_iff` である。
-
-先に [domain-vocabulary.md](domain-vocabulary.md) の「観測基本形」と「名前付き分類」を読む。
-
-読む前に知る語彙:
-
-- `inductive`
-- `Prop`
-- `abbrev`
-- `def`
-- `instance`
-- `Decidable`
-- `theorem`
-- `↔`
-
-`WaitProfile` は、待ち核集合から名前付き分類に必要な情報だけを取り出した観測基本形である。
-単騎核については、分離された完成面子の文脈を `WaitProfileMentsu` に残す。
-
-`Classifies` は、観測基本形の列がどの `WellKnownWaitKind` に属するかを宣言的に定める。
-`expectedKind` は同じ規則を実行できる形にした参照実装で、`expectedKind_iff` が両者の一致を保証する。
-`expectedKind_iff` の左から右は「参照実装が返した分類には仕様上の理由がある」という健全性、
-右から左は「仕様上分類できるものは参照実装も返す」という完全性に対応する。
-
-## 牌列から名前付き分類へ接続する解析器を読む
-
-次のまとまりは、`Wait/Analysis.lean` の `observedWaitProfiles`、`classifyWaitProfiles_iff`、`classifyWait`、`classifyWait_iff` である。
-
-先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解」を読む。
-
-読む前に知る語彙:
-
-- `open`
-- `let`
-- `if`
-- `filter`
-- `flatMap`
-- `theorem`
-- `↔`
-- `exact`
-
-`observedWaitProfiles` は、牌列から待ち核集合を求め、名前付き分類に必要な観測基本形の列へ変換する。
-`classifyWaitProfiles` は、その観測基本形列を `WaitSpecification.expectedKind` へ渡す。
-
-`classifyWaitProfiles_iff` は、観測基本形上の解析器が `WaitSpecification.Classifies` と一致することを示す。
-`classifyWait_iff` は、実際の牌列に対する分類結果が、牌列に対する名前付き分類仕様と一致することを示す。
-
 ## 可約性の計算と意味の一致を読む
 
-次の実例は、`Wait/Analysis.lean` の `reducibility`、`determineReducibility`、`reducibility_eq_reducible_iff`、
+次の実例は、`WaitDecompositionCode.lean` の `reducibility`、`determineReducibility`、`reducibility_eq_reducible_iff`、
 `reducibility_eq_irreducible_iff` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。

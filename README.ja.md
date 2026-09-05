@@ -1,6 +1,6 @@
 # lean4Study
 
-Lean 4 と mathlib の学習用リポジトリです。中心的な題材として、麻雀の待ち分類を Lean で形式化しています。牌、ターツ、面子、通常形の待ちの意味論、名前付き待ち分類を定義し、4枚ケースは `example` や theorem によって確認します。
+Lean 4 と mathlib の学習用リポジトリです。中心的な題材として、麻雀の牌、ターツ、面子、通常形の待ちの意味論、待ち核を Lean で形式化し、計算例や theorem によって確認します。
 
 [English version](README.md)
 
@@ -19,12 +19,10 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 ├── NaturalLimited.lean    # 有限型、Finset、濃度の学習メモ
 ├── Lean4Project.lean      # ライブラリ全体の入口
 ├── Mahjong.lean           # Mahjong モジュールの入口
-├── Mahjong/               # 麻雀の待ち分類の形式化
+├── Mahjong/               # 麻雀の形式化
 │   ├── Basic.lean
 │   ├── Pattern.lean
 │   ├── Wait.lean
-│   ├── Wait/Specification.lean
-│   ├── Wait/Analysis.lean
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean

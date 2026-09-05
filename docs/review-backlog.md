@@ -133,7 +133,6 @@ Bool等式のまま公開するか、存在命題を主仕様としてBool判定
 - 探索順、重複候補、全解列挙、最初の解、解の存在判定を、同じ基礎表現から必要に応じて導出できるか。
 - 新しい探索を追加するときも、連続する候補選択には `do`記法、単純な失敗枝の破棄には `filterMap`、
 	データとしてのリスト連結には `flatMap` という局所的な使い分けが読みやすいか。
-- `WaitAmbiguity` は待ち分類上の曖昧性であり、非決定的探索の意味ではないため、名前や説明を混同しないこと。
 - 独自探索APIや探索エンジンを新たに作らず、現在のリスト実装と同等の計算可能性を保てるか。
 
 ### 待ち分解コード列の重複を保持する
@@ -197,20 +196,11 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
-状態: 保留
+状態: 対応済み
 
-`WellKnownWaitKind` は現在、`tanki`、`toitsuRyanmen`、`toitsuKanchan`、`toitsuPenchan`、`shanpon` に加えて、
-`nobetan` や `kuttsuki...` 系を同じ列挙に含めている。
-
-麻雀ルール上の基本的な待ち分類としては `shanpon` まででよく、`nobetan` 以降は通称・複合的な読みとして
-別の層に分けたほうが、読者にとって自然な可能性がある。
-
-後で確認すること:
-
-- `WellKnownWaitKind` を基本分類と通称・複合分類に分けるべきか。
-- `WaitClassification`、`WellKnownWaitKind.classification`、`WellKnownWaitKind.ambiguity` の役割をどう切るか。
-- `Mahjong.Wait.Specification` と `Mahjong.Wait.Analysis` の定理名・返り値への影響。
-- 既存レポートや `WaitDecompositionCode` の表示語彙への影響。
+人間向けの名前付き分類を機械的な待ち構造から分離するため、`WellKnownWaitKind`、
+`WaitClassification`、`WaitProfile` と分類仕様・解析器を削除した。計算レポートは待ち牌、
+待ち核を保つ可約性、待ち分解コードを直接扱う。
 
 ### 和了構成部品まわりの命名を整理する
 

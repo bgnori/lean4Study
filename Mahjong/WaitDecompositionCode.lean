@@ -90,6 +90,12 @@ structure WaitDecompositionCodeEntry where
   code : Nat
 deriving BEq, DecidableEq, Repr
 
+/-- 完成面子を取り除いて同じ待ち核集合へ還元できるか。 -/
+inductive WaitReducibility
+| reducible
+| irreducible
+deriving BEq, DecidableEq, Repr, Fintype
+
 private def completeComponent (component : WinningComponent) : WaitComponent :=
   { kind := match component with
       | .inl _ => .toitsu
@@ -446,6 +452,28 @@ def CanReduceMentsuPreservingWaitCores (tiles : List Tile) : Prop :=
 instance (tiles : List Tile) : Decidable (CanReduceMentsuPreservingWaitCores tiles) := by
   unfold CanReduceMentsuPreservingWaitCores
   infer_instance
+
+/-- 聴牌の証拠を前提に、待ち核集合を保った面子除去による可約性を計算する。 -/
+def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
+    WaitReducibility :=
+  if CanReduceMentsuPreservingWaitCores tiles then .reducible else .irreducible
+
+/-- 聴牌なら可約性を返し、非聴牌なら `none` を返す。 -/
+def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
+  if tenpai : WaitCompletionFinder.IsTenpai tiles then
+    some (reducibility tiles tenpai)
+  else
+    none
+
+theorem reducibility_eq_reducible_iff (tiles : List Tile)
+    (tenpai : WaitCompletionFinder.IsTenpai tiles) :
+    reducibility tiles tenpai = .reducible ↔ CanReduceMentsuPreservingWaitCores tiles := by
+  simp [reducibility]
+
+theorem reducibility_eq_irreducible_iff (tiles : List Tile)
+    (tenpai : WaitCompletionFinder.IsTenpai tiles) :
+    reducibility tiles tenpai = .irreducible ↔ ¬CanReduceMentsuPreservingWaitCores tiles := by
+  simp [reducibility]
 
 def findWaitKindDecompositions (tiles : List Tile) : List WaitKindDecomposition :=
   waitKindDecompositions (WaitCompletionFinder.findWaitCompletions tiles)

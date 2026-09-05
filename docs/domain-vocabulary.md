@@ -137,59 +137,13 @@ WinningShape + selected WinningComponent + wait
 
 つまり、`1/234` と `123/4` は待ち核そのものではなく、2つの待ち核を得るための2つの分解である。
 
-## 待ち核の曖昧性
-
-待ち核の曖昧性は、名前付き分類が単一の待ち核で説明できるか、複数の待ち核の共存を表すかを指す。
-コード上では `WaitAmbiguity` に対応する。
-
-- `WaitAmbiguity.noAmbiguity`: 名前付き分類が単一の待ち核に対応する。
-- `WaitAmbiguity.ambiguous`: 名前付き分類が複数の待ち核の共存に対応する。
-
-この曖昧性は、完成面子を取り除けるかどうかを表す可約・既約とは別の概念である。
-`WellKnownWaitKind.classification` は、分類名からこの曖昧性ラベルを決める。
-
-## 観測基本形
-
-観測基本形は、待ち核集合から名前付き分類に必要な情報だけを取り出した内部表現である。
-コード上では `WaitProfile` に対応する。
-
-- `WaitProfile.tanki`: 単騎核。分離された完成面子の文脈を `WaitProfileMentsu` として持つ。
-- `WaitProfile.toitsuRyanmen`: 対子と両面ターツからなる核成分列。
-- `WaitProfile.toitsuKanchan`: 対子と嵌張ターツからなる核成分列。
-- `WaitProfile.toitsuPenchan`: 対子と辺張ターツからなる核成分列。
-- `WaitProfile.shanpon`: 2つの対子からなる核成分列。
-
-`WaitProfileMentsu.none` は単騎核に分離済み完成面子の文脈がないこと、
-`shuntsu` と `koutsu` は分離された完成面子が順子または刻子だったことを表す。
-
-## 名前付き分類
-
-名前付き分類は、待ち核集合や観測基本形の列に対して、人間向けの分類名を与える層である。
-コード上では `WellKnownWaitKind` に対応する。
-
-名前付き分類は、待ちの数学的定義そのものではない。実際に待ちであることは
-`WaitCompletionFinder.IsWaitFor` や `WaitCompletion` 側で扱い、名前付き分類はその結果を
-単騎、両面、嵌張、辺張、双碰、ノベタン、くっつきのような語彙に写す。
-
-対応するコード:
-
-- `WaitSpecification.Classifies`: 観測基本形の列がどの名前付き分類に属するかを定める宣言的仕様。
-- `WaitSpecification.expectedKind`: 同じ規則を実行できる形にした参照実装。
-- `WaitSpecification.expectedKind_iff`: 宣言的仕様と参照実装が一致することを示す定理。
-- `WaitAnalysis.observedWaitProfiles`: 牌列から観測基本形の列を作る入口。
-- `WaitAnalysis.classifyWait`: 牌列から名前付き分類を計算する入口。
-- `WaitAnalysis.classifyWait_iff`: 牌列に対する分類結果と宣言的仕様が一致することを示す定理。
-
 ## 可約と既約
 
 可約とは、完成面子を取り除いても待ち核集合が変わらないことを指す。
 既約とは、そのような完成面子除去ができないことを指す。
 
-コード上では、名前付き分類 `WellKnownWaitKind` だけでは可約・既約は決まらない。
-同じ分類名でも、具体的な牌姿によって完成面子を分離できるかどうかが変わるためである。
-
 対応するコード:
 
 - `WaitReducibility`: 可約か既約かを表す分類ラベル。
-- `WaitAnalysis.reducibility`: 聴牌の証拠を前提に可約性を計算する。
+- `WaitDecompositionCode.reducibility`: 聴牌の証拠を前提に可約性を計算する。
 - `WaitDecompositionCode.CanReduceMentsuPreservingWaitCores`: 待ち核集合を保ったまま完成面子を除去できることを表す命題。

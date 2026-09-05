@@ -1,11 +1,10 @@
 import Mahjong.Pattern
 
 /-!
-# 通常形聴牌の待ち分類
+# 通常形聴牌の待ち抽出パターン
 
-このモジュールでは、通常形聴牌から完成面子を分離した後に残る核成分列の形を `WaitPattern`、
-麻雀上の名前付き分類を `WellKnownWaitKind` として表す。実際に待ちであることは
-`WaitCompletionFinder.IsWaitFor` が定め、分類は `WaitCompletion` の解析結果から計算する。
+このモジュールでは、通常形聴牌から完成面子を分離した後に残る核成分列の形を
+`WaitPattern` として表す。実際に待ちであることは `WaitCompletionFinder.IsWaitFor` が定める。
 
 ここでいう待ち核は、待ち牌と核成分列の組である。`WaitPattern` はそのうち核成分列として
 抽出できる形を表す。
@@ -77,104 +76,3 @@ noncomputable def take (extraction : WaitPattern) (chunk : Chunk) :
   HasTilePattern.take extraction chunk
 
 end WaitPattern
-
-/--
-通常形聴牌に付けるよく知られた名前付き分類。
-
-これは待ちの数学的定義そのものではなく、待ち核集合に対して人間向けの分類名を与える層である。
-基本分類に加えて、ノベタンやくっつきのような通称・複合分類も含む。
--/
-inductive WellKnownWaitKind
-| tanki
-| toitsuRyanmen
-| toitsuKanchan
-| toitsuPenchan
-| shanpon
-| nobetan
-| kuttsukiRyanmen
-| kuttsukiKanchan
-| kuttsukiPenchan
-deriving BEq, DecidableEq, Repr, Fintype
-
-namespace WellKnownWaitKind
-
-/-- `WellKnownWaitKind` の明示的な列挙。ドキュメント上の分類表としても使う。 -/
-def all : List WellKnownWaitKind :=
-  [.tanki,
-   .toitsuRyanmen,
-   .toitsuKanchan,
-   .toitsuPenchan,
-   .shanpon,
-   .nobetan,
-   .kuttsukiRyanmen,
-   .kuttsukiKanchan,
-   .kuttsukiPenchan]
-
-/--
-すべての待ち分類名は標準列挙 `WellKnownWaitKind.all` に含まれる。
-
-この定理は、通常形聴牌で使う分類語彙の一覧に抜けがないことを保証する。
-証明は `WellKnownWaitKind` の各分類名に場合分けし、それぞれが明示的な一覧に含まれることを示す。
-
-読むためのLean語彙: `namespace`, `theorem`, `cases`, `<;>`, `simp`, `[...]`, `∈`。
--/
-theorem exhaustive (kind : WellKnownWaitKind) : kind ∈ all := by
-  cases kind <;> simp [all]
-
-end WellKnownWaitKind
-
-/-!
-## 待ち核の個数にもとづく曖昧性
-
-`WaitAmbiguity` は、名前付き分類が単一の待ち核で説明できるか、複数の待ち核の共存を表すかを示す。
-ここでも麻雀一般の「待ち読み」という語は使わず、待ち核の個数に注目する。
-
-- `noAmbiguity`: 名前付き分類が単一の待ち核に対応する。
-- `ambiguous`: 名前付き分類が複数の待ち核の共存に対応する。
-
-この値は分類名 `WellKnownWaitKind` から決まるラベルであり、完成面子を取り除けるかどうかを表す
-`WaitReducibility` とは別の概念である。
--/
-
-/-- 名前付き分類が単一の待ち核に対応するか、複数の待ち核の共存に対応するか。 -/
-inductive WaitAmbiguity
-| noAmbiguity
-| ambiguous
-deriving BEq, DecidableEq, Repr, Fintype
-
-/-- 完成面子を取り除いてより小さい待ちへ還元できるか。 -/
-inductive WaitReducibility
-| reducible
-| irreducible
-deriving BEq, DecidableEq, Repr, Fintype
-
-/-- 待ち名だけから決まる分類ラベル。待ち核の曖昧性は分類名から決まり、既約性は牌姿に対して別途計算する。 -/
-structure WaitClassification where
-  kind : WellKnownWaitKind
-  ambiguity : WaitAmbiguity
-deriving BEq, DecidableEq, Repr
-
-/-- 待ちの分類語彙に対応する性質。 -/
-def WellKnownWaitKind.classification : WellKnownWaitKind → WaitClassification
-  | .tanki =>
-    ⟨.tanki, .noAmbiguity⟩
-  | .toitsuRyanmen =>
-    ⟨.toitsuRyanmen, .noAmbiguity⟩
-  | .toitsuKanchan =>
-    ⟨.toitsuKanchan, .noAmbiguity⟩
-  | .toitsuPenchan =>
-    ⟨.toitsuPenchan, .noAmbiguity⟩
-  | .shanpon =>
-    ⟨.shanpon, .noAmbiguity⟩
-  | .nobetan =>
-    ⟨.nobetan, .ambiguous⟩
-  | .kuttsukiRyanmen =>
-    ⟨.kuttsukiRyanmen, .ambiguous⟩
-  | .kuttsukiKanchan =>
-    ⟨.kuttsukiKanchan, .ambiguous⟩
-  | .kuttsukiPenchan =>
-    ⟨.kuttsukiPenchan, .ambiguous⟩
-
-/-- この分類が単一の待ち核に対応するか、複数の待ち核の共存に対応するか。 -/
-def WellKnownWaitKind.ambiguity (kind : WellKnownWaitKind) : WaitAmbiguity :=
-  kind.classification.ambiguity

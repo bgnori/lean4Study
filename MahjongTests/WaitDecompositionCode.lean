@@ -1,5 +1,4 @@
 import Mahjong.WaitDecompositionCode
-import Mahjong.Wait.Analysis
 
 namespace MahjongTests.WaitDecompositionCode
 
@@ -29,9 +28,7 @@ example :
     canReduceMentsuPreservingWaitCores (manzu [0, 0, 0, 3]) = true ∧
     findWaitCores testHand1234 != findWaitCores (manzu [0]) ∧
     findWaitCores testHand1234 != findWaitCores (manzu [3]) ∧
-    canReduceMentsuPreservingWaitCores testHand1234 = false ∧
-    WaitAnalysis.classifyWait testHand1234 = some .nobetan ∧
-    WaitAnalysis.classifyWait (manzu [3]) = some .tanki := by
+    canReduceMentsuPreservingWaitCores testHand1234 = false := by
   native_decide
 
 example :

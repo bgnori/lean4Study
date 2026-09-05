@@ -65,23 +65,6 @@
 
 このコメントでは、定理固有の意味を説明し、Lean語彙の詳細説明は語彙ページに任せる。
 
-## `WellKnownWaitKind.exhaustive` の粒度例
-
-よい粒度の例:
-
-```lean
-/--
-すべての待ち分類名は標準列挙 `WellKnownWaitKind.all` に含まれる。
-
-この定理は、通常形聴牌で使う分類語彙の一覧に抜けがないことを保証する。
-証明は `WellKnownWaitKind` の各分類名に場合分けし、それぞれが明示的な一覧に含まれることを示す。
-
-読むためのLean語彙: `namespace`, `theorem`, `cases`, `<;>`, `simp`, `[...]`, `∈`。
--/
-```
-
-この例では、新しく出てくる `<;>` の詳細説明をソースコメントではなく語彙ページに置く。
-
 ## `deck_cardinality` の粒度例
 
 よい粒度の例:
@@ -309,77 +292,3 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 
 具体例が有効なため、`WaitPattern.tiles` の近くに `Tile.format .mpsz` を使った `example` を置く。
 
-## `WaitAmbiguity` の読解ブロック例
-
-待ち核の曖昧性を説明するときは、「複数の読み」という表現を避け、単一の待ち核か複数の待ち核かで説明する。
-
-```lean
-/-!
-## 待ち核の個数にもとづく曖昧性
-
-`WaitAmbiguity` は、名前付き分類が単一の待ち核で説明できるか、複数の待ち核の共存を表すかを示す。
-ここでも麻雀一般の「待ち読み」という語は使わず、待ち核の個数に注目する。
-
-- `noAmbiguity`: 名前付き分類が単一の待ち核に対応する。
-- `ambiguous`: 名前付き分類が複数の待ち核の共存に対応する。
-
-この値は分類名 `WellKnownWaitKind` から決まるラベルであり、完成面子を取り除けるかどうかを表す
-`WaitReducibility` とは別の概念である。
--/
-```
-
-## `WaitSpecification` の読解ブロック例
-
-分類仕様に入る箇所では、待ち核集合、観測基本形、名前付き分類の3層を分けて説明する。
-
-```lean
-/-!
-## 待ち核集合から名前付き分類へ
-
-このモジュールでは、待ち核集合そのものではなく、分類に必要な情報だけを取り出した
-観測基本形 `WaitProfile` の列を扱う。
-
-`WaitProfile` は、単騎、対子+ターツ形、双碰のような基本形を表す。
-単騎については、分離された完成面子がなかったか、順子だったか、刻子だったかを
-`WaitProfileMentsu` として残す。これはノベタンやくっつきのような名前付き分類を
-判定するために必要な文脈である。
-
-`Classifies` は、観測基本形の列がどの `WellKnownWaitKind` に属するかを、計算器から独立した
-宣言的な規則として定める。`expectedKind` は同じ規則を実行できる形にした参照実装で、
-`expectedKind_iff` が両者の一致を保証する。
--/
-```
-
-`_iff` 定理は、実行できる定義と宣言的な仕様の一致として説明する。
-
-```lean
-/--
-`expectedKind` が返す名前付き分類と、宣言的仕様 `Classifies` は一致する。
-
-左辺は実行できる参照実装で、右辺は分類が成立する理由を保持する仕様である。
-この定理により、参照実装が分類規則を過不足なく判定していることが分かる。
-左から右は健全性、右から左は完全性に対応する。
-
-読むためのLean語彙: `theorem`, `↔`, `constructor`, `intro`, `unfold`, `split`, `cases`, `exact`, `simp_all`。
--/
-```
-
-## `WaitAnalysis` の読解ブロック例
-
-解析器に入る箇所では、「牌列から観測基本形を作る処理」と「観測基本形を仕様へ接続する定理」を分けて説明する。
-
-```lean
-/-!
-## 牌列から観測基本形を作る
-
-`WaitDecompositionCode.findWaitCoreExtractions` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
-`waitProfilesOfCoreExtraction` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
-
-`observedWaitProfiles` は、牌列に対してこの変換をまとめて行う入口である。
-その後、`classifyWaitProfiles` が `WaitSpecification.expectedKind` を呼び、
-観測基本形の列を `WellKnownWaitKind` へ分類する。
-
-このファイルの健全性・完全性定理は、実際の牌列から得た分類結果が、
-`WaitSpecification.Classifies` で定めた宣言的仕様と一致することを示す。
--/
-```
