@@ -204,7 +204,7 @@ def decomposeMentsu : Nat → List Tile → List (List WinningComponent)
     example : decomposeMentsu 0 [.numbered .Manzu 0] = [] := rfl
 
 /--
-`tiles` をちょうど `fuel` 個の完成面子へ分解できることを表す宣言的な導出関係。
+`decomposeMentsu` が `tiles` をちょうど `fuel` 個の完成面子へ分解する操作履歴。
 
 3つの引数は順に、完成面子の個数、分解前の牌種列、分解後の完成面子列を表す。
 値を計算して返す関数ではなく、この3者が正しい分解関係にあることの証拠を作る `Prop` である。
@@ -215,7 +215,7 @@ def decomposeMentsu : Nat → List Tile → List (List WinningComponent)
 各 `next` は、選んだ値が完成面子候補である証拠と、実際にその牌を除けた証拠を要求する。
 そのため、候補でない雀頭や、入力に存在しない牌から分解証拠を作ることはできない。
 
-列挙順序には依存せず、`decomposeMentsu` の健全性・完全性を述べる基準になる。
+外延的な正しさは `MentsuPartitionSpec` で表し、この型は列挙器との対応証明に使う。
 
 読むためのLean語彙: 添字付きinductive family, `Prop`, constructor, 暗黙の引数, `.done`, `.next`。
 -/
@@ -246,7 +246,7 @@ example :
 右から左は列挙器の完全性を示す。`MentsuPartition` の証拠から最初の完成面子、除去結果、
 残りの分解証拠を取り出し、帰納法の仮定で残りを列挙結果へ戻して、`map` と `flatten` 内の該当する枝を示す。
 
-`fuel = 0` では、実行器と宣言的関係のどちらも、入力牌列と完成面子列がともに空の場合だけ成立する。
+`fuel = 0` では、実行器と操作履歴のどちらも、入力牌列と完成面子列がともに空の場合だけ成立する。
 この定理により、後続の証明は実行器のリスト操作を直接追わず、`MentsuPartition` の構築規則を使って
 列挙結果の意味を論じられる。
 
@@ -549,25 +549,37 @@ theorem mentsuPartition_flatMap (components : List WinningComponent)
         exact removeTiles_append_left _ _
       exact .next first firstCandidate removeFirst tail
 
-  /--
-  `MentsuPartition` を、操作履歴に依存しない3つの条件で特徴づける。
+/-- 面子分割の、除去順に依存しない公開仕様。 -/
+structure MentsuPartitionSpec (fuel : Nat) (tiles : List Tile)
+    (components : List WinningComponent) : Prop where
+  components_length : components.length = fuel
+  all_mentsu : ∀ component ∈ components, component ∈ mentsuComponentCandidates
+  tiles_perm : (components.flatMap WinningComponent.tiles).Perm tiles
 
-  分解証拠が存在することは、部品数が `fuel` に一致し、すべての部品が完成面子候補であり、
-  部品を牌へ戻した列が入力牌列の順列であることと同値である。右から左では、まず部品を並べた
-  順序の入力に対する分解証拠を `mentsuPartition_flatMap` で作り、`of_perm` で実際の入力順へ移す。
-  -/
-  theorem MentsuPartition.iff_extensional {fuel : Nat} {tiles : List Tile}
-      {components : List WinningComponent} :
-      MentsuPartition fuel tiles components ↔
-        components.length = fuel ∧
-        (∀ component ∈ components, component ∈ mentsuComponentCandidates) ∧
-        (components.flatMap WinningComponent.tiles).Perm tiles := by
-    constructor
-    · intro partition
-      exact ⟨partition.components_length, partition.all_mentsu, partition.tiles_perm⟩
-    · rintro ⟨lengthEq, allMentsu, permutation⟩
-      have partition := (mentsuPartition_flatMap components allMentsu).of_perm permutation
-      exact lengthEq ▸ partition
+/--
+`MentsuPartition` を、操作履歴に依存しない3つの条件で特徴づける。
+
+分解証拠が存在することは、部品数が `fuel` に一致し、すべての部品が完成面子候補であり、
+部品を牌へ戻した列が入力牌列の順列であることと同値である。右から左では、まず部品を並べた
+順序の入力に対する分解証拠を `mentsuPartition_flatMap` で作り、`of_perm` で実際の入力順へ移す。
+-/
+theorem MentsuPartition.iff_extensional {fuel : Nat} {tiles : List Tile}
+    {components : List WinningComponent} :
+    MentsuPartition fuel tiles components ↔ MentsuPartitionSpec fuel tiles components := by
+  constructor
+  · intro partition
+    exact ⟨partition.components_length, partition.all_mentsu, partition.tiles_perm⟩
+  · intro specification
+    have partition :=
+      (mentsuPartition_flatMap components specification.all_mentsu).of_perm
+        specification.tiles_perm
+    exact specification.components_length ▸ partition
+
+/-- `decomposeMentsu` の列挙所属を、操作履歴を介さず外延仕様として読む。 -/
+theorem mem_decomposeMentsu_iff_spec (fuel : Nat) (tiles : List Tile)
+    (components : List WinningComponent) :
+    components ∈ decomposeMentsu fuel tiles ↔ MentsuPartitionSpec fuel tiles components :=
+  (mem_decomposeMentsu_iff fuel tiles components).trans MentsuPartition.iff_extensional
 
 example :
     MentsuPartition 1
@@ -589,7 +601,7 @@ def winningPartitions (tiles : List Tile) : List (List WinningComponent) :=
           pairComponent :: winningComponents
     | none => [])
 
-/-- 雀頭1個を除き、残りを完成面子へ分解できる通常和了分割の宣言的仕様。 -/
+/-- `winningPartitions` が雀頭を除き、残りを完成面子へ分解する操作履歴。 -/
 inductive WinningPartition (tiles : List Tile) : List WinningComponent → Prop
 | intro {remaining rest} (pair : WinningComponent)
     (pairCandidate : pair ∈ pairComponentCandidates)
@@ -600,9 +612,8 @@ inductive WinningPartition (tiles : List Tile) : List WinningComponent → Prop
 /--
 `winningPartitions` が列挙する和了構成部品列と、`WinningPartition` の証拠を作れる和了構成部品列は一致する。
 
-左辺は実行可能な探索結果への所属、右辺は雀頭を1つ除き、残りを完成面子へ分解できるという
-宣言的な正しさを表す。左から右は健全性であり、探索が不正な通常和了分割を返さないことを保証する。
-右から左は完全性であり、宣言的に正しい通常和了分割を探索が取りこぼさないことを保証する。
+左辺は実行可能な探索結果への所属、右辺は同じ除去手順を記録した操作履歴を表す。
+外延的な公開仕様との対応は `mem_winningPartitions_iff_spec` が与える。
 
 健全性方向では、外側の `flatten` と雀頭候補の `map` から、実際に選ばれた雀頭を取り出す。
 雀頭の除去が成功した枝では、内側の `map` から残りの完成面子列を取り出し、
@@ -663,6 +674,14 @@ example :
     · rfl
     · exact .done
 
+/-- 通常和了分割の、除去順に依存しない公開仕様。 -/
+def WinningPartitionSpec (tiles : List Tile) (components : List WinningComponent) : Prop :=
+  ∃ pair rest,
+    components = pair :: rest ∧
+    pair ∈ pairComponentCandidates ∧
+    (∀ component ∈ rest, component ∈ mentsuComponentCandidates) ∧
+    (components.flatMap WinningComponent.tiles).Perm tiles
+
 /--
 `WinningPartition` を、除去順に依存しない雀頭、完成面子列、牌の保存条件で特徴づける。
 
@@ -671,12 +690,8 @@ example :
 -/
 theorem WinningPartition.iff_extensional {tiles : List Tile}
     {components : List WinningComponent} :
-    WinningPartition tiles components ↔
-      ∃ pair rest,
-        components = pair :: rest ∧
-        pair ∈ pairComponentCandidates ∧
-        (∀ component ∈ rest, component ∈ mentsuComponentCandidates) ∧
-        (components.flatMap WinningComponent.tiles).Perm tiles := by
+    WinningPartition tiles components ↔ WinningPartitionSpec tiles components := by
+  unfold WinningPartitionSpec
   constructor
   · intro partition
     cases partition with
@@ -705,30 +720,36 @@ theorem WinningPartition.iff_extensional {tiles : List Tile}
     apply MentsuPartition.iff_extensional.mpr
     exact ⟨fuelEq, allMentsu, outputPerm.symm⟩
 
+/-- `winningPartitions` の列挙所属を、操作履歴を介さず外延仕様として読む。 -/
+theorem mem_winningPartitions_iff_spec (tiles : List Tile)
+    (components : List WinningComponent) :
+    components ∈ winningPartitions tiles ↔ WinningPartitionSpec tiles components :=
+  (mem_winningPartitions_iff tiles components).trans WinningPartition.iff_extensional
+
+/-- 外延的な通常和了分割仕様を、同じ牌の別の入力順へ移す。 -/
+theorem WinningPartitionSpec.of_perm {tiles other : List Tile}
+    {components : List WinningComponent} (specification : WinningPartitionSpec tiles components)
+    (permutation : tiles.Perm other) : WinningPartitionSpec other components := by
+  unfold WinningPartitionSpec at specification ⊢
+  obtain ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm⟩ := specification
+  exact ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm.trans permutation⟩
+
 /--
 正しい通常和了分割の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
 
 `tiles.Perm other` は入力牌列の順番だけが異なることを表す。結論では雀頭と完成面子列 `components` を
 変えず、入力だけを `other` へ置き換えるため、通常和了としての分割可能性が入力順に依存しないと分かる。
 
-証明では、元の雀頭除去から「雀頭の牌と残り牌」が `tiles` の順列であることを得て、仮定の順列とつなぐ。
-これにより `other` からも同じ雀頭を除去でき、除去後の `output` が元の `remaining` の順列になる。
-順列は長さを保存するので `outputPerm.length_eq` から両者の長さが等しいと分かる。
+証明は操作履歴を `WinningPartitionSpec` へ変換し、外延的な牌の順列を `other` まで推移させた後、
+再び操作履歴へ戻す。除去後リストや `fuel` 添字をこの境界で扱う必要はない。
 
-この長さの等式は、面子分解の個数が `remaining.length / mentsuTileCount` として型に現れるため必要になる。
-`rw` で元の面子分解証拠の添字を `output.length` に揃えた後、`MentsuPartition.of_perm` でその証拠を
-新しい残り牌列へ移し、同じ雀頭と完成面子列を持つ `WinningPartition` を作り直す。
-
-読むためのLean語彙: `List.Perm`, `cases`, `obtain`, `.trans`, `.symm`, `List.Perm.length_eq`,
-`rw [← ...] at ...`。
+読むためのLean語彙: `List.Perm`, `.trans`, `.mp`, `.mpr`。
 -/
 theorem WinningPartition.of_perm {tiles other : List Tile} {components : List WinningComponent}
     (partition : WinningPartition tiles components) (permutation : tiles.Perm other) :
     WinningPartition other components := by
-  obtain ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm⟩ :=
-    WinningPartition.iff_extensional.mp partition
-  apply WinningPartition.iff_extensional.mpr
-  exact ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm.trans permutation⟩
+  exact WinningPartition.iff_extensional.mpr
+    ((WinningPartition.iff_extensional.mp partition).of_perm permutation)
 
 example
     (partition : WinningPartition
@@ -952,7 +973,7 @@ def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
 inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
 | intro (wait : Tile) (rawComponents : List WinningComponent)
     (waitFor : IsWaitFor tiles wait)
-    (partition : WinningPartition (wait :: tiles) rawComponents) :
+  (partition : WinningPartitionSpec (wait :: tiles) rawComponents) :
     CompletionFor tiles
   { wait, winningComponents := CanonicalWinningComponents.ofList rawComponents }
 
@@ -960,8 +981,8 @@ inductive CompletionFor (tiles : List Tile) : WaitCompletion → Prop
 同じ牌種を同じ枚数だけ含む牌姿へ並べ替えても、`CompletionFor` の証拠をそのまま移せる。
 
 `completion` に記録された待ち牌と正規化済み和了分割は変更しない。証拠を構成する
-`IsWaitFor` は `IsWaitFor.of_perm` で新しい入力へ移し、加牌後の `WinningPartition` は、入力間の順列の
-両側へ同じ待ち牌を加えた `permutation.cons wait` を `WinningPartition.of_perm` に渡して移す。
+`IsWaitFor` は `IsWaitFor.of_perm` で新しい入力へ移し、加牌後の `WinningPartitionSpec` は、入力間の順列の
+両側へ同じ待ち牌を加えた `permutation.cons wait` を `WinningPartitionSpec.of_perm` に渡して移す。
 したがって `CompletionFor` の意味は、牌姿リストの偶然の入力順ではなく、牌種とその枚数だけで決まる。
 
 読むためのLean語彙: `List.Perm`, `cases ... with`, `List.Perm.cons`, `exact`。
@@ -990,7 +1011,7 @@ example {completion : WaitCompletion}
 
 証明では、まず `List.mem_dedup` により、重複除去の前後で所属が変わらないことを使う。健全性方向では
 `List.bind_eq_flatMap` と `List.mem_flatMap` から、結果を生成した待ち牌と正規化前の分割を取り出す。
-それぞれの所属証拠を `mem_waitingTiles_iff` と `mem_winningPartitions_iff` で宣言的仕様へ変換すれば、
+それぞれの所属証拠を `mem_waitingTiles_iff` と `mem_winningPartitions_iff_spec` で宣言的仕様へ変換すれば、
 `CompletionFor` の構築に必要な2条件が揃う。完全性方向では同じ変換を逆向きに使い、仕様が持つ待ち牌と
 分割を `do` 記法による列挙の所属証拠へ戻す。
 
@@ -1011,14 +1032,14 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
       simpa using completionMember
     rw [completionEq]
     exact .intro wait rawComponents ((mem_waitingTiles_iff tiles wait).mp waitMember)
-      ((mem_winningPartitions_iff _ _).mp partitionMember)
+      ((mem_winningPartitions_iff_spec _ _).mp partitionMember)
   · intro valid
     cases valid with
     | intro wait rawComponents waitFor partition =>
         apply List.mem_flatMap.mpr
         refine ⟨wait, (mem_waitingTiles_iff tiles wait).mpr waitFor, ?_⟩
         apply List.mem_flatMap.mpr
-        refine ⟨rawComponents, (mem_winningPartitions_iff _ _).mpr partition, ?_⟩
+        refine ⟨rawComponents, (mem_winningPartitions_iff_spec _ _).mpr partition, ?_⟩
         simp
 
 example : CompletionFor [.honor .Red]

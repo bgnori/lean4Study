@@ -553,33 +553,18 @@ private theorem winningShape_tiles_length (shape : WinningShape n) :
   simp [WinningComponent.tiles, Toitsu.tiles, Nat.add_comm]
 
 private theorem winningShape_partition (shape : WinningShape n) :
-    WinningPartition shape.tiles shape.components := by
+    WinningPartitionSpec shape.tiles shape.components := by
   let rest : List WinningComponent :=
     (List.ofFn shape.mentsu).map fun candidate => (Sum.inr candidate : WinningComponent)
   have allMentsu : ∀ component ∈ rest, component ∈ mentsuComponentCandidates := by
     intro component member
     obtain ⟨candidate, _, rfl⟩ := List.mem_map.mp member
     exact mentsu_mem_mentsuComponentCandidates candidate
-  have restLength : rest.length = n := by simp [rest]
-  have remainingLength :
-      (rest.flatMap WinningComponent.tiles).length = n * mentsuTileCount := by
-    simpa [rest] using mentsuComponents_tiles_length (List.ofFn shape.mentsu)
-  have fuelEq : (rest.flatMap WinningComponent.tiles).length / mentsuTileCount = n := by
-    rw [remainingLength]
-    simp [mentsuTileCount]
-  have tail : MentsuPartition
-      ((rest.flatMap WinningComponent.tiles).length / mentsuTileCount)
-      (rest.flatMap WinningComponent.tiles) rest := by
-    apply MentsuPartition.iff_extensional.mpr
-    exact ⟨restLength.trans fuelEq.symm, allMentsu, .refl _⟩
-  have removePair :
-      removeTiles shape.tiles (WinningComponent.tiles (.inl shape.pair)) =
-        some (rest.flatMap WinningComponent.tiles) := by
-    simpa [WinningShape.tiles, WinningShape.components, rest] using
-      removeTiles_append_left (WinningComponent.tiles (.inl shape.pair))
-        (rest.flatMap WinningComponent.tiles)
-  exact .intro (.inl shape.pair) (pair_mem_pairComponentCandidates shape.pair)
-    removePair tail
+  unfold WinningPartitionSpec
+  refine ⟨.inl shape.pair, rest, ?_, pair_mem_pairComponentCandidates shape.pair,
+    allMentsu, ?_⟩
+  · simp [WinningShape.components, rest]
+  · exact .refl shape.tiles
 
 private theorem hasLegalTileCounts_of_valid (derivation : WaitDerivation n) :
   HasLegalTileCounts derivation.1.shape.tiles := by
@@ -595,10 +580,11 @@ private theorem hasLegalTileCounts_of_valid (derivation : WaitDerivation n) :
 private theorem derivation_waitFor (derivation : WaitDerivation n) (standard : n ≤ standardHandMentsuCount) :
     IsWaitFor (hand derivation) derivation.1.wait := by
   have permutation := wait_cons_hand_perm_winningShape derivation
-  have partition : WinningPartition (derivation.1.wait :: hand derivation) derivation.1.shape.components :=
+  have partition : WinningPartitionSpec
+      (derivation.1.wait :: hand derivation) derivation.1.shape.components :=
     (winningShape_partition derivation.1.shape).of_perm permutation.symm
   have partitionMember :=
-    (mem_winningPartitions_iff _ _).mpr partition
+    (mem_winningPartitions_iff_spec _ _).mpr partition
   have shapeLegal := hasLegalTileCounts_of_valid derivation
   have countEq := permutation.count derivation.1.wait
   have lengthEq := permutation.length_eq
@@ -642,14 +628,14 @@ def completion (derivation : WaitDerivation n) : WaitCompletion :=
 `standard` は面子数 `n` が通常手の上限4以下であることを表す。この範囲では `derivation_waitFor` が、
 生成した `hand derivation` に対して `derivation.1.wait` が実際の待ち牌であることを保証する。
 また `winningShape_partition` が元の完成形の分割を与え、`wait_cons_hand_perm_winningShape` と
-`WinningPartition.of_perm` により、その分割を「待ち牌を生成牌姿へ加えた列」へ移す。
+`WinningPartitionSpec.of_perm` により、その分割を「待ち牌を生成牌姿へ加えた列」へ移す。
 
 この待ちの証拠と完成分割の証拠を `mem_findWaitCompletions_iff` の仕様側へ渡すことで、
 `completion derivation` が探索結果に含まれると結論する。したがって直接生成器は、既存Finderから見ても
 根拠のない待ちや分割を作らない。
 
-読むためのLean語彙: `IsWaitFor`, `WinningPartition`, `mem_findWaitCompletions_iff`,
-`.mpr`, `WinningPartition.of_perm`。
+読むためのLean語彙: `IsWaitFor`, `WinningPartitionSpec`, `mem_findWaitCompletions_iff`,
+`.mpr`, `WinningPartitionSpec.of_perm`。
 -/
 theorem completion_mem_findWaitCompletions (derivation : WaitDerivation n)
     (standard : n ≤ standardHandMentsuCount) :
@@ -697,7 +683,7 @@ private theorem selectedCanonical_at_idxOf {candidate : MentsuCandidate}
 既存 Finder が返す各 completion には、それと同じ牌姿・待ち牌・正規化分割を持つ
 直接生成による待ち導出が存在する。面子数は Finder の分割から復元する。
 
-Finderの `WinningPartition` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
+Finderの `WinningPartitionSpec` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
 待ち牌が雀頭に含まれれば雀頭を選択し、そうでなければ待ち牌を含む最初の面子を選択する。これにより
 面子順と同一面子の選択位置に関する正規化条件を満たす。Finder側の待ち証拠から4枚制限と通常手の
 面子数上限も復元できるため、得られたSeedへ妥当性証拠を付けて `WaitDerivation` にできる。
@@ -713,8 +699,9 @@ theorem exists_derivation_of_mem_findWaitCompletions {tiles : List Tile}
   have completionFor := (mem_findWaitCompletions_iff tiles found).mp member
   cases completionFor with
   | intro wait rawComponents waitFor partition =>
+        unfold WinningPartitionSpec at partition
         obtain ⟨pairComponent, rest, rfl, pairCandidate, allMentsu, rawTilesPerm⟩ :=
-          WinningPartition.iff_extensional.mp partition
+          partition
         obtain ⟨pair, rfl⟩ := pair_of_mem_pairComponentCandidates pairCandidate
         obtain ⟨rawMentsu, rfl⟩ := exists_mentsuCandidates_of_all rest allMentsu
         let sorted := canonicalMentsu rawMentsu

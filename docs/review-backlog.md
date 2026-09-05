@@ -14,7 +14,7 @@
 
 ### 分解の操作履歴と外延的な正しさを分離する
 
-状態: 一部対応
+状態: 対応済み
 
 `MentsuPartition` と `WinningPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
 各段階で、選んだ和了構成部品、その候補所属、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
@@ -33,7 +33,7 @@
 証明の粒度が細かく見える主因は、必要な数学的性質が細かいというより、順序依存の操作履歴と
 順序非依存の仕様が同じ証拠表現に重なっていることかもしれない。
 
-既存定理から、少なくとも `MentsuPartition` は次の外延的な条件と同値になると予想できる。
+`MentsuPartition` は次の外延的な条件と同値になる。
 
 ```lean
 components.length = fuel ∧
@@ -41,38 +41,26 @@ components.length = fuel ∧
 	(components.flatMap WinningComponent.tiles).Perm tiles
 ```
 
-左から右は `components_length`、`all_mentsu`、`tiles_perm` で示せる。右から左は、まず
-`mentsuPartition_flatMap` で部品順に連結した牌列の分解証拠を作り、`of_perm` で入力牌列へ移し、
-列長の等式で `fuel` を揃えれば示せるはずである。この同値定理は、仮説を安価に検証できる最初の対象になる。
+左から右は `components_length`、`all_mentsu`、`tiles_perm`、右から左は `mentsuPartition_flatMap` と
+`of_perm` の合成で示し、この同値を `MentsuPartition.iff_extensional` として実装した。
 
-この仮説は `MentsuPartition.iff_extensional` として実装した。証明は予想どおり既存補助定理の短い合成で閉じた。
-最初の利用例として `DirectWaitGeneration.winningShape_partition` の面子側をこの同値の右辺から構築し、
-利用側が `mentsuPartition_flatMap` と添字の段階的な書き換えを直接扱わない形にした。帰納的関係は
-列挙器の健全性・完全性と具体的な除去履歴の構築に残し、利用側は必要に応じて外延条件を使える状態である。
+外延仕様は `MentsuPartitionSpec` と `WinningPartitionSpec` に名前を与えた。前者は部品数、候補所属、
+牌の順列がすべて証明フィールドなので、各条件を射影できる `Prop` 構造体とした。後者は雀頭と末尾列という
+データの witness を含む。Leanでは `Prop` 構造体からデータ射影を生成できず、`Type` にすると仕様証明が
+計算データを不必要に保持するため、名前付きの存在命題とした。
 
-続いて `WinningPartition.iff_extensional` を追加し、「先頭が雀頭候補」「末尾がすべて完成面子候補」
-「全和了構成部品牌が入力牌列の順列」という条件で通常和了分割を特徴づけた。逆向きでは、全体の順列から
-実際の雀頭除去結果を取り出し、完成面子が常に3牌であることから `fuel` を計算して、面子側の外延定理へ渡す。
-このため、外延仕様自体には `remaining` や除去順を含めずに済んだ。
+帰納的な `MentsuPartition` と `WinningPartition` は、`decomposeMentsu` と `winningPartitions` の
+実行手順に対応する操作履歴として残した。`remaining.length / mentsuTileCount` も列挙器が再帰回数を決める式として
+この層だけに残る。帰納的関係から除いても公開仕様は変わらず、実行器との対応証明だけが複雑になるため、
+追加効果はないと判断した。
 
-`DirectWaitGeneration.exists_derivation_of_mem_findWaitCompletions` もこの特徴づけを使う形へ変更した。
-以前は `WinningPartition` と内側の `MentsuPartition` を順に分解し、雀頭除去の順列と面子側の順列を
-利用側で連結していたが、現在は雀頭、完成面子候補列、全体の牌保存則を外延仕様から直接受け取る。
-また、完成面子候補列から `List MentsuCandidate` を復元する処理も `exists_mentsuCandidates_of_all` として
-操作履歴から分離した。
+二層間は `MentsuPartition.iff_extensional` と `WinningPartition.iff_extensional` で対応させた。
+さらに `mem_decomposeMentsu_iff_spec` と `mem_winningPartitions_iff_spec` により、列挙結果への所属を
+操作履歴を介さず公開仕様として読める。計算可能な列挙器と、従来の操作履歴に対する健全性・完全性定理も維持した。
 
-`WinningPartition.of_perm` も外延仕様を経由する形に変更した。全体の牌保存則へ入力間の順列を連結して
-逆向きの特徴づけへ渡すだけになり、以前必要だった除去後リストの `sameLength` と `fuel` 添字の書き換えは
-利用側から消えた。`WinningPartition.tiles_perm` も外延仕様から牌保存則を取り出す射影になった。
-
-後で確認すること:
-
-- `remaining.length / mentsuTileCount` は実行器の再帰回数としてだけ計算し、宣言的仕様の基本表現から
-	外せるか。外延仕様からは既に隠せているため、帰納的関係自体を変更する追加効果があるかを判断する。
-- 帰納的関係は実行器との対応証明専用に残し、公開仕様には外延的述語または構造体を使う二層構成が
-	読みやすいか。置き換える場合も、計算可能な列挙器と健全性・完全性定理は維持する。
-- 外延的仕様を新しい構造体にするなら、候補所属、列長、牌の順列を個別フィールドにする価値があるか、
-	単一の `Prop` と特徴づけ定理で十分か。
+公開側の `CompletionFor` は `WinningPartitionSpec` を保持するよう変更した。`DirectWaitGeneration` も
+外延仕様を使い、完成形から分割を示す証明から `fuel` の算術、`removeTiles` の具体的結果、帰納的証拠の構築を
+除いた。順列移送は `WinningPartitionSpec.of_perm` で全体の牌保存則を合成するだけになった。
 
 ### `List` による有限探索として候補生成と成功条件を表す
 

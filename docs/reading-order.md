@@ -942,13 +942,13 @@
 同じ結果の重複を除く。
 
 `CompletionFor tiles completion` は、返り値 `completion` の宣言的仕様である。その証拠は、
-`IsWaitFor tiles wait` を満たす待ち牌と、加牌後の牌列に対する `WinningPartition` を持つ。
+`IsWaitFor tiles wait` を満たす待ち牌と、加牌後の牌列に対する `WinningPartitionSpec` を持つ。
 一方、返り値に記録される分割は正規化済みであるため、仕様は正規化前の `rawComponents` が存在し、
 `completion.winningComponents` がその標準順表現になるという形を帰納型の結論で表している。
 
 `CompletionFor.of_perm` は、入力牌姿を並べ替えても同じ `completion` の証拠を移せることを保証する。
-証拠を `cases` で分解すると、待ち牌の正しさ `IsWaitFor` と加牌後の分割 `WinningPartition` が得られる。
-前者は `IsWaitFor.of_perm` で移し、後者は `WinningPartition.of_perm` で移す。分割側の入力には待ち牌が
+証拠を `cases` で分解すると、待ち牌の正しさ `IsWaitFor` と加牌後の分割 `WinningPartitionSpec` が得られる。
+前者は `IsWaitFor.of_perm` で移し、後者は `WinningPartitionSpec.of_perm` で移す。分割側の入力には待ち牌が
 1枚加わっているため、`permutation.cons wait` により元の順列の両側へ同じ牌を加えてから渡す。
 
 この定理は、下位で確認した二つの順列不変性を `CompletionFor` というFinder仕様の水準で合成する。
@@ -958,14 +958,14 @@
 有限な具体値なので `native_decide` で検査している。
 
 `mem_findWaitCompletions_iff` は、Finderの結果への所属と `CompletionFor` が同値だと示す。
-これは `mem_waitingTiles_iff` と `mem_winningPartitions_iff` という二つの下位境界を合成した、
+これは `mem_waitingTiles_iff` と `mem_winningPartitions_iff_spec` という二つの下位境界を合成した、
 探索全体の健全性・完全性である。Finderが返した組には正しい待ち牌と和了分割が必ずあり、逆に、
 仕様を満たす組はFinderの結果に必ず含まれる。
 
 証明冒頭の `rw [findWaitCompletions, List.mem_dedup]` は実行器を展開し、重複除去後への所属を
 重複除去前への所属に直す。健全性方向では、`List.mem_flatMap.mp` が結果を生成した待ち牌を、
-`List.mem_map.mp` が正規化前の分割を取り出す。それぞれの所属を下位の同値定理の `.mp` で
-`IsWaitFor` と `WinningPartition` へ変換し、`CompletionFor.intro` に渡す。
+もう一度の `List.mem_flatMap.mp` が正規化前の分割を取り出す。それぞれの所属を下位の同値定理の `.mp` で
+`IsWaitFor` と `WinningPartitionSpec` へ変換し、`CompletionFor.intro` に渡す。
 
 完全性方向では `cases valid` により仕様の証拠から待ち牌、分割、二つの正しさの証拠を取り出す。
 下位定理の `.mpr` でそれらを実行結果への所属へ戻し、`List.mem_map.mpr` と
