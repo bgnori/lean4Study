@@ -416,6 +416,49 @@ theorem MentsuPartition.all_mentsu {fuel : Nat} {tiles : List Tile}
       · exact candidate
       · exact inductionHypothesis component restMember
 
+/-- 完成面子候補を構成する牌は常に `mentsuTileCount` 枚である。 -/
+theorem WinningComponent.tiles_length_of_mem_mentsuComponentCandidates
+    {component : WinningComponent} (member : component ∈ mentsuComponentCandidates) :
+    component.tiles.length = mentsuTileCount := by
+  obtain ⟨candidate, rfl⟩ := mentsu_of_mem_mentsuComponentCandidates member
+  cases candidate with
+  | shuntsu pattern => cases pattern; rfl
+  | koutsu tile => rfl
+
+/-- 完成面子候補列を牌へ戻した列の長さは、部品数の `mentsuTileCount` 倍である。 -/
+theorem WinningComponent.flatMap_tiles_length_of_all_mentsu
+    (components : List WinningComponent)
+    (allMentsu : ∀ component ∈ components, component ∈ mentsuComponentCandidates) :
+    (components.flatMap WinningComponent.tiles).length = components.length * mentsuTileCount := by
+  induction components with
+  | nil => rfl
+  | cons first rest inductionHypothesis =>
+      have firstLength := tiles_length_of_mem_mentsuComponentCandidates
+        (allMentsu first (by simp))
+      have restCandidates : ∀ component ∈ rest, component ∈ mentsuComponentCandidates := by
+        intro component member
+        exact allMentsu component (by simp [member])
+      simp only [List.flatMap_cons, List.length_append, List.length_cons]
+      rw [firstLength, inductionHypothesis restCandidates]
+      simp [Nat.add_mul, Nat.add_comm]
+
+/-- 完成面子候補だけからなる部品列を、対応する `MentsuCandidate` の列として復元する。 -/
+theorem exists_mentsuCandidates_of_all (components : List WinningComponent)
+    (allMentsu : ∀ component ∈ components, component ∈ mentsuComponentCandidates) :
+    ∃ candidates : List MentsuCandidate,
+      components = candidates.map fun candidate => (Sum.inr candidate : WinningComponent) := by
+  induction components with
+  | nil => exact ⟨[], rfl⟩
+  | cons first rest inductionHypothesis =>
+      obtain ⟨candidate, rfl⟩ :=
+        mentsu_of_mem_mentsuComponentCandidates (allMentsu first (by simp))
+      have restCandidates :
+          ∀ component ∈ rest, component ∈ mentsuComponentCandidates := by
+        intro component member
+        exact allMentsu component (by simp [member])
+      obtain ⟨candidates, rfl⟩ := inductionHypothesis restCandidates
+      exact ⟨candidate :: candidates, rfl⟩
+
 example
     (partition : MentsuPartition 1
       [.honor .Red, .honor .Red, .honor .Red]
@@ -440,12 +483,7 @@ example
       {components : List WinningComponent} (partition : MentsuPartition fuel tiles components) :
       ∃ candidates : List MentsuCandidate,
         components = candidates.map fun candidate => (Sum.inr candidate : WinningComponent) := by
-      induction partition with
-      | done => exact ⟨[], rfl⟩
-      | next mentsu candidate remove tail inductionHypothesis =>
-        obtain ⟨first, rfl⟩ := mentsu_of_mem_mentsuComponentCandidates candidate
-        obtain ⟨rest, rfl⟩ := inductionHypothesis
-        exact ⟨first :: rest, rfl⟩
+      exact exists_mentsuCandidates_of_all components partition.all_mentsu
 
     example
         (partition : MentsuPartition 1
@@ -510,6 +548,26 @@ theorem mentsuPartition_flatMap (components : List WinningComponent)
             some (rest.flatMap WinningComponent.tiles) := by
         exact removeTiles_append_left _ _
       exact .next first firstCandidate removeFirst tail
+
+  /--
+  `MentsuPartition` を、操作履歴に依存しない3つの条件で特徴づける。
+
+  分解証拠が存在することは、部品数が `fuel` に一致し、すべての部品が完成面子候補であり、
+  部品を牌へ戻した列が入力牌列の順列であることと同値である。右から左では、まず部品を並べた
+  順序の入力に対する分解証拠を `mentsuPartition_flatMap` で作り、`of_perm` で実際の入力順へ移す。
+  -/
+  theorem MentsuPartition.iff_extensional {fuel : Nat} {tiles : List Tile}
+      {components : List WinningComponent} :
+      MentsuPartition fuel tiles components ↔
+        components.length = fuel ∧
+        (∀ component ∈ components, component ∈ mentsuComponentCandidates) ∧
+        (components.flatMap WinningComponent.tiles).Perm tiles := by
+    constructor
+    · intro partition
+      exact ⟨partition.components_length, partition.all_mentsu, partition.tiles_perm⟩
+    · rintro ⟨lengthEq, allMentsu, permutation⟩
+      have partition := (mentsuPartition_flatMap components allMentsu).of_perm permutation
+      exact lengthEq ▸ partition
 
 example :
     MentsuPartition 1
@@ -606,6 +664,48 @@ example :
     · exact .done
 
 /--
+`WinningPartition` を、除去順に依存しない雀頭、完成面子列、牌の保存条件で特徴づける。
+
+先頭部品が雀頭候補、残りがすべて完成面子候補であり、全部品を牌へ戻した列が入力牌列の
+順列なら、実際の雀頭除去後の並びに対して `MentsuPartition.iff_extensional` を適用できる。
+-/
+theorem WinningPartition.iff_extensional {tiles : List Tile}
+    {components : List WinningComponent} :
+    WinningPartition tiles components ↔
+      ∃ pair rest,
+        components = pair :: rest ∧
+        pair ∈ pairComponentCandidates ∧
+        (∀ component ∈ rest, component ∈ mentsuComponentCandidates) ∧
+        (components.flatMap WinningComponent.tiles).Perm tiles := by
+  constructor
+  · intro partition
+    cases partition with
+    | intro pair pairCandidate removePair mentsuPartition =>
+        rename_i remaining rest
+        have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
+          (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
+            ⟨remaining, removePair, .refl remaining⟩
+        have tilesPerm :=
+          (List.Perm.append_left pair.tiles mentsuPartition.tiles_perm).trans removedPerm
+        exact ⟨pair, rest, rfl, pairCandidate, mentsuPartition.all_mentsu, tilesPerm⟩
+  · rintro ⟨pair, rest, rfl, pairCandidate, allMentsu, permutation⟩
+    let remaining := rest.flatMap WinningComponent.tiles
+    have removedPerm : (pair.tiles ++ remaining).Perm tiles := by
+      simpa [remaining] using permutation
+    obtain ⟨output, removePair, outputPerm⟩ :=
+      (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mpr removedPerm
+    have remainingLength : remaining.length = rest.length * mentsuTileCount := by
+      exact WinningComponent.flatMap_tiles_length_of_all_mentsu rest allMentsu
+    have outputLength : output.length = rest.length * mentsuTileCount :=
+      outputPerm.length_eq.trans remainingLength
+    have fuelEq : rest.length = output.length / mentsuTileCount := by
+      rw [outputLength]
+      simp [mentsuTileCount]
+    apply WinningPartition.intro pair pairCandidate removePair
+    apply MentsuPartition.iff_extensional.mpr
+    exact ⟨fuelEq, allMentsu, outputPerm.symm⟩
+
+/--
 正しい通常和了分割の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
 
 `tiles.Perm other` は入力牌列の順番だけが異なることを表す。結論では雀頭と完成面子列 `components` を
@@ -625,19 +725,10 @@ example :
 theorem WinningPartition.of_perm {tiles other : List Tile} {components : List WinningComponent}
     (partition : WinningPartition tiles components) (permutation : tiles.Perm other) :
     WinningPartition other components := by
-  cases partition with
-  | intro pair pairCandidate removePair mentsuPartition =>
-      rename_i remaining rest
-      have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
-        (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
-          ⟨remaining, removePair, .refl remaining⟩
-      obtain ⟨output, removeOther, outputPerm⟩ :=
-        (exists_removeTiles_eq_some_iff_perm other pair.tiles remaining).mpr
-          (removedPerm.trans permutation)
-      have sameLength : output.length = remaining.length := outputPerm.length_eq
-      rw [← sameLength] at mentsuPartition
-      exact .intro pair pairCandidate removeOther
-        (mentsuPartition.of_perm outputPerm.symm)
+  obtain ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm⟩ :=
+    WinningPartition.iff_extensional.mp partition
+  apply WinningPartition.iff_extensional.mpr
+  exact ⟨pair, rest, componentsEq, pairCandidate, allMentsu, tilesPerm.trans permutation⟩
 
 example
     (partition : WinningPartition
@@ -668,13 +759,8 @@ example
 theorem WinningPartition.tiles_perm {tiles : List Tile} {components : List WinningComponent}
     (partition : WinningPartition tiles components) :
     (components.flatMap WinningComponent.tiles).Perm tiles := by
-  cases partition with
-  | intro pair pairCandidate removePair mentsuPartition =>
-      rename_i remaining rest
-      have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
-        (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
-          ⟨remaining, removePair, .refl remaining⟩
-      exact (List.Perm.append_left pair.tiles mentsuPartition.tiles_perm).trans removedPerm
+  obtain ⟨_, _, _, _, _, permutation⟩ := WinningPartition.iff_extensional.mp partition
+  exact permutation
 
 example
     (partition : WinningPartition

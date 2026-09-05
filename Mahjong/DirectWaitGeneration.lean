@@ -560,16 +560,18 @@ private theorem winningShape_partition (shape : WinningShape n) :
     intro component member
     obtain ⟨candidate, _, rfl⟩ := List.mem_map.mp member
     exact mentsu_mem_mentsuComponentCandidates candidate
-  have tail := mentsuPartition_flatMap rest allMentsu
   have restLength : rest.length = n := by simp [rest]
   have remainingLength :
       (rest.flatMap WinningComponent.tiles).length = n * mentsuTileCount := by
     simpa [rest] using mentsuComponents_tiles_length (List.ofFn shape.mentsu)
-  rw [restLength] at tail
   have fuelEq : (rest.flatMap WinningComponent.tiles).length / mentsuTileCount = n := by
     rw [remainingLength]
     simp [mentsuTileCount]
-  rw [← fuelEq] at tail
+  have tail : MentsuPartition
+      ((rest.flatMap WinningComponent.tiles).length / mentsuTileCount)
+      (rest.flatMap WinningComponent.tiles) rest := by
+    apply MentsuPartition.iff_extensional.mpr
+    exact ⟨restLength.trans fuelEq.symm, allMentsu, .refl _⟩
   have removePair :
       removeTiles shape.tiles (WinningComponent.tiles (.inl shape.pair)) =
         some (rest.flatMap WinningComponent.tiles) := by
@@ -711,12 +713,10 @@ theorem exists_derivation_of_mem_findWaitCompletions {tiles : List Tile}
   have completionFor := (mem_findWaitCompletions_iff tiles found).mp member
   cases completionFor with
   | intro wait rawComponents waitFor partition =>
-      cases partition with
-      | intro pairComponent pairCandidate removePair mentsuPartition =>
-        rename_i remaining rest
+        obtain ⟨pairComponent, rest, rfl, pairCandidate, allMentsu, rawTilesPerm⟩ :=
+          WinningPartition.iff_extensional.mp partition
         obtain ⟨pair, rfl⟩ := pair_of_mem_pairComponentCandidates pairCandidate
-        obtain ⟨rawMentsu, restEq⟩ := mentsuPartition.exists_candidates
-        subst rest
+        obtain ⟨rawMentsu, rfl⟩ := exists_mentsuCandidates_of_all rest allMentsu
         let sorted := canonicalMentsu rawMentsu
         let shape : WinningShape sorted.length :=
           { pair
@@ -730,16 +730,6 @@ theorem exists_derivation_of_mem_findWaitCompletions {tiles : List Tile}
           simp only [WinningShape.components, shapeMentsu]
           exact List.Perm.cons (.inl pair)
             (sortedPerm.map fun candidate => (Sum.inr candidate : WinningComponent))
-        have rawTilesPerm :
-            ((.inl pair : WinningComponent) :: rawMentsu.map fun candidate =>
-              (Sum.inr candidate : WinningComponent)).flatMap WinningComponent.tiles |>.Perm
-                (wait :: tiles) := by
-          have withPair := List.Perm.append_left (WinningComponent.tiles (.inl pair))
-            mentsuPartition.tiles_perm
-          exact withPair.trans
-            ((exists_removeTiles_eq_some_iff_perm (wait :: tiles)
-              (WinningComponent.tiles (.inl pair)) remaining).mp
-              ⟨remaining, removePair, .refl remaining⟩)
         have shapeTilesPerm : shape.tiles.Perm (wait :: tiles) := by
           exact (componentsPerm.flatMap fun _ _ => .refl _).trans rawTilesPerm
         have shapeLegal : decide (HasLegalTileCounts shape.tiles) = true :=
