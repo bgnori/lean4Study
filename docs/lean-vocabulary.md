@@ -401,6 +401,13 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `xs.flatMap f` は、リストの各要素に `f` を適用してリストを作り、それらを1つにつなげる。
 `observedWaitProfiles` では、各待ち核から得られる観測基本形列をまとめて1つの列にする。
 
+### `List.bind_eq_flatMap`
+
+リストを結果とする `do`記法の `let value ← candidates` は、候補ごとの結果をつなぐ `flatMap` として動く。
+`List.bind_eq_flatMap` は、この `do`記法内部の結合操作を `flatMap` に書き換える定理である。
+`mem_findWaitCompletions_iff` では、実装を読みやすい `do`記法のまま保ち、所属証明では
+`List.mem_flatMap` を使える形へ戻すために用いる。
+
 ### List.flatten
 
 `List.flatten xss` は、リストのリスト `xss` に含まれる内側のリストを順番につなぎ、1つのリストにする。

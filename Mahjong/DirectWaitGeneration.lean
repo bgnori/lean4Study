@@ -277,11 +277,11 @@ private theorem mem_componentIndices (selected : ComponentIndex n) :
       exact List.mem_ofFn.mpr ⟨index, rfl⟩
 
 /-- 完成形と選択部品から、そこに含まれる牌だけを待ち牌候補として作る。 -/
-def seedCandidates (n : Nat) : List (Seed n) :=
-  (winningShapes n).flatMap fun shape =>
-    (componentIndices n).flatMap fun selected =>
-      (shape.component selected).tiles.dedup.map fun wait =>
-        { shape, selected, wait }
+def seedCandidates (n : Nat) : List (Seed n) := do
+  let shape ← winningShapes n
+  let selected ← componentIndices n
+  let wait ← (shape.component selected).tiles.dedup
+  pure { shape, selected, wait }
 
 /-- 直接生成した候補から、物理制約と正規化条件を満たすものだけを残す。 -/
 def directSeeds (n : Nat) : List (Seed n) :=
@@ -312,7 +312,7 @@ theorem directSeeds_sound {seed : Seed n} (member : seed ∈ directSeeds n) :
 したがって、候補を選択部品内の最大3牌種へ限定する最適化を行っても、妥当なSeedを取りこぼさない。
 これは直接生成器の完全性を保証する。
 
-読むためのLean語彙: 完全性, `Bool.and_eq_true`, `List.mem_flatMap`, `List.mem_map`,
+読むためのLean語彙: 完全性, `Bool.and_eq_true`, `List.bind_eq_flatMap`, `List.mem_flatMap`,
 `List.mem_dedup`, `List.mem_filter`, `refine`。
 -/
 theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
@@ -332,11 +332,10 @@ theorem directSeeds_complete {seed : Seed n} (valid : seed.valid) :
     seed.wait (seed.shape.component seed.selected) componentValid
   apply List.mem_filter.mpr
   refine ⟨?_, valid⟩
-  simp only [seedCandidates, List.mem_flatMap]
+  simp only [seedCandidates, List.bind_eq_flatMap, List.mem_flatMap]
   refine ⟨seed.shape, mem_winningShapes seed.shape, seed.selected,
     mem_componentIndices seed.selected, ?_⟩
-  apply List.mem_map.mpr
-  exact ⟨seed.wait, List.mem_dedup.mpr waitMember, rfl⟩
+  exact ⟨seed.wait, List.mem_dedup.mpr waitMember, by simp⟩
 
 /--
 `Seed` が直接生成器の出力に含まれることと、その `Seed` が妥当であることは同値である。

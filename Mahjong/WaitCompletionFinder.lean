@@ -842,9 +842,11 @@ example : IsTenpai [.honor .Red] := by
 
 /-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
 def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
-  ((waitingTiles tiles).flatMap fun wait =>
-    (winningPartitions (wait :: tiles)).map fun winningComponents =>
-      { wait, winningComponents := CanonicalWinningComponents.ofList winningComponents }).dedup
+  let candidates : List WaitCompletion := do
+    let wait ← waitingTiles tiles
+    let winningComponents ← winningPartitions (wait :: tiles)
+    pure { wait, winningComponents := CanonicalWinningComponents.ofList winningComponents }
+  candidates.dedup
 
 /--
 `completion` が牌姿 `tiles` の待ちと和了分割を表すことの宣言的仕様。
@@ -895,22 +897,27 @@ example {completion : WaitCompletion}
 左から右はFinderが不正な組を返さないという健全性、右から左は正しい組を取りこぼさないという完全性を保証する。
 
 証明では、まず `List.mem_dedup` により、重複除去の前後で所属が変わらないことを使う。健全性方向では
-`List.mem_flatMap` と `List.mem_map` から、結果を生成した待ち牌と正規化前の分割を取り出す。
+`List.bind_eq_flatMap` と `List.mem_flatMap` から、結果を生成した待ち牌と正規化前の分割を取り出す。
 それぞれの所属証拠を `mem_waitingTiles_iff` と `mem_winningPartitions_iff` で宣言的仕様へ変換すれば、
 `CompletionFor` の構築に必要な2条件が揃う。完全性方向では同じ変換を逆向きに使い、仕様が持つ待ち牌と
-分割を `map`、`flatMap` の所属証拠へ戻す。
+分割を `do` 記法による列挙の所属証拠へ戻す。
 
-読むためのLean語彙: `↔`, 健全性と完全性, `rw`, `List.mem_dedup`, `List.mem_flatMap`,
-`List.mem_map`, `obtain`, `cases`, `refine`。
+読むためのLean語彙: `↔`, 健全性と完全性, `rw`, `List.mem_dedup`, `List.bind_eq_flatMap`,
+`List.mem_flatMap`, `obtain`, `cases`, `refine`。
 -/
 theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitCompletion) :
     completion ∈ findWaitCompletions tiles ↔ CompletionFor tiles completion := by
   rw [findWaitCompletions, List.mem_dedup]
+  simp only [List.bind_eq_flatMap]
   constructor
   · intro member
     obtain ⟨wait, waitMember, completionMember⟩ := List.mem_flatMap.mp member
-    obtain ⟨rawComponents, partitionMember, completionEq⟩ := List.mem_map.mp completionMember
-    rw [← completionEq]
+    obtain ⟨rawComponents, partitionMember, completionMember⟩ :=
+      List.mem_flatMap.mp completionMember
+    have completionEq : completion =
+        { wait, winningComponents := CanonicalWinningComponents.ofList rawComponents } := by
+      simpa using completionMember
+    rw [completionEq]
     exact .intro wait rawComponents ((mem_waitingTiles_iff tiles wait).mp waitMember)
       ((mem_winningPartitions_iff _ _).mp partitionMember)
   · intro valid
@@ -918,8 +925,9 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
     | intro wait rawComponents waitFor partition =>
         apply List.mem_flatMap.mpr
         refine ⟨wait, (mem_waitingTiles_iff tiles wait).mpr waitFor, ?_⟩
-        exact List.mem_map.mpr
-          ⟨rawComponents, (mem_winningPartitions_iff _ _).mpr partition, rfl⟩
+        apply List.mem_flatMap.mpr
+        refine ⟨rawComponents, (mem_winningPartitions_iff _ _).mpr partition, ?_⟩
+        simp
 
 example : CompletionFor [.honor .Red]
     { wait := .honor .Red
