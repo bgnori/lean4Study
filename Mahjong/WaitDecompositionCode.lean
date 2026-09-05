@@ -347,25 +347,6 @@ example : waitDecompositionCodeEntries
   native_decide
 
 /--
-待ち牌ごとの待ち分解コードを、`(コード, 待ち牌)` のペアとして列挙する。
-
-`WaitDecompositionCodeEntry` の名前付きフィールドを単純なペアへ写すだけで、新しい符号化は行わない。
-待ち牌を残すため、同じ部品種別コードを持つ異なる待ち牌も区別できる。
--/
-def waitDecompositionCodesWithWait
-    (completions : List WaitCompletion) : List (Nat × Tile) :=
-  waitDecompositionCodeEntries completions
-    |>.map fun entry => (entry.code, entry.wait)
-
-example : waitDecompositionCodesWithWait
-    [{ wait := .numbered .Manzu 4
-       winningComponents :=
-         CanonicalWinningComponents.ofList
-           [WinningComponent.pair (.numbered .Manzu 4), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
-    [(26, .numbered .Manzu 4)] := by
-  native_decide
-
-/--
 待ち牌を忘れ、発見済みの待ち分解に現れる部品種別コードだけを列挙する。
 
 異なる待ち牌が同じコードを持つ場合は、待ち牌を除いた時点で同じ値になるため、再度重複を除いて整列する。
@@ -388,15 +369,6 @@ example : waitDecompositionCodes
            [WinningComponent.pair (.numbered .Manzu 5), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
     [26] := by
   native_decide
-
-/-! ## 牌列から探索して符号化する便利関数 -/
-
-def findWaitDecompositions (tiles : List Tile) : List WaitDecomposition :=
-  waitDecompositions (WaitCompletionFinder.findWaitCompletions tiles)
-
-/-- 牌列から、完成面子と分離した待ち核を列挙する。 -/
-def findWaitCoreExtractions (tiles : List Tile) : List WaitCoreExtraction :=
-  waitCoreExtractions (WaitCompletionFinder.findWaitCompletions tiles)
 
 /-- 牌列から得られる待ち核集合。 -/
 def findWaitCores (tiles : List Tile) : List WaitCore :=
@@ -460,15 +432,6 @@ theorem reducibility_eq_irreducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .irreducible ↔ ¬CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
-
-def findWaitKindDecompositions (tiles : List Tile) : List WaitKindDecomposition :=
-  waitKindDecompositions (WaitCompletionFinder.findWaitCompletions tiles)
-
-def findWaitDecompositionCodeEntries (tiles : List Tile) : List WaitDecompositionCodeEntry :=
-  waitDecompositionCodeEntries (WaitCompletionFinder.findWaitCompletions tiles)
-
-def findWaitDecompositionCodesWithWait (tiles : List Tile) : List (Nat × Tile) :=
-  waitDecompositionCodesWithWait (WaitCompletionFinder.findWaitCompletions tiles)
 
 def findWaitDecompositionCodes (tiles : List Tile) : List Nat :=
   waitDecompositionCodes (WaitCompletionFinder.findWaitCompletions tiles)

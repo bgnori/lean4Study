@@ -4,18 +4,13 @@ import Mahjong.Basic
 # 牌パターン
 
 このモジュールでは、待ち分類を構成する小さな部品を定義する。
-`Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` はいずれも
-`HasTilePattern` インスタンスを持ち、必要な牌種列を共通の方法で取り出せる。
+`Toitsu`、`Shuntsu`、`MentsuCandidate` は、それぞれ必要な牌種列を `tiles` で返す。
 和了構成部品 `WinningComponent` は、雀頭 `Toitsu` と面子候補 `MentsuCandidate` の直和として表す。
 -/
 
 /-!
-## 通常形のサイズと数牌の開始位置
 
-ここでは、後続の牌パターン定義で使う小さな数値を名前付きで定義する。
-通常形の手牌枚数は、面子数に3枚を掛け、雀頭1組を足して計算する。
-
-両面ターツや順子は、開始位置を `Fin` で表す。`Fin n` は `0` 以上 `n` 未満の値なので、
+順子は、開始位置を `Fin` で表す。`Fin n` は `0` 以上 `n` 未満の値なので、
 存在しない開始位置を型で除外できる。
 -/
 
@@ -32,9 +27,6 @@ abbrev standardHandPairCount : Nat := 1
 def standardTenpaiHandSize (mentsuCount : Nat) : Nat :=
   mentsuCount * mentsuTileCount + standardHandPairCount
 
-/-- 両面ターツの開始位置数。 -/
-abbrev ryanmenStartCount : Nat := numberedRankCount - 3
-
 /-- 順子・嵌張ターツの開始位置数。 -/
 abbrev shuntsuStartCount : Nat := numberedRankCount - 2
 
@@ -44,30 +36,8 @@ abbrev firstShuntsuStart : Nat := Rank.first.val
 /-- 最後の順子開始位置。 -/
 abbrev lastShuntsuStart : Nat := shuntsuStartCount - 1
 
-/-- 両面ターツの開始位置。 -/
-abbrev RyanmenStart := Fin ryanmenStartCount
-
 /-- 順子・嵌張ターツの開始位置。 -/
 abbrev ShuntsuStart := Fin shuntsuStartCount
-
-namespace RyanmenStart
-
-/-!
-## 両面ターツの開始位置からランクを得る
-
-両面ターツは実際の2--3から7--8までなので、開始位置 `0` が `2` と `3` に対応する。
-`lowerRank` と `upperRank` は、その2枚のランクを `Rank` として返す。
--/
-
-/-- 両面ターツの低い側のランク。 -/
-def lowerRank (start : RyanmenStart) : Rank :=
-  ⟨start.val + 1, Nat.lt_trans (Nat.add_lt_add_right start.isLt 1) (by decide)⟩
-
-/-- 両面ターツの高い側のランク。 -/
-def upperRank (start : RyanmenStart) : Rank :=
-  ⟨start.val + 2, Nat.lt_trans (Nat.add_lt_add_right start.isLt 2) (by decide)⟩
-
-end RyanmenStart
 
 namespace ShuntsuStart
 
@@ -102,66 +72,16 @@ def isLast (start : ShuntsuStart) : Bool :=
 end ShuntsuStart
 
 /-!
-## 待ち分類で使う小さな牌パターン
+## 和了構成部品で使う小さな牌パターン
 
 ここからは、麻雀上の部品をLeanのデータ構造として定義する。
 
-- `Taatsu`: 両面・嵌張・辺張のような、完成まであと1枚の2枚組。
 - `Toitsu`: 同じ牌種2枚からなる対子。
-- `Tanki`: 単騎待ちの核になる1枚。
 - `Shuntsu`: 同じスートで連続する3枚からなる順子。
 - `MentsuCandidate`: 通常形で完成面子として扱う候補。順子または刻子。
 
-これらは後で物理牌を取り出せるように、それぞれ `tiles` で必要な牌種列を返し、
-`HasTilePattern` のインスタンスを持つ。
+これらはそれぞれ `tiles` で必要な牌種列を返す。
 -/
-
-/--
-ターツ。常に同じスートの数牌2枚で構成する。
-
-ランクは0始まりで扱う。`ryanmen` は実際の2--7始まり、`kanchan` は1--7始まり、
-`penchan` は1--2または8--9を表す。
--/
-inductive Taatsu
-| ryanmen (suit : Suit) (start : RyanmenStart)
-| kanchan (suit : Suit) (start : ShuntsuStart)
-| penchan (suit : Suit) (high : Bool)
-deriving BEq, DecidableEq, Repr, Fintype
-
-namespace Taatsu
-
-/-!
-## ターツと牌種列
-
-`Taatsu.tiles` は、両面・嵌張・辺張それぞれに必要な2枚の牌種列を返す。
-`HasTilePattern` のインスタンスにより、`Taatsu.take` は共通処理 `HasTilePattern.take` を使って
-対応する物理牌を `Chunk` から取り出せる。
--/
-
-/-- ターツを構成する2枚の牌種列。 -/
-def tiles : Taatsu → List Tile
-  | .ryanmen suit start =>
-      [.numbered suit start.lowerRank,
-       .numbered suit start.upperRank]
-  | .kanchan suit start =>
-      [.numbered suit start.firstRank,
-       .numbered suit start.lastRank]
-  | .penchan suit false => [.numbered suit Rank.first, .numbered suit Rank.second]
-  | .penchan suit true => [.numbered suit Rank.penultimate, .numbered suit Rank.last]
-
-example : (Taatsu.ryanmen .Manzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["2m", "3m"] := rfl
-example : (Taatsu.kanchan .Pinzu ⟨2, by decide⟩).tiles.map (Tile.format .mpsz) = ["3p", "5p"] := rfl
-example : (Taatsu.penchan .Souzu false).tiles.map (Tile.format .mpsz) = ["1s", "2s"] := rfl
-example : (Taatsu.penchan .Souzu true).tiles.map (Tile.format .mpsz) = ["8s", "9s"] := rfl
-
-instance : HasTilePattern Taatsu where
-  tiles := Taatsu.tiles
-
-noncomputable def take (taatsu : Taatsu) (chunk : Chunk) :
-    Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take taatsu chunk
-
-end Taatsu
 
 /-- 対子。同じ牌種2枚からなる。 -/
 inductive Toitsu
@@ -174,7 +94,6 @@ namespace Toitsu
 ## 対子と牌種列
 
 `Toitsu.tiles` は、同じ牌種を2回並べた牌種列を返す。
-`HasTilePattern` のインスタンスにより、対子もターツと同じ取り出し処理に渡せる。
 -/
 
 /-- 対子を構成する2枚の牌種列。 -/
@@ -184,51 +103,7 @@ def tiles : Toitsu → List Tile
 example : (Toitsu.toitsu (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
 example : (Toitsu.toitsu (.honor .White)).tiles.map (Tile.format .mpsz) = ["5z", "5z"] := rfl
 
-instance : HasTilePattern Toitsu where
-  tiles := Toitsu.tiles
-
-noncomputable def take (toitsu : Toitsu) (chunk : Chunk) :
-    Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take toitsu chunk
-
 end Toitsu
-
-/-- 単騎待ちの核になる1枚の牌種。 -/
-inductive Tanki
-| tanki (t : Tile)
-deriving BEq, DecidableEq, Repr, Fintype
-
-namespace Tanki
-
-/-!
-## 単騎と牌種列
-
-`Tanki.tiles` は、単騎待ちの核になる1枚の牌種列を返す。
-`Tanki.Matches` は、物理牌の牌種がその単騎と一致することを表す。
--/
-
-/-- 単騎を構成する1枚の牌種列。 -/
-def tiles : Tanki → List Tile
-  | .tanki tile => [tile]
-
-example : (Tanki.tanki (.numbered .Pinzu 2)).tiles.map (Tile.format .mpsz) = ["3p"] := rfl
-example : (Tanki.tanki (.honor .Red)).tiles.map (Tile.format .mpsz) = ["7z"] := rfl
-
-instance : HasTilePattern Tanki where
-  tiles := Tanki.tiles
-
-noncomputable def all : List Tanki :=
-  (Finset.univ : Finset Tanki).toList
-
-/-- 物理牌がこの単騎の牌種と一致すること。 -/
-def Matches (tanki : Tanki) (tile : PhysicalTile) : Prop :=
-  tanki.tiles = [tile.1]
-
-noncomputable def take (tanki : Tanki) (chunk : Chunk) :
-    Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take tanki chunk
-
-end Tanki
 
 /-!
 ## 順子
@@ -256,13 +131,6 @@ def tiles : Shuntsu → List Tile
 
 example : (Shuntsu.shuntsu .Souzu ⟨0, by decide⟩).tiles.map (Tile.format .mpsz) = ["1s", "2s", "3s"] := rfl
 example : (Shuntsu.shuntsu .Manzu ⟨6, by decide⟩).tiles.map (Tile.format .mpsz) = ["7m", "8m", "9m"] := rfl
-
-instance : HasTilePattern Shuntsu where
-  tiles := Shuntsu.tiles
-
-noncomputable def take (shuntsu : Shuntsu) (chunk : Chunk) :
-    Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take shuntsu chunk
 
 end Shuntsu
 
@@ -324,9 +192,6 @@ def tiles : MentsuCandidate → List Tile
 example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .mpsz) = ["7p", "7p", "7p"] := rfl
 example : (MentsuCandidate.koutsu (.honor .East)).tiles.map (Tile.format .mpsz) = ["1z", "1z", "1z"] := rfl
 
-instance : HasTilePattern MentsuCandidate where
-  tiles := MentsuCandidate.tiles
-
 /-- 完成面子候補が順子であることを表す述語。 -/
 def IsShuntsu : MentsuCandidate → Prop
   | .shuntsu _ => True
@@ -348,10 +213,6 @@ theorem honor_not_in_shuntsu (candidate : MentsuCandidate) (honor : Honor)
   | shuntsu shuntsuPattern =>
       cases shuntsuPattern
       simp [tiles, Shuntsu.tiles] at honor_mem
-
-noncomputable def take (candidate : MentsuCandidate) (chunk : Chunk) :
-    Option (List PhysicalTile × Finset PhysicalTile) :=
-  HasTilePattern.take candidate chunk
 
 end MentsuCandidate
 
@@ -390,8 +251,5 @@ def tiles : WinningComponent → List Tile
 example : (WinningComponent.pair (.numbered .Manzu 4)).tiles.map (Tile.format .mpsz) = ["5m", "5m"] := rfl
 example : (WinningComponent.shuntsu .Pinzu ⟨3, by decide⟩).tiles.map (Tile.format .mpsz) = ["4p", "5p", "6p"] := rfl
 example : (WinningComponent.koutsu (.honor .Red)).tiles.map (Tile.format .mpsz) = ["7z", "7z", "7z"] := rfl
-
-instance : HasTilePattern WinningComponent where
-  tiles := WinningComponent.tiles
 
 end WinningComponent

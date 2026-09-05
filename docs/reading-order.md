@@ -44,75 +44,6 @@
 `deck_cardinality` は、物理牌全体の有限集合 `deck` の枚数が `deckSize` と一致すること、つまり
 通常の麻雀牌の総数と同じになることを確認する。
 
-## 牌を取り出す処理を読む
-
-次のまとまりは、`Chunk.take` と、その基本仕様を示す `Chunk.take_fst`、`Chunk.take_snd_not_mem` である。
-
-読む前に知る語彙:
-
-- `structure`
-- 部分型
-- `×`
-- `.1`
-- `.2`
-- `@[simp]`
-- `theorem`
-- `simp`
-- `rfl`
-- `∉`
-
-ここでは、空でない物理牌集合 `Chunk` から、そこに含まれていると分かっている物理牌を1枚取り出す。
-`Chunk.take` の返り値は `(取り出した牌, 残りの牌集合)` というペアである。
-
-- `Chunk.take_fst`: 返り値の1番目が、指定した牌そのものであることを確認する。
-- `Chunk.take_snd_not_mem`: 返り値の2番目には、取り出した牌がもう含まれないことを確認する。
-
-この2つを合わせて、後で「取り出した牌」と「残りの牌」を分けて扱う処理の基本仕様になる。
-
-## 牌種から物理牌を探す処理を読む
-
-次のまとまりは、`takeTileFrom`、`takeTilesFrom`、`takeTiles` である。
-
-読む前に知る語彙:
-
-- `namespace`
-- `noncomputable def`
-- `Finset`
-- `.1`
-- `Option`
-- `match`
-
-`Chunk.take` は、取り出す物理牌がすでに分かっている場合の処理だった。
-ここでは、牌種 `Tile` を指定し、それに対応する物理牌を有限集合の中から探して取り出す。
-
-- `takeTileFrom`: 指定した牌種を持つ物理牌を1枚探して取り出す。
-- `takeTilesFrom`: 牌種列を順に処理し、対応する物理牌列を取り出す。
-- `takeTiles`: `Chunk` に対する入口として `takeTilesFrom` を呼ぶ。
-
-このまとまりには、まだ仕様定理は付いていない。まずは「どの入力から何を探し、失敗時にどう表すか」を読む。
-
-## 牌種列を持つ型を共通に扱う
-
-次のまとまりは、`HasTilePattern` と `HasTilePattern.take` である。
-
-読む前に知る語彙:
-
-- `class`
-- 型引数
-- 型クラス引数
-- `namespace`
-- `noncomputable def`
-- `Option`
-
-`Chunk.takeTiles` は、牌種列 `List Tile` を直接渡す処理だった。
-`HasTilePattern` は、具体的な型が何であっても「その値に対応する牌種列」を取り出せるなら、
-同じ取り出し処理に渡せるようにする共通インターフェースである。
-
-- `HasTilePattern`: 値から牌種列を取り出せる型であることを表す。
-- `HasTilePattern.take`: `HasTilePattern.tiles` で牌種列を取り出し、`Chunk.takeTiles` に渡す。
-
-ここから先のモジュールでは、待ちパターンや面子候補のような具体的な型が、この共通インターフェースに乗る。
-
 ## 牌の表示形式を読む
 
 次のまとまりは、`Basic.lean` の `TileFormat` と `Tile.format` である。
@@ -128,11 +59,11 @@
 `Tile.format` は、Lean上の牌種 `Tile` を読者が見慣れた文字列へ変換する。
 `unicode` は麻雀牌のUnicode文字、`mpsz` は `1m`、`9p`、`5z` のような牌譜表記である。
 
-この表示形式を先に読むと、次のターツや順子の例で、Lean上の牌種列が実際の牌姿としてどう見えるかを確認しやすくなる。
+この表示形式を先に読むと、次の対子や順子の例で、Lean上の牌種列が実際の牌姿としてどう見えるかを確認しやすくなる。
 
 ## 通常形のサイズと開始位置を読む
 
-次のまとまりは、`Pattern.lean` 冒頭の手牌サイズ、`RyanmenStart`、`ShuntsuStart` である。
+次のまとまりは、`Pattern.lean` 冒頭の手牌サイズと `ShuntsuStart` である。
 
 読む前に知る語彙:
 
@@ -141,37 +72,31 @@
 - `Fin`
 - `Bool`
 
-ここでは、通常形の手牌枚数や、順子・ターツの開始位置を表す補助定義を読む。
+ここでは、通常形の手牌枚数や、順子の開始位置を表す補助定義を読む。
 開始位置を `Fin` で表すことで、存在しない開始位置を型で除外している。
-`RyanmenStart.lowerRank` と `upperRank` は両面ターツの2枚を、`ShuntsuStart.firstRank`、`middleRank`、`lastRank` は順子の3枚を計算する。
+`ShuntsuStart.firstRank`、`middleRank`、`lastRank` は順子の3枚を計算する。
 
 ## 麻雀の小部品とデータ構造を読む
 
-次のまとまりは、`Pattern.lean` の `Taatsu`、`Toitsu`、`Tanki`、`Shuntsu`、`MentsuCandidate` である。
+次のまとまりは、`Pattern.lean` の `Toitsu`、`Shuntsu`、`MentsuCandidate` である。
 
 読む前に知る語彙:
 
 - `inductive`
 - `namespace`
 - `def`
-- `instance`
-- `HasTilePattern`
 - `List Tile`
 - `example`
 - `rfl`
 
 ここでは、麻雀上の概念とLean上のデータ構造の対応を先に押さえる。
 
-- `Taatsu`: 両面・嵌張・辺張のような、完成まであと1枚の2枚組。
 - `Toitsu`: 同じ牌種2枚からなる対子。
-- `Tanki`: 単騎待ちの核になる1枚。
 - `Shuntsu`: 同じスートで連続する3枚からなる順子。
 - `MentsuCandidate`: 通常形で完成面子として扱う候補。順子または刻子。
 
-それぞれの `tiles` は、その部品を構成する牌種列を返す。`HasTilePattern` のインスタンスにより、
-これらの具体的な型は共通の物理牌取り出し処理に渡せる。
-`Tile.format .mpsz` を使った `example` により、ターツ、対子、単騎、順子、刻子が実際の牌姿としてどう見えるかを確認する。
-たとえば、両面 `23m`、嵌張 `35p`、辺張 `12s` と `89s`、対子 `55m`、単騎 `3p`、順子 `123s`、刻子 `777p` を確認する。
+それぞれの `tiles` は、その部品を構成する牌種列を返す。
+`Tile.format .mpsz` を使った `example` により、対子、順子、刻子が実際の牌姿としてどう見えるかを確認する。
 
 ## 完成面子候補の列挙を読む
 
@@ -1253,25 +1178,6 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 `waitDecompositionCodeEntries` は、計算したコードだけでなく待ち牌も `WaitDecompositionCodeEntry` に残す。
 ソース中の `example` は、待ち牌 `5m` と部品種別 `[tanki, shuntsu]` から
 `{ wait := 5m, code := 26 }` が得られることを計算で確認する。
-
-## 待ち分解コードを待ち牌付きのペアで取り出す
-
-次の実例は、`WaitDecompositionCode.lean` の `waitDecompositionCodesWithWait` である。
-
-読む前に知る語彙:
-
-- 直積 `×`
-- `map`
-- `fun`
-
-`waitDecompositionCodesWithWait` は、`WaitDecompositionCodeEntry` を `(コード, 待ち牌)` のペアへ変換する。
-部品種別列からコードを計算する処理は前節で完了しているため、ここではフィールドを取り出して並べ替えるだけである。
-
-前節と同じ、待ち牌 `5m`、部品種別 `[tanki, shuntsu]` の例なら、結果は `(26, 5m)` になる。
-待ち牌を保持しているため、複数の待ち牌が同じコードを持っていても、それぞれを別のペアとして確認できる。
-
-名前に `WithWait` が付くのは、この待ち牌情報を残すためである。
-後続の `waitDecompositionCodes` は待ち牌を捨て、コードの種類だけを列挙するので区別して読む。
 
 ## 待ち牌を忘れてコードの種類だけを取り出す
 

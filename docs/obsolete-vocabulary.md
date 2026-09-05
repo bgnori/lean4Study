@@ -11,16 +11,16 @@
 
 旧 `TileChunk := Toitsu ⊕ MentsuCandidate` は、通常形の和了分割に現れる
 「雀頭または完成面子候補」を表していた。一方、[Mahjong/Basic.lean](../Mahjong/Basic.lean) の
-`Chunk` は物理牌の有限集合であり、同じ `Chunk` 語幹が異なる概念を指していた。
+旧 `Chunk` は物理牌の有限集合であり、同じ `Chunk` 語幹が異なる概念を指していた。
 
 現在は、通常形の和了分割を構成する部品を `WinningComponent` と呼ぶ。
-物理牌集合 `Chunk` とその局所変数名 `chunk` は別概念として維持する。
+物理牌抽出経路の廃止に伴い、`Chunk` 自体も削除した。
 
 ### 「完成部品」
 
 置き換え先: 「和了構成部品」
 
-「完成部品」は、完成面子そのもの、待ち牌除去後の観測成分、物理牌集合 `Chunk` との関係が曖昧だったため使わない。
+「完成部品」は、完成面子そのもの、待ち牌除去後の観測成分、旧物理牌集合 `Chunk` との関係が曖昧だったため使わない。
 現在はコード上の `WinningComponent` と日本語の「和了構成部品」を一対一に対応させる。
 
 ### `winningChunks` と周辺名
@@ -34,7 +34,7 @@
 - `WinningShape.chunks` → `WinningShape.components`
 
 和了構成部品を指す補助変数・定理名の `chunk(s)` も `component(s)` に寄せた。
-コード検索で残る `Chunk` は、物理牌集合を指すものに限定する。
+物理牌集合 `Chunk` も後に削除され、現行コードには `Chunk` は残らない。
 
 ## Reading系の旧語彙
 

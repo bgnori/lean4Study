@@ -10,12 +10,11 @@
 `namespace Tile` から `end Tile` までの内側では、名前が `Tile` の文脈に入る。
 そのため、内側で単に `all` と書かれている場合、文脈上は `Tile.all` を指す。
 名前空間は、`Tile.all`、`Suit.all`、`Honor.all` のように、同じ短い名前を安全に使い分けるための仕組みである。
-同じ仕組みで、`namespace Chunk` の内側では `take` は `Chunk.take` を指す。
 
 ### open
 
 `open WaitDecompositionCode` は、`WaitDecompositionCode` 名前空間の中にある名前を短く書けるようにする。
-たとえば `WaitDecompositionCode.findWaitCoreExtractions` を、文脈によっては `findWaitCoreExtractions` と書ける。
+たとえば `WaitDecompositionCode.findWaitCores` を、文脈によっては `findWaitCores` と書ける。
 
 ### def
 
@@ -138,37 +137,22 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### structure
 
 `structure` は、複数の情報を名前付きの部品としてまとめる型を作る。
-たとえば `Chunk` は、物理牌の有限集合 `tiles` と、それが空でないことを示す `nonempty` をまとめた型である。
-
-### class
-
-`class` は、複数の型に共通する操作や性質を表すインターフェースを作る。
-`HasTilePattern` は、「この型の値から牌種列を取り出せる」という共通操作 `tiles` を表す型クラスである。
-
-### 型引数 `{α : Type}`
-
-`α` は、具体的な型をあとから入れるための名前である。`{α : Type}` は、`α` が型であることを表す。
-波括弧 `{...}` で囲まれているため、多くの場合はLeanが文脈から自動で補う。
+たとえば `WaitCompletion` は、待ち牌 `wait` と和了構成部品列 `winningComponents` をまとめる。
 
 ### Fin
 
 `Fin n` は、`0` 以上 `n` 未満の自然数を表す型である。
-開始位置を `Fin` で持つと、順子や両面ターツで存在しない開始位置を型で除外できる。
-
-### 型クラス引数 `[HasTilePattern α]`
-
-角括弧 `[HasTilePattern α]` は、型 `α` が `HasTilePattern` のインターフェースを持っていることを要求する。
-この引数があると、Leanは `α` の値から `HasTilePattern.tiles` で牌種列を取り出せるものとして扱える。
+開始位置を `Fin` で持つと、順子で存在しない開始位置を型で除外できる。
 
 ### instance
 
 `instance` は、ある型が型クラスのインターフェースを満たすことをLeanに登録する。
-たとえば `instance : HasTilePattern Taatsu where ...` は、`Taatsu` から牌種列を取り出す方法を登録している。
+たとえば `decidableIsTenpai` は、`IsTenpai tiles` を判定できることを登録している。
 
 ### `List Tile`
 
 `List Tile` は、牌種 `Tile` の列を表す型である。
-ターツ、対子、順子のような部品は、それぞれを構成する牌種列として `List Tile` に変換される。
+対子、順子、刻子のような部品は、それぞれを構成する牌種列として `List Tile` に変換される。
 
 ### リストの `[]` と `::`
 
@@ -240,7 +224,6 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### Bool
 
 `Bool` は、`true` または `false` のどちらかを持つ型である。
-`Taatsu.penchan` では、`false` が低い側の辺張、`true` が高い側の辺張を表す。
 
 ### Boolの `&&`、`!`、`==`、`!=`
 
@@ -270,8 +253,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### 部分型 `{ x : α // 条件 }`
 
 `{ x : α // 条件 }` は、型 `α` の値のうち、条件を満たすものだけを表す型である。
-`tile : { pt : PhysicalTile // pt ∈ chunk.tiles }` は、`tile` が単なる物理牌ではなく、
-`chunk.tiles` に含まれていることも一緒に持っている値である、という意味になる。
+`WaitDerivation n` は、`Seed n` のうち妥当性条件を満たすものを部分型として表す。
 
 部分型の値 `value` からは、`value.1` で元の値、`value.2` で条件の証拠を取り出せる。
 `Subtype.ext` は、条件の証拠を作った手順が異なっていても、`.1` の元の値が等しければ部分型の値も等しいと示す。
@@ -280,13 +262,13 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### 直積 `×`
 
 `A × B` は、A型の値とB型の値をペアで持つ型である。
-`PhysicalTile × Finset PhysicalTile` は、取り出した物理牌と、残りの物理牌集合をまとめて返す型である。
+`Nat × Tile` は、数値と牌種をペアで持つ型である。
 
 ### Option
 
 `Option A` は、A型の値が得られた場合と、得られなかった場合を表す型である。
 `some value` は成功して値があること、`none` は失敗して値がないことを表す。
-`takeTileFrom` では、指定した牌種の物理牌が見つかれば `some`、見つからなければ `none` を返す。
+`componentAfterRemovingWait` では、待ち牌を部品から除ければ `some`、除けなければ `none` を返す。
 
 ### Option.map
 
@@ -422,17 +404,17 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `.1`
 
 `.1` は、ペアの1番目の要素を取り出す記法である。
-`(chunk.take tile).1` は、`chunk.take tile` が返したペアのうち、取り出した牌の側を表す。
+`entry.1` は、ペア `entry` の1番目の値を表す。
 
 ### `.2`
 
 `.2` は、ペアの2番目の要素を取り出す記法である。
-`(chunk.take tile).2` は、`chunk.take tile` が返したペアのうち、残りの牌集合の側を表す。
+`entry.2` は、ペア `entry` の2番目の値を表す。
 
 ### `@[simp]`
 
 `@[simp]` は、その定理を `simp` が使える単純化規則として登録する印である。
-たとえば `take_fst` に付けると、`simp` が `(chunk.take tile).1` を `tile` に書き換えられるようになる。
+登録された定理は、後続の証明で `simp` が自動的に書き換えへ使える。
 
 ### by
 

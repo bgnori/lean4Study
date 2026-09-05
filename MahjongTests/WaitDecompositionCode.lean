@@ -14,7 +14,7 @@ private def isIrreducibleTenpai (tiles : List Tile) : Bool :=
   !(canReduceMentsuPreservingWaitCores tiles)
 
 example :
-    findWaitCoreExtractions testHand1234 =
+  waitCoreExtractions (findWaitCompletions testHand1234) =
       [{ wait := .numbered .Manzu 0,
          core := [{ kind := .tanki, tiles := [.numbered .Manzu 0] }],
          removedMentsu := [{ kind := .shuntsu, tiles := manzu [1, 2, 3] }] },
@@ -32,18 +32,14 @@ example :
   native_decide
 
 example :
-    findWaitKindDecompositions testHand2345678 =
+  waitKindDecompositions (findWaitCompletions testHand2345678) =
       [{ wait := .numbered .Manzu 1, components := [.tanki, .shuntsu, .shuntsu] },
        { wait := .numbered .Manzu 4, components := [.tanki, .shuntsu, .shuntsu] },
        { wait := .numbered .Manzu 7, components := [.tanki, .shuntsu, .shuntsu] }] ∧
-    findWaitDecompositionCodeEntries testHand2345678 =
+    waitDecompositionCodeEntries (findWaitCompletions testHand2345678) =
       [{ wait := .numbered .Manzu 1, code := 338 },
        { wait := .numbered .Manzu 4, code := 338 },
        { wait := .numbered .Manzu 7, code := 338 }] ∧
-    findWaitDecompositionCodesWithWait testHand2345678 =
-      [(338, .numbered .Manzu 1),
-       (338, .numbered .Manzu 4),
-       (338, .numbered .Manzu 7)] ∧
     findWaitDecompositionCodes testHand2345678 = [338] ∧
     findWaitDecompositionCodes testHand1167888 = [117, 255] ∧
     findWaitDecompositionCodes testHand1166678 = [117, 255] ∧
