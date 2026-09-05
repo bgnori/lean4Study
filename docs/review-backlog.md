@@ -76,18 +76,41 @@ components.length = fuel ∧
 - `canReduceMentsuPreservingWaitCores`: 成功枝が存在するかをBoolで判定する。
 
 `waitCorePreservingMentsuReductions` を先に置き、Bool判定をその結果の空でなさから導出することで、
-「成功した探索枝そのもの」と「存在判定」を分離した。今後さらに抽象化する場合も、まずはこのような
-`List` ベースの列挙関数を基礎にし、独自の探索エンジンや外部由来の語彙を増やす必要があるかを確認する。
+「成功した探索枝そのもの」と「存在判定」を分離した。ここで新しい共通探索APIを作る必要は薄い。
+`List` ベースの列挙関数を基礎にし、Lean 4 の標準的な `do`記法、`guard`、`filterMap` に寄せて書く。
+
+今後の論点は、現在の `List (List Tile)` より多くの情報を返す必要があるか、実行用の列挙と命題側の仕様を
+どう対応させるか、この書き方を他の探索へ広げる価値があるか、の3つに分けて扱う。
+
+1つ目は、成功した枝の情報量である。現在の `waitCorePreservingMentsuReductions` は残り牌列だけを返すため、
+可約性のBool判定には十分である。一方、レポートやデバッグで「どの完成面子を除いたのか」を示したい場合は、
+除去した `WinningComponent` または `MentsuCandidate` と `remaining` をまとめた構造体を返すほうがよい。
+さらに定理で使うなら、候補所属、`removeTiles tiles removed.tiles = some remaining`、待ち牌が残ること、
+待ち核集合が一致することを証拠フィールドとして持つ証拠付き構造体にする選択肢もある。ただし、実行結果として
+扱いたいデータと、証明だけに必要な証拠を同じ構造体へ入れると、計算や表示が読みにくくなる可能性がある。
+
+2つ目は、Bool判定とProp仕様の対応である。実行用には `waitCorePreservingMentsuReductions tiles` が空でないことを
+見るのが簡潔だが、証明上は「ある完成面子と残り牌列が存在し、除去に成功し、待ち核集合を保つ」という存在命題のほうが
+読みやすい可能性がある。まずは実行用列挙を基礎に、`remaining ∈ waitCorePreservingMentsuReductions tiles` と
+外延的な存在条件を対応させる補題を置けるか確認する。その後で、`CanReduceMentsuPreservingWaitCores tiles` を
+Bool等式のまま公開するか、存在命題を主仕様としてBool判定との健全性・完全性定理を添えるかを判断する。
+
+3つ目は、他の探索への展開である。`WaitCompletionFinder`、`Hand`、`DirectWaitGeneration` には、候補列挙、
+失敗枝の破棄、成功結果の列挙を `flatMap` / `filterMap` で書いている箇所がある。共通APIへ抽象化するのではなく、
+各箇所でLean 4の習慣に沿って `List` の `do`記法、`guard`、`filterMap` を使い分け、必要な場合だけ
+「成功枝を返す関数」と「存在・個数・分類などの派生判定」を分ける。共通化より、局所的な読みやすさを優先する。
 
 後で確認すること:
 
-- 成功した除去面子、残り牌列、待ち核一致の証拠を返す探索にも再利用できるか。
-- 実行用の有限探索と、健全性・完全性を述べる命題側の存在量化を対応付けやすくなるか。
+- 成功した除去面子と残り牌列を返す実行用構造体を追加すると、レポートやデバッグで有用か。
+- 候補所属、除去成功、待ち牌の存在、待ち核一致を証拠として持つ構造体を、実行用データと分けて用意すべきか。
+- `remaining ∈ waitCorePreservingMentsuReductions tiles` と、完成面子除去に関する存在命題の対応補題を短く証明できるか。
+- `CanReduceMentsuPreservingWaitCores` の主仕様をBool等式のままにするか、存在命題へ寄せるか。
 - 探索順、重複候補、全解列挙、最初の解、解の存在判定を、同じ基礎表現から必要に応じて導出できるか。
 - `WaitCompletionFinder`、`Hand`、`DirectWaitGeneration` にある他の `flatMap` / `filterMap` 型探索にも
-	共通化する価値があるか。
+	Lean 4の慣用的な `List` 探索として読みやすくする余地があるか。
 - `WaitAmbiguity` は待ち分類上の曖昧性であり、非決定的探索の意味ではないため、名前や説明を混同しないこと。
-- 抽象化する場合も、現在のリスト実装と同等の計算可能性を保ち、探索エンジンを新たに自作する必要がないか。
+- 独自探索APIや探索エンジンを新たに作らず、現在のリスト実装と同等の計算可能性を保てるか。
 
 ### 待ち分解コード列の重複を保持する
 
