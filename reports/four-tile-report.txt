@@ -26,8 +26,8 @@ allReportsAreTanki: true
 ### Irreducible
 count: 2082
 
-#### Groups by waitReadingCodes
-waitReadingCodes	count	representativeTiles	representativeWaits
+#### Groups by waitDecompositionCodes
+waitDecompositionCodes	count	representativeTiles	representativeWaits
 [9]	561	6677z	67z
 [33]	186	89s77z	7s
 [33, 34]	12	8999s	78s
@@ -45,7 +45,7 @@ waitReadingCodes	count	representativeTiles	representativeWaits
 4 wait tile kinds: 0
 
 ## Tenpai reports
-tiles	waits	wellKnownKind	candidateKinds	reducibility	waitReadingCodes
+tiles	waits	wellKnownKind	candidateKinds	reducibility	waitDecompositionCodes
 6777z	6z	tanki	tanki	reducible	[34]
 6677z	67z	shanpon	shanpon	irreducible	[9]
 6667z	7z	tanki	tanki	reducible	[34]

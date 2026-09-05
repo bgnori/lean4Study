@@ -28,8 +28,8 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean
-│   ├── WaitReadingCode.lean
-│   ├── DirectWaitReading.lean
+│   ├── WaitDecompositionCode.lean
+│   ├── DirectWaitGeneration.lean
 │   ├── Tenpai.lean
 │   └── README.md
 ├── MahjongTests/         # 計算量の大きい回帰テスト

@@ -7,7 +7,7 @@
 - 計算モジュール概要: [MahjongComputations/README.md](../MahjongComputations/README.md)
 - 読書導線と語彙: [reading-order.md](reading-order.md), [lean-vocabulary.md](lean-vocabulary.md), [domain-vocabulary.md](domain-vocabulary.md), [proof-comment-policy.md](proof-comment-policy.md)
 - 設計・命名の保留事項: [review-backlog.md](review-backlog.md)
-- 関連する主要ソースコメント: [Mahjong/Wait.lean](../Mahjong/Wait.lean), [Mahjong/Wait/Specification.lean](../Mahjong/Wait/Specification.lean), [Mahjong/Wait/Analysis.lean](../Mahjong/Wait/Analysis.lean), [Mahjong/WaitReadingCode.lean](../Mahjong/WaitReadingCode.lean), [Mahjong/DirectWaitReading.lean](../Mahjong/DirectWaitReading.lean)
+- 関連する主要ソースコメント: [Mahjong/Wait.lean](../Mahjong/Wait.lean), [Mahjong/Wait/Specification.lean](../Mahjong/Wait/Specification.lean), [Mahjong/Wait/Analysis.lean](../Mahjong/Wait/Analysis.lean), [Mahjong/WaitDecompositionCode.lean](../Mahjong/WaitDecompositionCode.lean), [Mahjong/DirectWaitGeneration.lean](../Mahjong/DirectWaitGeneration.lean)
 
 ## 総評
 
@@ -40,18 +40,18 @@
 
 [docs/reading-order.md](reading-order.md), [docs/proof-comment-policy.md](proof-comment-policy.md), [Mahjong/Wait.lean](../Mahjong/Wait.lean) は、`WaitPattern` が完成面子を含めないことの説明として `HandExtraction.mentsuThen` を参照している。`HandExtraction` は確かに [Mahjong/Hand.lean](../Mahjong/Hand.lean) に存在し、物理牌集合からの抽出列挙を表している。
 
-ただし現在の読書順の主線では、待ち核の抽出と可約性の理解は [Mahjong/WaitReadingCode.lean](../Mahjong/WaitReadingCode.lean) の `reduceWaitReading`, `IrreducibleWaitReading.removedMentsu`, `waitCores`, `canReduceMentsuPreservingWaitCores` にも強く依存している。`WaitPattern` の初出で `HandExtraction.mentsuThen` だけを挙げると、完成面子の分離が `Hand` 側の物理牌抽出だけで担われるように読める。
+ただし現在の読書順の主線では、待ち核の抽出と可約性の理解は [Mahjong/WaitDecompositionCode.lean](../Mahjong/WaitDecompositionCode.lean) の `extractWaitCore`, `WaitCoreExtraction.removedMentsu`, `waitCores`, `canReduceMentsuPreservingWaitCores` にも強く依存している。`WaitPattern` の初出で `HandExtraction.mentsuThen` だけを挙げると、完成面子の分離が `Hand` 側の物理牌抽出だけで担われるように読める。
 
 影響:
 
 - `Wait.lean` から読んだ読者が、分類解析の実行経路を `HandExtraction` 側へ探しに行きやすい。
-- `WaitReadingCode` 側で実際に説明される `removedMentsu` と「完成面子を取り除く」という語の対応が少し遅れて分かる。
+- `WaitDecompositionCode` 側で実際に説明される `removedMentsu` と「完成面子を取り除く」という語の対応が少し遅れて分かる。
 - ソースコメントが、モジュールの直接の依存関係より後続モジュールの一実装に強く結びついて見える。
 
 推奨対応:
 
-- `WaitPattern` の説明では、まず「完成面子は `WaitPattern` には含めず、後続の抽出・Reading 分離処理で扱う」と抽象的に述べる。
-- 必要なら補足として、物理牌からの抽出列挙では `HandExtraction.mentsuThen`、発見済み completion からの Reading 側では `IrreducibleWaitReading.removedMentsu` に対応すると分けて書く。
+- `WaitPattern` の説明では、まず「完成面子は `WaitPattern` には含めず、後続の抽出・待ち分解処理で扱う」と抽象的に述べる。
+- 必要なら補足として、物理牌からの抽出列挙では `HandExtraction.mentsuThen`、発見済み completion からの待ち分解側では `WaitCoreExtraction.removedMentsu` に対応すると分けて書く。
 
 ### 3. `reading-order.md` が包括的すぎて、更新単位が大きい
 
@@ -62,12 +62,12 @@
 影響:
 
 - 小さな実装変更でも、該当箇所を探すコストが高い。
-- `review-backlog.md` にあるような仕様変更、特に `abstractWaitReadingCode` の重複保持化が入ると、複数箇所の説明と例が同時に古くなりやすい。
+- `review-backlog.md` にあるような仕様変更、特に `waitDecompositionCodes` の重複保持化が入ると、複数箇所の説明と例が同時に古くなりやすい。
 - 読者にとって、今どこまでが基礎、どこからが発展・仕様確認なのかが見えにくい。
 
 推奨対応:
 
-- 冒頭に短い目次と「基礎」「Finder」「分類」「Reading コード」「直接生成」の区切りを追加する。
+- 冒頭に短い目次と「基礎」「Finder」「分類」「待ち分解コード」「直接生成」の区切りを追加する。
 - 各大区分の末尾に、次に読むファイルとそこで確認する代表定理を 2、3 個だけ置く。
 - 将来的には文書分割も検討できるが、まずは目次と区切りだけで更新コストを下げられる。
 
@@ -92,7 +92,7 @@
 
 重要度: 低
 
-[docs/review-backlog.md](review-backlog.md) は、ドキュメント作業中に見つかった設計・命名課題をソース改変から切り離して管理できている。特に `Reading`、`abstractWaitReadingCode` のような概念設計の未決事項と、`WinningComponent` 改名時の判断記録が具体例付きで残っている点は有用である。
+[docs/review-backlog.md](review-backlog.md) は、ドキュメント作業中に見つかった設計・命名課題をソース改変から切り離して管理できている。特に待ち分解コードの多重度のような概念設計の未決事項と、`WinningComponent` 改名時の判断記録が具体例付きで残っている点は有用である。
 
 一方で、状態が `要設計検証`、`検討`、`要仕様変更`、`保留`、`対応中` などに分かれており、優先度や次の作業が一目では比較しにくい。
 
@@ -104,15 +104,15 @@
 ## 良い点
 
 - Lean 一般語彙とプロジェクト語彙の分離が明確で、ソースコメントが構文説明で膨らみにくい。
-- `Reading` が麻雀一般の「待ち読み」と異なることを複数箇所で明示しており、誤解をかなり防げている。
-- `abstractWaitReadingCode` が重複を失うことを隠さず、現行仕様と変更候補を [domain-vocabulary.md](domain-vocabulary.md) と [review-backlog.md](review-backlog.md) の両方で追跡している。
+- 観測結果を待ち分解、直接生成の証人を待ち導出として区別し、麻雀一般の「待ち読み」との衝突を避けている。
+- `waitDecompositionCodes` が重複を失うことを隠さず、現行仕様と変更候補を [domain-vocabulary.md](domain-vocabulary.md) と [review-backlog.md](review-backlog.md) の両方で追跡している。
 - 仕様定理を「健全性」「完全性」として読む導線が一貫している。
 - 生成レポート、計算量の大きいテスト、通常ビルドを分ける説明は、開発時の期待値を合わせるのに役立っている。
 
 ## 先に直す順番
 
 1. [MahjongComputations/README.md](../MahjongComputations/README.md) の 4 枚形レポート出力先を修正する。
-2. `WaitPattern` の説明から `HandExtraction.mentsuThen` だけに寄った表現を緩め、`HandExtraction` と `WaitReadingCode` 側の責務を分ける。
+2. `WaitPattern` の説明から `HandExtraction.mentsuThen` だけに寄った表現を緩め、`HandExtraction` と `WaitDecompositionCode` 側の責務を分ける。
 3. [docs/reading-order.md](reading-order.md) の冒頭に目次と大区分を追加する。
 4. `Mahjong/README.md` に日本語 docs への導線、または日本語読者向けの短い説明を加える。
 5. [docs/review-backlog.md](review-backlog.md) の状態語と「次の最小確認」を揃える。
@@ -123,4 +123,4 @@
 - `MahjongComputations/FourTileReport.lean` の既定出力先も `reports/four-tile-direct-report.txt` である。
 - ルート README の英日版は、4 枚形と 7 枚形の出力先を現行 target と一致して説明している。
 - Markdown 内の相対リンクは、確認した範囲では既存ファイルを指している。
-- `abstractWaitReadingCode` の重複排除については、実装コメント、語彙ページ、読書順、review backlog の説明が概ね一致している。
+- `waitDecompositionCodes` の重複排除については、実装コメント、語彙ページ、読書順、review backlog の説明が概ね一致している。

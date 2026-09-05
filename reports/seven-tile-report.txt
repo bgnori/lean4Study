@@ -1,7 +1,7 @@
-# Seven-tile direct Reading wait report
+# Seven-tile direct derivation wait report
 
 allSevenTileShapes: 18623330
-enumeratedReadings: 224502
+enumeratedDerivations: 224502
 tenpaiReports: 148809
 
 ## Reducibility
@@ -12,8 +12,8 @@ count: 146763
 ### Irreducible
 count: 2046
 
-#### Groups by waitReadingCodes
-waitReadingCodes	count	representativeTiles	representativeWaits
+#### Groups by waitDecompositionCodes
+waitDecompositionCodes	count	representativeTiles	representativeWaits
 [561]	12	1111222m	3m
 [357]	42	1111333m	2m
 [117, 255, 357, 578]	36	1112223m	1234m

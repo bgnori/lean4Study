@@ -6,8 +6,8 @@ import Mahjong.Wait.Specification
 import Mahjong.Wait.Analysis
 import Mahjong.Hand
 import Mahjong.WaitCompletionFinder
-import Mahjong.WaitReadingCode
-import Mahjong.DirectWaitReading
+import Mahjong.WaitDecompositionCode
+import Mahjong.DirectWaitGeneration
 import Mahjong.Tenpai
 
 /-!

@@ -46,10 +46,8 @@ namespace WaitSpecification
 ## 通称・複合分類を認識する補助条件
 
 `HasKuttsuki...` 系は、刻子文脈を伴う単騎核と、対子+ターツ形が同時に観測されることを表す。
-`HasNobetanReading` は、順子文脈を伴う単騎核が2つ以上あることを表す。
-
-`HasNobetanReading` は名前に `Reading` を含むが、ここでは麻雀一般の「待ち読み」ではなく、
-名前付き分類 `nobetan` を使える条件として読む。
+`ContainsNobetan` は、順子文脈を伴う単騎核が2つ以上あることを表す。
+名前付き分類 `nobetan` を使える部分条件であり、牌姿全体の分類とは区別する。
 `IsNobetan` はさらに狭く、観測列全体が順子文脈を伴う単騎核だけからなることを要求する。
 -/
 
@@ -80,16 +78,16 @@ abbrev HasKuttsukiPenchan (profiles : List WaitProfile) : Prop :=
 これは牌姿全体の分類名ではなく、人間向けの別名として使う。ほかの基本形が同時に
 存在しても、順子文脈を伴う単騎核が2つ以上あれば成立する。
 -/
-def HasNobetanReading (profiles : List WaitProfile) : Prop :=
+def ContainsNobetan (profiles : List WaitProfile) : Prop :=
   2 ≤ profiles.count (.tanki .shuntsu)
 
-instance (profiles : List WaitProfile) : Decidable (HasNobetanReading profiles) := by
-  unfold HasNobetanReading
+instance (profiles : List WaitProfile) : Decidable (ContainsNobetan profiles) := by
+  unfold ContainsNobetan
   infer_instance
 
 /-- 牌姿全体をノベタンと分類するための、順子文脈を伴う単騎核だけからなる狭義の条件。 -/
 def IsNobetan (profiles : List WaitProfile) : Prop :=
-  HasNobetanReading profiles ∧ ∀ profile ∈ profiles, profile = .tanki .shuntsu
+  ContainsNobetan profiles ∧ ∀ profile ∈ profiles, profile = .tanki .shuntsu
 
 instance (profiles : List WaitProfile) : Decidable (IsNobetan profiles) := by
   unfold IsNobetan
@@ -220,10 +218,10 @@ theorem expectedKind_iff (profiles : List WaitProfile) (kind : WellKnownWaitKind
   · intro classified
     cases classified <;> simp_all [expectedKind]
 
-example : HasNobetanReading [.tanki .shuntsu, .tanki .shuntsu] := by decide
+example : ContainsNobetan [.tanki .shuntsu, .tanki .shuntsu] := by decide
 
 -- ほかの読みと共存しても、「ノベタン読みを含む」という別名は利用できる。
-example : HasNobetanReading [.tanki .shuntsu, .shanpon, .tanki .shuntsu] := by decide
+example : ContainsNobetan [.tanki .shuntsu, .shanpon, .tanki .shuntsu] := by decide
 
 example : ¬IsNobetan [.tanki .shuntsu, .shanpon, .tanki .shuntsu] := by decide
 

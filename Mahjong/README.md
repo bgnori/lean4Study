@@ -18,7 +18,7 @@ This directory contains the Mahjong wait-classification formalization used as th
 
 4. `Wait/Specification.lean`
    - Analyzer-independent, rule-based classification evidence.
-   - A broad `HasNobetanReading` alias separated from narrow whole-profile classification.
+   - A broad `ContainsNobetan` condition separated from narrow whole-profile classification.
 
 5. `Wait/Analysis.lean`
    - Observation of profiles from standard-form wait completions.
@@ -38,15 +38,15 @@ This directory contains the Mahjong wait-classification formalization used as th
    - Legal tenpai sizes and physical copy-count validation.
    - `WaitCompletionFinder.findWaitCompletions`, executable completion discovery, and evidence-indexed irreducibility.
 
-9. `WaitReadingCode.lean`
-   - Codes already-found `List WaitCompletion` values without performing discovery.
+9. `WaitDecompositionCode.lean`
+   - Decomposes and codes already-found `List WaitCompletion` values without performing discovery.
    - `find...` convenience functions explicitly compose `WaitCompletionFinder` with coding.
    - The 53 one-suit irreducible seven-tile examples.
 
-10. `DirectWaitReading.lean`
-   - Generates normalized readings directly from completed winning shapes.
+10. `DirectWaitGeneration.lean`
+   - Generates normalized wait derivations directly from completed winning shapes.
    - Proves exact correspondence with `WaitCompletionFinder` in the standard-hand range.
-   - Provides a noncomputable perfect-hash specification between all readings and finite indices.
+   - Provides a noncomputable perfect-hash specification between all derivations and finite indices.
 
 11. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
@@ -64,7 +64,7 @@ For focused work, import the smallest module that contains the definitions you n
 ```lean
 import Mahjong.Wait
 import Mahjong.WaitCompletionFinder
-import Mahjong.WaitReadingCode
+import Mahjong.WaitDecompositionCode
 ```
 
 ## Validation

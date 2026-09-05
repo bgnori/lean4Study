@@ -1,11 +1,11 @@
-import Mahjong.DirectWaitReading
+import Mahjong.DirectWaitGeneration
 import Mahjong.Wait.Analysis
 import MahjongComputations.Common
 
 /-!
-# Seven-tile wait computation from direct Readings
+# Seven-tile wait computation from direct derivations
 
-This module enumerates valid two-mentsu Readings, projects them to seven-tile
+This module enumerates valid two-mentsu derivations, projects them to seven-tile
 hands, and folds the resulting tenpai hands into summary data.  The total number
 of legal seven-tile multisets is counted separately, without materializing the
 non-tenpai shapes.
@@ -13,12 +13,12 @@ non-tenpai shapes.
 
 namespace MahjongComputations.SevenTile
 
-open DirectWaitReading
+open DirectWaitGeneration
 open WaitCompletionFinder
-open WaitReadingCode
+open WaitDecompositionCode
 
-/-- A summary group for irreducible seven-tile shapes sharing abstract wait-reading codes. -/
-structure WaitReadingCodeGroup where
+/-- A summary group for irreducible seven-tile shapes sharing wait decomposition codes. -/
+structure WaitDecompositionCodeGroup where
   codes : List Nat
   count : Nat
   representativeTiles : List Tile
@@ -28,17 +28,17 @@ deriving BEq, DecidableEq, Repr
 /-- Aggregated exhaustive report data for seven-tile shapes. -/
 structure SevenTileSummary where
   allSevenTileShapes : Nat
-  enumeratedReadings : Nat
+  enumeratedDerivations : Nat
   tenpaiReports : Nat
   reducibleReports : Nat
   irreducibleReports : Nat
-  irreducibleGroups : List WaitReadingCodeGroup
+  irreducibleGroups : List WaitDecompositionCodeGroup
   waitTileCountDistribution : List (Nat × Nat)
 deriving BEq, DecidableEq, Repr
 
 private def emptySummary : SevenTileSummary :=
   { allSevenTileShapes := 0
-    enumeratedReadings := 0
+    enumeratedDerivations := 0
     tenpaiReports := 0
     reducibleReports := 0
     irreducibleReports := 0
@@ -53,14 +53,14 @@ private def incrementAssoc (key : Nat) : List (Nat × Nat) → List (Nat × Nat)
       else
         entry :: incrementAssoc key rest
 
-private def addWaitReadingCodeGroup
-    (codes : List Nat) (tiles waits : List Tile) : List WaitReadingCodeGroup → List WaitReadingCodeGroup
+private def addWaitDecompositionCodeGroup
+    (codes : List Nat) (tiles waits : List Tile) : List WaitDecompositionCodeGroup → List WaitDecompositionCodeGroup
   | [] => [{ codes, count := 1, representativeTiles := tiles, representativeWaits := waits }]
   | group :: rest =>
       if group.codes == codes then
         { group with count := group.count + 1 } :: rest
       else
-        group :: addWaitReadingCodeGroup codes tiles waits rest
+        group :: addWaitDecompositionCodeGroup codes tiles waits rest
 
 private def countLegalTileMultisetsOfLength : Nat → List Tile → Nat
   | length, [] =>
@@ -74,7 +74,7 @@ termination_by _ tiles => tiles.length
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
 
-private structure ReadingEntry where
+private structure DerivationEntry where
   key : Nat
   tiles : List Tile
   completion : WaitCompletion
@@ -86,20 +86,20 @@ private structure SevenTileShapeReport where
   completions : List WaitCompletion
 deriving BEq, DecidableEq, Repr
 
-private def readingEntry (reading : Reading 2) : ReadingEntry :=
-  let tiles := hand reading
+private def derivationEntry (derivation : WaitDerivation 2) : DerivationEntry :=
+  let tiles := hand derivation
   { key := tileMultisetKey tiles
     tiles
-    completion := completion reading }
+    completion := completion derivation }
 
-private def readingEntryKeyLE (first second : ReadingEntry) : Bool :=
+private def derivationEntryKeyLE (first second : DerivationEntry) : Bool :=
   decide (first.key ≤ second.key)
 
 private def insertCompletion (completion : WaitCompletion) (completions : List WaitCompletion) :
     List WaitCompletion :=
   if completions.contains completion then completions else completion :: completions
 
-private def groupSortedReadingEntry (groups : List SevenTileShapeReport) (entry : ReadingEntry) :
+private def groupSortedDerivationEntry (groups : List SevenTileShapeReport) (entry : DerivationEntry) :
     List SevenTileShapeReport :=
   match groups with
   | [] => [{ key := entry.key, tiles := entry.tiles, completions := [entry.completion] }]
@@ -110,9 +110,9 @@ private def groupSortedReadingEntry (groups : List SevenTileShapeReport) (entry 
         { key := entry.key, tiles := entry.tiles, completions := [entry.completion] } :: groups
 
 private def sevenTileShapeReports (_ : Unit) : List SevenTileShapeReport :=
-  (directReadings 2).map readingEntry
-    |>.mergeSort readingEntryKeyLE
-    |>.foldl groupSortedReadingEntry []
+  (directWaitDerivations 2).map derivationEntry
+    |>.mergeSort derivationEntryKeyLE
+    |>.foldl groupSortedDerivationEntry []
 
 private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
@@ -121,7 +121,7 @@ private def addShapeReport (report : SevenTileShapeReport) (summary : SevenTileS
     SevenTileSummary :=
   let completions := report.completions
   let waits := waitsFromCompletions completions
-  let codes := abstractWaitReadingCode completions
+  let codes := waitDecompositionCodes completions
   let summary :=
     { summary with
       tenpaiReports := summary.tenpaiReports + 1
@@ -131,12 +131,12 @@ private def addShapeReport (report : SevenTileShapeReport) (summary : SevenTileS
   else
     { summary with
       irreducibleReports := summary.irreducibleReports + 1
-      irreducibleGroups := addWaitReadingCodeGroup codes report.tiles waits summary.irreducibleGroups }
+      irreducibleGroups := addWaitDecompositionCodeGroup codes report.tiles waits summary.irreducibleGroups }
 
 /-- Exhaustive seven-tile aggregate summary. -/
 def summary (_ : Unit) : SevenTileSummary :=
   { (sevenTileShapeReports ()).foldl (fun summary report => addShapeReport report summary) emptySummary with
     allSevenTileShapes := allSevenTileShapeCount ()
-    enumeratedReadings := (directReadings 2).length }
+    enumeratedDerivations := (directWaitDerivations 2).length }
 
 end MahjongComputations.SevenTile

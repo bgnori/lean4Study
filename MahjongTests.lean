@@ -1,6 +1,6 @@
 import MahjongTests.WaitCompletionFinder
-import MahjongTests.WaitReadingCode
-import MahjongTests.DirectWaitReading
+import MahjongTests.WaitDecompositionCode
+import MahjongTests.DirectWaitGeneration
 
 /-!
 # Mahjong computational regression tests

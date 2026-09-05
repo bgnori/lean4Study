@@ -300,7 +300,7 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 
 完成面子は `WaitPattern` に含めず、抽出過程として分離する。
 完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
-具体牌付きの核成分列は `IrreducibleWaitReading.core` に保持する。待ち牌と核成分列を組にして、
+具体牌付きの核成分列は `WaitCoreExtraction.core` に保持する。待ち牌と核成分列を組にして、
 除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
 
 `WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
@@ -372,8 +372,8 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 /-!
 ## 牌列から観測基本形を作る
 
-`WaitReadingCode.findIrreducibleWaitReadings` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
-`waitProfilesOfIrreducibleReading` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
+`WaitDecompositionCode.findWaitCoreExtractions` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
+`waitProfilesOfCoreExtraction` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
 
 `observedWaitProfiles` は、牌列に対してこの変換をまとめて行う入口である。
 その後、`classifyWaitProfiles` が `WaitSpecification.expectedKind` を呼び、

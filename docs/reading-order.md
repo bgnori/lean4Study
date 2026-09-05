@@ -22,11 +22,11 @@
 1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、和了構成部品、物理牌を表す。
 2. `WaitCompletionFinder.lean` で牌の除去、面子分解、通常和了分割、待ち牌、Finderを結ぶ。
 3. `Wait.lean`、`Wait/Specification.lean`、`Wait/Analysis.lean` で待ち核と名前付き分類を定義・判定する。
-4. `WaitReadingCode.lean` でFinderが得た具体的なReadingから段階的に情報を抽象化し、コード化する。
-5. `DirectWaitReading.lean` で完成形からReadingを直接生成し、既存Finderとの完全対応と有限添字を示す。
+4. `WaitDecompositionCode.lean` でFinderが得た待ち分解から段階的に情報を忘れ、コード化する。
+5. `DirectWaitGeneration.lean` で完成形から待ち導出を直接生成し、既存Finderとの完全対応と有限添字を示す。
 
 各節の「読む前に知る語彙」に未知の項目があれば、先に [lean-vocabulary.md](lean-vocabulary.md) を参照する。
-麻雀固有の「待ち核」「可約」「Reading」などは [domain-vocabulary.md](domain-vocabulary.md) にまとめている。
+麻雀固有の「待ち核」「可約」「待ち分解」「待ち導出」などは [domain-vocabulary.md](domain-vocabulary.md) にまとめている。
 
 ## 物理牌の枚数を読む
 
@@ -298,14 +298,14 @@
 
 `CanonicalWinningComponents.ofList` は、任意の和了構成部品列を標準順へ変換し、証拠付きの値として包む。
 `WaitCompletion.winningComponents` はこの型なので、Finderが外部へ返す和了分割は型の時点で標準順である。
-Reading生成のように通常のリスト処理へ渡す場面では、`CanonicalWinningComponents.toList` で本体を取り出す。
+待ち分解の生成のように通常のリスト処理へ渡す場面では、`CanonicalWinningComponents.toList` で本体を取り出す。
 
 `canonicalize_eq_of_perm` は、この具体例を任意の和了構成部品列へ一般化する。
 仮定 `first.Perm second` は、2つの列が同じ要素を同じ個数だけ持ち、順番だけが異なり得ることを表す。
 証明は、両方の結果がキー順に整列済みであることと、整列前後で要素と個数が変わらないことを使う。
 さらに `orderKey_injective` がキーの衝突を除外するため、2つの整列結果は要素ごとに一致する。
 
-これにより、後続のReading生成は、和了分割の部品が偶然どの順番で発見されたかに影響されず、
+これにより、後続の待ち分解生成は、和了分割の部品が偶然どの順番で発見されたかに影響されず、
 含まれる和了構成部品とその個数に基づいて比較できる。
 
 ## 牌種列から指定した枚数だけ取り除く
@@ -1033,7 +1033,7 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 
 完成面子は `WaitPattern` に含めず、`HandExtraction.mentsuThen` による抽出過程として表す。
 完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
-具体牌付きの核成分列は `IrreducibleWaitReading.core` に保持する。待ち牌と核成分列を組にして、
+具体牌付きの核成分列は `WaitCoreExtraction.core` に保持する。待ち牌と核成分列を組にして、
 除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
 
 `WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。
@@ -1092,7 +1092,7 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 
 次のまとまりは、`Wait/Analysis.lean` の `observedWaitProfiles`、`classifyWaitProfiles_iff`、`classifyWait`、`classifyWait_iff` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解」を読む。
 
 読む前に知る語彙:
 
@@ -1147,12 +1147,12 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 保ったまま除去できる完成面子がないこととして特徴づける。既約性のために別の探索をするのではなく、
 可約性を表す同じ命題の否定 `¬CanReduceMentsuPreservingWaitCores` を使っている点を読む。
 
-## Readingから核成分列を分離する処理を読む
+## 待ち分解から核成分列を分離する処理を読む
 
-次の実例は、`WaitReadingCode.lean` の `ConcreteWaitReading`、`IrreducibleWaitReading`、
-`reduceWaitReading` である。
+次の実例は、`WaitDecompositionCode.lean` の `WaitDecomposition`、`WaitCoreExtraction`、
+`extractWaitCore` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」と「待ち核」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解」と「待ち核」を読む。
 
 読む前に知る語彙:
 
@@ -1161,24 +1161,24 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `fun`
 - `!`
 
-`ConcreteWaitReading` は、1つの待ち牌と、待ち牌を除いた和了分割に見える具体牌付き部品列を持つ。
+`WaitDecomposition` は、1つの待ち牌と、待ち牌を除いた和了分割に見える具体牌付き部品列を持つ。
 この段階では、不完全部品と、すでに完成している順子・刻子が同じ `components` に並んでいる。
 
-`reduceWaitReading` は、順子と刻子を `removedMentsu` に分離し、それ以外を `core` に残して
-`IrreducibleWaitReading` を作る。2つの `filter` は同じ部品列を反対の条件で選別しており、
+`extractWaitCore` は、順子と刻子を `removedMentsu` に分離し、それ以外を `core` に残して
+`WaitCoreExtraction` を作る。2つの `filter` は同じ部品列を反対の条件で選別しており、
 待ち牌と各部品の具体牌は変更しない。
 
-最初は、待ち牌 `4m` に対して、部品列が「単騎 `4m`、完成順子 `123p`」である1つのReadingだけを考える。
-`reduceWaitReading` を適用すると、単騎 `4m` は `core` に残り、完成順子 `123p` は `removedMentsu` に入る。
+最初は、待ち牌 `4m` に対して、部品列が「単騎 `4m`、完成順子 `123p`」である1つの待ち分解だけを考える。
+`extractWaitCore` を適用すると、単騎 `4m` は `core` に残り、完成順子 `123p` は `removedMentsu` に入る。
 スートが異なるため別の分解を考える必要がなく、ここでは2つの `filter` による振り分けだけを読めばよい。
 
-名前に `Irreducible` とあるが、`reduceWaitReading` 自体は1つのReadingから完成面子を分離する局所処理であり、
+`extractWaitCore` 自体は1つの待ち分解から完成面子を分離する局所処理であり、
 牌姿全体が可約か既約かは判定しない。牌姿全体の判定では、そこから得られる待ち核集合を、完成面子除去の
 前後で比較する必要がある。複数の分解を持つ `1234m` は、その段階で扱う例である。
 
 ## 分離結果から待ち核集合を作る処理を読む
 
-次の実例は、`WaitReadingCode.lean` の `WaitCore` と `waitCores` である。
+次の実例は、`WaitDecompositionCode.lean` の `WaitCore` と `waitCores` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核」と「待ち核集合」を読む。
 
@@ -1189,11 +1189,11 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `|>`
 - `List`
 
-`waitCores` は、発見済みの全Readingから `IrreducibleWaitReading` を作り、それぞれを `WaitCore` に変換する。
+`waitCores` は、発見済みの全待ち分解から `WaitCoreExtraction` を作り、それぞれを `WaitCore` に変換する。
 この変換では、待ち牌 `wait` と核成分列 `core` を残し、どの完成面子を分離したかを表す `removedMentsu` は忘れる。
 これにより、異なる和了分割から同じ待ち牌と核成分列が得られた場合、それらを同じ待ち核として比較できる。
 
-前節の「単騎 `4m`、完成順子 `123p`」というReadingなら、待ち核には待ち牌 `4m` と単騎 `4m` だけが残り、
+前節の「単騎 `4m`、完成順子 `123p`」という待ち分解なら、待ち核には待ち牌 `4m` と単騎 `4m` だけが残り、
 分離した順子 `123p` は含まれない。
 
 最後の `deduplicateAndSortBy` は、同じ待ち核の重複を除き、一定の順序に整列する。
@@ -1201,7 +1201,7 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 
 ## 待ち核集合を保つ面子除去を読む
 
-次の実例は、`WaitReadingCode.lean` の `canReduceMentsuPreservingWaitCores`、
+次の実例は、`WaitDecompositionCode.lean` の `canReduceMentsuPreservingWaitCores`、
 `CanReduceMentsuPreservingWaitCores` と、その `Decidable` インスタンスである。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
@@ -1238,7 +1238,7 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 
 ## 和了構成部品から待ち牌を除いた形を読む
 
-次の実例は、`WaitReadingCode.lean` の `componentKindAfterRemovingWait` と `componentAfterRemovingWait` である。
+次の実例は、`WaitDecompositionCode.lean` の `componentKindAfterRemovingWait` と `componentAfterRemovingWait` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」を読む。
 
@@ -1272,16 +1272,16 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 
 `componentAfterRemovingWait` は、その種別判定に具体的な牌の除去を加える。
 種別が得られた場合だけ `List.erase` で待ち牌を最初の1枚だけ除き、種別と残った牌種列を
-`ConcreteWaitReadingComponent` にまとめる。種別が `none` なら、`Option.map` により結果も `none` のままになる。
+`WaitComponent` にまとめる。種別が `none` なら、`Option.map` により結果も `none` のままになる。
 
 対子 `55m` と待ち牌 `5m` の例では、種別は単騎、残った牌種列は `[5m]` になる。
 この対応もソース中の `example` が `rfl` で確認している。
 
-## 和了分割からReadingを列挙する処理を読む
+## 和了分割から待ち分解を列挙する処理を読む
 
-次の実例は、`WaitReadingCode.lean` の `waitReadings` である。
+次の実例は、`WaitDecompositionCode.lean` の `componentDecompositions` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」と「Reading」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「和了構成部品」と「待ち分解」を読む。
 
 読む前に知る語彙:
 
@@ -1292,19 +1292,19 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `map`
 
 `WaitCompletion` は、1つの待ち牌と、その牌を加えた和了分割を持つ。
-`waitReadings` は分割の和了構成部品を先頭から調べ、待ち牌を除ける部品を1つ選んで不完全部品へ変える。
-選ばなかった部品は、対子・順子・刻子という完成した種別のままReadingに残す。
+`componentDecompositions` は分割の和了構成部品を先頭から調べ、待ち牌を除ける部品を1つ選んで不完全部品へ変える。
+選ばなかった部品は、対子・順子・刻子という完成した種別のまま待ち分解に残す。
 
 最初は、待ち牌が `5m`、和了分割が雀頭 `55m` と順子 `123p` からなる例を読む。
-待ち牌を除けるのは雀頭だけなので、結果は「単騎 `5m`、完成順子 `123p`」という1つのReadingになる。
+待ち牌を除けるのは雀頭だけなので、結果は「単騎 `5m`、完成順子 `123p`」という1つの待ち分解になる。
 ソース中の `example` は、この列挙結果を `rfl` で確認する。
 
-同じ待ち牌を除ける和了構成部品が複数ある場合は、どの部品を除去元として選ぶかごとに別のReadingを返す。
+同じ待ち牌を除ける和了構成部品が複数ある場合は、どの部品を除去元として選ぶかごとに別の待ち分解を返す。
 つまり、この処理は1つの分割を決め打ちで読むのではなく、その分割から生じるすべての観測結果を列挙する。
 
-## 複数の和了分割から具体的なReadingをまとめる
+## 複数の和了分割から具体的な待ち分解をまとめる
 
-次の実例は、`WaitReadingCode.lean` の `concreteWaitReadings` である。
+次の実例は、`WaitDecompositionCode.lean` の `waitDecompositions` である。
 
 読む前に知る語彙:
 
@@ -1313,22 +1313,22 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `map`
 - `structure`
 
-`concreteWaitReadings` は、複数の `WaitCompletion` に前節の `waitReadings` を適用し、すべての結果を
-待ち牌と具体牌付き部品列を持つ `ConcreteWaitReading` にまとめる。
+`waitDecompositions` は、複数の `WaitCompletion` に前節の `componentDecompositions` を適用し、すべての結果を
+待ち牌と具体牌付き部品列を持つ `WaitDecomposition` にまとめる。
 
-和了分割は、同じ部品を異なる順序で持つことがある。そのままでは部品順だけが異なるReadingが別物に見えるため、
-各Readingの部品列を `canonicalizeWaitReading` で一定の順序に並べる。最後に
-`deduplicateAndSortBy` が同一Readingの重複を除き、結果全体も一定の順序へ整える。
+和了分割は、同じ部品を異なる順序で持つことがある。そのままでは部品順だけが異なる待ち分解が別物に見えるため、
+各待ち分解の部品列を `canonicalizeWaitDecomposition` で一定の順序に並べる。最後に
+`deduplicateAndSortBy` が同一待ち分解の重複を除き、結果全体も一定の順序へ整える。
 
 ソース中の `example` は、雀頭 `55m` と順子 `123p` の順序だけを入れ替えた2つのcompletionを入力する。
 どちらからも同じ「単騎 `5m`、完成順子 `123p`」が得られるため、部品順を整列して重複を除いた結果は1件だけになる。
 これにより、データ上の部品順や重複ではなく、観測される待ち牌と部品の内容を比較できる。
 
-## 具体牌を忘れて抽象Readingを作る
+## 具体牌を忘れて種別だけの待ち分解を作る
 
-次の実例は、`WaitReadingCode.lean` の `AbstractWaitReading` と `abstractWaitReadings` である。
+次の実例は、`WaitDecompositionCode.lean` の `WaitKindDecomposition` と `waitKindDecompositions` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「Reading」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解」を読む。
 
 読む前に知る語彙:
 
@@ -1336,23 +1336,23 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `fun`
 - `|>`
 
-`abstractWaitReadings` は、各 `ConcreteWaitReading` の待ち牌を保持したまま、具体牌付き部品を
+`waitKindDecompositions` は、各 `WaitDecomposition` の待ち牌を保持したまま、具体牌付き部品を
 その部品種別 `kind` だけに変換する。単騎がどの牌だったか、完成順子がどのスート・ランクだったかは忘れるが、
 待ち牌と「単騎、順子」のような部品種別列は残る。
 
 ソース中の `example` では、待ち牌がどちらも `5m` で、完成順子だけが `123p` と `456p` で異なる
-2つの具体Readingを作る。具体牌を忘れると、どちらも部品種別列 `[tanki, shuntsu]` になるため、
-重複排除後の抽象Readingは1件になる。
+2つの具体的な待ち分解を作る。具体牌を忘れると、どちらも部品種別列 `[tanki, shuntsu]` になるため、
+重複排除後の `WaitKindDecomposition` は1件になる。
 
-この段階では部品種別列を数値へ変換しない。次の `waitReadingCodeEntries` が、抽象Readingを
+この段階では部品種別列を数値へ変換しない。次の `waitDecompositionCodeEntries` が、種別だけの待ち分解を
 待ち牌と素数積コードの組へ変換する。
 
-## 抽象Readingを素数積コードへ変換する
+## 種別だけの待ち分解を素数積コードへ変換する
 
-次の実例は、`WaitReadingCode.lean` の `WaitReadingComponentKind.prime`、`componentProduct`、
-`WaitReadingCodeEntry`、`waitReadingCodeEntries` である。
+次の実例は、`WaitDecompositionCode.lean` の `WaitComponentKind.prime`、`componentProduct`、
+`WaitDecompositionCodeEntry`、`waitDecompositionCodeEntries` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「待ちReadingコード」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解コード」を読む。
 
 読む前に知る語彙:
 
@@ -1362,19 +1362,19 @@ Reading生成のように通常のリスト処理へ渡す場面では、`Canoni
 - `|>`
 
 各部品種別には異なる素数が割り当てられている。たとえば単騎は2、順子は13である。
-`componentProduct` は1から始めて、抽象Readingの各部品に対応する素数を順に掛ける。
+`componentProduct` は1から始めて、種別だけの待ち分解の各部品に対応する素数を順に掛ける。
 
 積では掛ける順序が結果に影響しないため、部品列の順序は忘れられる。一方、同じ部品が複数あれば
 同じ素数を繰り返し掛けるため、その個数は指数として残る。たとえば `[tanki, shuntsu]` は
 $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ になる。
 
-`waitReadingCodeEntries` は、計算したコードだけでなく待ち牌も `WaitReadingCodeEntry` に残す。
+`waitDecompositionCodeEntries` は、計算したコードだけでなく待ち牌も `WaitDecompositionCodeEntry` に残す。
 ソース中の `example` は、待ち牌 `5m` と部品種別 `[tanki, shuntsu]` から
 `{ wait := 5m, code := 26 }` が得られることを計算で確認する。
 
-## Readingコードを待ち牌付きのペアで取り出す
+## 待ち分解コードを待ち牌付きのペアで取り出す
 
-次の実例は、`WaitReadingCode.lean` の `abstractWaitReadingCodeWithWait` である。
+次の実例は、`WaitDecompositionCode.lean` の `waitDecompositionCodesWithWait` である。
 
 読む前に知る語彙:
 
@@ -1382,44 +1382,44 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `map`
 - `fun`
 
-`abstractWaitReadingCodeWithWait` は、`WaitReadingCodeEntry` を `(コード, 待ち牌)` のペアへ変換する。
+`waitDecompositionCodesWithWait` は、`WaitDecompositionCodeEntry` を `(コード, 待ち牌)` のペアへ変換する。
 部品種別列からコードを計算する処理は前節で完了しているため、ここではフィールドを取り出して並べ替えるだけである。
 
 前節と同じ、待ち牌 `5m`、部品種別 `[tanki, shuntsu]` の例なら、結果は `(26, 5m)` になる。
 待ち牌を保持しているため、複数の待ち牌が同じコードを持っていても、それぞれを別のペアとして確認できる。
 
 名前に `WithWait` が付くのは、この待ち牌情報を残すためである。
-後続の `abstractWaitReadingCode` は待ち牌を捨て、コードの種類だけを列挙するので区別して読む。
+後続の `waitDecompositionCodes` は待ち牌を捨て、コードの種類だけを列挙するので区別して読む。
 
 ## 待ち牌を忘れてコードの種類だけを取り出す
 
-次の実例は、`WaitReadingCode.lean` の `abstractWaitReadingCode` である。
+次の実例は、`WaitDecompositionCode.lean` の `waitDecompositionCodes` である。
 
-先に [domain-vocabulary.md](domain-vocabulary.md) の「待ちReadingコード」を読む。
+先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち分解コード」を読む。
 
 読む前に知る語彙:
 
 - `map`
 - `|>`
 
-`abstractWaitReadingCode` は、待ち牌付きの各entryから `code` だけを取り出す。
+`waitDecompositionCodes` は、待ち牌付きの各entryから `code` だけを取り出す。
 この変換後は、異なる待ち牌でも部品種別コードが同じなら同じ自然数になるため、重複をもう一度除いて整列する。
 
-ソース中の `example` では、待ち牌 `5m` と `6m` がそれぞれ単騎と完成順子からなるReadingを持つ。
+ソース中の `example` では、待ち牌 `5m` と `6m` がそれぞれ単騎と完成順子からなる待ち分解を持つ。
 待ち牌は異なるが、どちらの部品種別列も `[tanki, shuntsu]` なのでコードは26であり、結果は `[26]` になる。
 
 この表現は、コード系列の中で最も多くの情報を忘れている。
 コード列が一致しても、待ち牌、具体的な部品の牌、元の牌姿が同じとは限らない。
-さらに現行実装は重複も除くため、「その組合せを持つReadingがいくつあるか」も分からない。
+さらに現行実装は重複も除くため、「その組合せを持つ待ち分解がいくつあるか」も分からない。
 たとえば `2345678m` の3つの待ち牌がすべてコード338でも、結果は `[338]` になる。
 
 この重複排除は仕様変更の検討対象である。重複を保った `[338, 338, 338]` からは必要に応じて `[338]` を
-導出できるが、`[338]` から3つのReadingがあったことは復元できない。現行関数は、暫定的に
+導出できるが、`[338]` から3つの待ち分解があったことは復元できない。現行関数は、暫定的に
 「どの部品種別の組合せが少なくとも1回現れるか」だけを比較する集計として読む。
 
 ## 直接生成器が妥当なSeedを過不足なく返すことを読む
 
-次の実例は、`DirectWaitReading.lean` の `seedCandidates`、`directSeeds`、`directSeeds_sound`、
+次の実例は、`DirectWaitGeneration.lean` の `seedCandidates`、`directSeeds`、`directSeeds_sound`、
 `directSeeds_complete`、`mem_directSeeds_iff` である。
 
 読む前に知る語彙:
@@ -1435,7 +1435,7 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `List.mem_dedup`
 - 健全性と完全性
 
-直接生成は、完成済みの形から待ち牌を1枚取り除く向きにReadingの生成元を作る。
+直接生成は、完成済みの形から待ち牌を1枚取り除く向きに待ち導出の生成元を作る。
 `seedCandidates n` は、雀頭と `n` 個の面子からなる全完成形、待ち牌を取り除く全部品位置、
 選択した部品に実際に含まれる牌種、という3段階を列挙する。全34牌種を各部品で試さず、候補を
 部品内の最大3牌種へ限定することで、大きな不要探索を避けている。
@@ -1445,7 +1445,7 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 満たすSeedだけを残す。
 
 `directSeeds_sound` は、生成結果への所属から `List.mem_filter.mp` でフィルタ条件を取り出す。
-したがって、生成器が返したSeedは必ず `Seed.valid` を満たし、不正なReadingの生成元が混ざらない。
+したがって、生成器が返したSeedは必ず `Seed.valid` を満たし、不正な待ち導出の生成元が混ざらない。
 これが健全性である。
 
 `directSeeds_complete` は逆に、任意の妥当なSeedが候補生成の3段階を通ることを示す。
@@ -1462,9 +1462,9 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 `directSeeds 0` に含まれることを示す。`Seed.valid` は具体的な有限計算として `native_decide` で確認し、
 `directSeeds_complete` に渡して生成結果への所属を得る。
 
-## 妥当なSeedを証拠付きReadingとして公開することを読む
+## 妥当なSeedを証拠付き待ち導出として公開することを読む
 
-次に `DirectWaitReading.lean` の `directReadings` と `mem_directReadings` を読む。
+次に `DirectWaitGeneration.lean` の `directWaitDerivations` と `mem_directWaitDerivations` を読む。
 
 読む前に知る語彙:
 
@@ -1474,26 +1474,27 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `List.mem_map`
 - `Subtype.ext`
 
-`Reading n` は新しい実行データを加えた構造体ではなく、Seedと、そのSeedが `Seed.valid` を満たす証拠の組である。
-直前の `directSeeds` はSeedの列なので、利用側へReadingとして公開するには各要素へ妥当性証拠を付ける必要がある。
+`WaitDerivation n` は新しい実行データを加えた構造体ではなく、Seedと、そのSeedが `Seed.valid` を満たす証拠の組である。
+直前の `directSeeds` はSeedの列なので、利用側へ待ち導出として公開するには各要素へ妥当性証拠を付ける必要がある。
 
-`directReadings` はまず `attach` により、各Seedを「そのSeed本体」と「`directSeeds n` に含まれる証拠」の組へ変える。
+`directWaitDerivations` はまず `attach` により、各Seedを「そのSeed本体」と「`directSeeds n` に含まれる証拠」の組へ変える。
 次の `map` では `directSeeds_sound` を使い、所属証拠を `Seed.valid` の証拠へ変換する。値の候補を追加したり
 削除したりする処理ではなく、直前に確立した健全性を使って同じSeedを証拠付きの型へ持ち上げている。
 
-`mem_directReadings` は、この持ち上げで妥当なReadingを失わないことを示す。任意の `reading : Reading n` は
-すでに `reading.2` として妥当性証拠を持つため、`directSeeds_complete reading.2` からSeed本体が
+`mem_directWaitDerivations` は、この持ち上げで妥当な待ち導出を失わないことを示す。任意の
+`derivation : WaitDerivation n` はすでに `derivation.2` として妥当性証拠を持つため、
+`directSeeds_complete derivation.2` からSeed本体が
 `directSeeds n` に含まれると分かる。この所属証拠をSeed本体と組にすれば、`attach` 後の列の要素を構成できる。
 
-最後の `Subtype.ext` は、二つのReadingが持つ妥当性証拠そのものを比較せず、Seed本体が同じならReadingも同じだと
-結論する。数学的な対象はSeedであり、それが妥当であることの証明手順の違いは別のReadingを生まない。
+最後の `Subtype.ext` は、二つの待ち導出が持つ妥当性証拠そのものを比較せず、Seed本体が同じなら待ち導出も同じだと
+結論する。数学的な対象はSeedであり、それが妥当であることの証明手順の違いは別の待ち導出を生まない。
 
-ソース中の例は、直前と同じ赤牌対子のSeedに `native_decide` で妥当性証拠を付けて `Reading 0` を作り、
-`mem_directReadings` だけで実行用列挙への所属が得られることを示す。
+ソース中の例は、直前と同じ赤牌対子のSeedに `native_decide` で妥当性証拠を付けて `WaitDerivation 0` を作り、
+`mem_directWaitDerivations` だけで実行用列挙への所属が得られることを示す。
 
 ## 生成した牌姿へ待ち牌を戻せることを読む
 
-次に `DirectWaitReading.lean` の `hand` と `wait_cons_hand_perm_winningShape` を読む。
+次に `DirectWaitGeneration.lean` の `hand` と `wait_cons_hand_perm_winningShape` を読む。
 
 読む前に知る語彙:
 
@@ -1504,15 +1505,15 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `.trans`
 - `.symm`
 
-`hand reading` は、Readingが持つ完成形から待ち牌を `erase` で1枚だけ除き、残った牌を牌種順に整列する。
+`hand derivation` は、待ち導出が持つ完成形から待ち牌を `erase` で1枚だけ除き、残った牌を牌種順に整列する。
 結果は `1 + 3n` 枚のテンパイ牌姿になる。整列するのは、同じ牌を持つ牌姿を入力順に依存しない標準表現で
 比較するためである。
 
-`wait_cons_hand_perm_winningShape` は、除いた待ち牌を `hand reading` の先頭へ戻すと、Readingが持つ元の
+`wait_cons_hand_perm_winningShape` は、除いた待ち牌を `hand derivation` の先頭へ戻すと、待ち導出が持つ元の
 完成形と順列関係になることを保証する。等号ではなく `List.Perm` なのは、`hand` の整列により牌の並び順が
 変わる一方で、各牌種の枚数は保存されるからである。
 
-証明で最初に必要なのは、除こうとした待ち牌が完成形に本当に含まれることである。Readingの妥当性条件から、
+証明で最初に必要なのは、除こうとした待ち牌が完成形に本当に含まれることである。待ち導出の妥当性条件から、
 待ち牌が選択部品に含まれることを `wait_mem_component_of_componentKind_isSome` で取り出す。
 `mem_shape_tiles_of_mem_component` は、選択部品への所属を完成形全体への所属へ持ち上げる。
 
@@ -1520,15 +1521,15 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 元の完成形の順列になる。一方、`List.mergeSort_perm` は `hand` の整列前後が順列であることを保証する。
 整列後の列の先頭へ待ち牌を加えた順列と、除去して戻した列の順列を `.trans` でつなぐことで結論を得る。
 
-これは全牌姿を探索して結果を確認したものではなく、任意のReadingについて成り立つ牌の保存則である。
-後続の `reading_waitFor` はこの順列を使い、元の完成形の分割証拠を生成された牌姿へ移す。
+これは全牌姿を探索して結果を確認したものではなく、任意の待ち導出について成り立つ牌の保存則である。
+後続の `derivation_waitFor` はこの順列を使い、元の完成形の分割証拠を生成された牌姿へ移す。
 
-ソース中の例では、赤牌対子だけから作った `Reading 0` について同じ保存則を有限計算で確認する。
+ソース中の例では、赤牌対子だけから作った `WaitDerivation 0` について同じ保存則を有限計算で確認する。
 `hand` は赤牌1枚となり、待ち牌の赤牌を戻した2枚が元の対子と同じ牌を同数持つ。
 
-## 直接生成Readingを既存Finderへ接続することを読む
+## 直接生成した待ち導出を既存Finderへ接続することを読む
 
-次に `DirectWaitReading.lean` の `completion` と `completion_mem_findWaitCompletions` を読む。
+次に `DirectWaitGeneration.lean` の `completion` と `completion_mem_findWaitCompletions` を読む。
 
 読む前に知る語彙:
 
@@ -1539,34 +1540,34 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 - `.mpr`
 - `WinningPartition.of_perm`
 
-`completion reading` は、Readingが持つ待ち牌と完成形の部品列を、既存Finderが返す `WaitCompletion` の形へ
+`completion derivation` は、待ち導出が持つ待ち牌と完成形の部品列を、既存Finderが返す `WaitCompletion` の形へ
 写す。部品列は `WinningComponent.canonicalize` で正規化するため、面子の並び順だけが異なる同じ分割は同じ結果になる。
 
 `completion_mem_findWaitCompletions` は、面子数 `n` が通常手の上限4以下なら、このcompletionが
-`findWaitCompletions (hand reading)` に必ず含まれると述べる。直接生成器とFinderは実装の探索方向が異なる。
+`findWaitCompletions (hand derivation)` に必ず含まれると述べる。直接生成器とFinderは実装の探索方向が異なる。
 前者は完成形から待ち牌を除き、後者は牌姿へ候補牌を加えて和了分割を探索する。この定理は、直接生成した
 一件がFinderの結果としても確認できることを保証する。
 
-Finder所属の仕様 `mem_findWaitCompletions_iff` が要求する証拠は二つある。一つは、候補牌が `hand reading` の
-実際の待ちであることを示す `IsWaitFor` である。内部補題 `reading_waitFor` は、完成形の牌数、Readingの
+Finder所属の仕様 `mem_findWaitCompletions_iff` が要求する証拠は二つある。一つは、候補牌が `hand derivation` の
+実際の待ちであることを示す `IsWaitFor` である。内部補題 `derivation_waitFor` は、完成形の牌数、待ち導出の
 4枚制限、待ち牌を戻した完成形の分割からこの証拠を作る。仮定 `n ≤ standardHandMentsuCount` は、生成牌姿が
 通常手として許される1、4、7、10、13枚の範囲にあることを保証するために使う。
 
 もう一つは、待ち牌を加えた牌姿の `WinningPartition` である。`winningShape_partition` は元の完成形に対する
 分割を構成する。直前に読んだ `wait_cons_hand_perm_winningShape` により、その完成形と
-`reading.1.wait :: hand reading` は順列関係にあるため、`WinningPartition.of_perm` で同じ分割証拠を移せる。
+`derivation.1.wait :: hand derivation` は順列関係にあるため、`WinningPartition.of_perm` で同じ分割証拠を移せる。
 
 最後に `mem_findWaitCompletions_iff` の `.mpr` を使い、この二つの宣言的証拠から実行結果への所属を得る。
 これは直接生成器が不正なcompletionを作らないという、既存Finderを基準にした健全性である。逆向き、つまり
-Finderの各結果に対応するReadingが存在することは、後続の `exists_reading_of_mem_findWaitCompletions` が扱う。
+Finderの各結果に対応する待ち導出が存在することは、後続の `exists_derivation_of_mem_findWaitCompletions` が扱う。
 
-ソース中の短い例は `n = 0` の任意のReadingへ公開定理を適用する。この場合 `0 ≤ 4` は `omega` で解けるため、
-Readingの具体的な牌を調べずにFinder所属を得られる。
+ソース中の短い例は `n = 0` の任意の待ち導出へ公開定理を適用する。この場合 `0 ≤ 4` は `omega` で解けるため、
+待ち導出の具体的な牌を調べずにFinder所属を得られる。
 
-## Finderと直接生成Readingが完全に対応することを読む
+## Finderと直接生成した待ち導出が完全に対応することを読む
 
-次に `DirectWaitReading.lean` の `exists_reading_of_mem_findWaitCompletions` と
-`mem_findWaitCompletions_iff_exists_reading` を読む。
+次に `DirectWaitGeneration.lean` の `exists_derivation_of_mem_findWaitCompletions` と
+`mem_findWaitCompletions_iff_exists_derivation` を読む。
 
 読む前に知る語彙:
 
@@ -1578,37 +1579,37 @@ Readingの具体的な牌を調べずにFinder所属を得られる。
 - `List.Perm`
 - `List.mergeSort_perm`
 
-直前の `completion_mem_findWaitCompletions` は、直接生成したReadingから既存Finderへ進む一方向を保証した。
-逆方向の `exists_reading_of_mem_findWaitCompletions` は、Finderが返した任意のcompletionから、同じ牌姿、待ち牌、
-正規化分割を持つReadingを復元する。復元される面子数 `n` は固定の入力ではなく、Finderが見つけた完成分割から
-決まるため、結論では `∃ n, ∃ reading : Reading n` と存在量化されている。
+直前の `completion_mem_findWaitCompletions` は、直接生成した待ち導出から既存Finderへ進む一方向を保証した。
+逆方向の `exists_derivation_of_mem_findWaitCompletions` は、Finderが返した任意のcompletionから、同じ牌姿、待ち牌、
+正規化分割を持つ待ち導出を復元する。復元される面子数 `n` は固定の入力ではなく、Finderが見つけた完成分割から
+決まるため、結論では `∃ n, ∃ derivation : WaitDerivation n` と存在量化されている。
 
 復元では、Finderの `WinningPartition` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
 待ち牌が雀頭に含まれる場合は `.pair`、そうでなければ待ち牌を含む最初の面子位置を `.mentsu` として選ぶ。
 この選び方により、面子順と同一面子の選択位置に関する `Seed.valid` の正規化条件も満たせる。
 Finder側の `IsWaitFor` からは、通常手の面子数上限と4枚制限を復元する。
 
-`mem_findWaitCompletions_iff_exists_reading` は、この復元と直前の一方向を組み合わせた公開境界である。
-左辺は `found` が既存Finderの実行結果に含まれることを述べる。右辺は、通常手範囲のReadingが存在し、
+`mem_findWaitCompletions_iff_exists_derivation` は、この復元と直前の一方向を組み合わせた公開境界である。
+左辺は `found` が既存Finderの実行結果に含まれることを述べる。右辺は、通常手範囲の待ち導出が存在し、
 その `hand` が入力牌姿の標準表現に等しく、`completion` が `found` に等しいことを述べる。
 
-左から右は `exists_reading_of_mem_findWaitCompletions` をそのまま使う。これはFinderが返す結果をReading側が
+左から右は `exists_derivation_of_mem_findWaitCompletions` をそのまま使う。これはFinderが返す結果を待ち導出側が
 取りこぼさない完全性に当たる。右から左は存在証拠を `rintro` で取り出し、
-`completion_mem_findWaitCompletions` により、まず `hand reading` に対するFinder所属を得る。
+`completion_mem_findWaitCompletions` により、まず `hand derivation` に対するFinder所属を得る。
 
-ここで `hand reading` は整列済みだが、元の `tiles` は任意の順番でよい。`List.mergeSort_perm` は
+ここで `hand derivation` は整列済みだが、元の `tiles` は任意の順番でよい。`List.mergeSort_perm` は
 `canonicalTiles tiles` と `tiles` が同じ牌を同数持つことを保証する。Finder所属を一度
 `mem_findWaitCompletions_iff` の宣言的仕様へ変換し、その順列に沿って元の入力順へ移し、再び実行結果への
-所属へ戻す。この方向は、Readingが表す結果をFinderが取りこぼさないというFinder側の完全性であり、
+所属へ戻す。この方向は、待ち導出が表す結果をFinderが取りこぼさないというFinder側の完全性であり、
 同時に直接生成したcompletionがFinderの仕様に照らして正しいという直接生成側の健全性でもある。
 
 したがって、完成形から待ち牌を除く直接生成と、牌姿へ候補牌を加えるFinderは、入力順を正規化すれば
-同じcompletionを過不足なく表す。`MahjongTests/DirectWaitReading.lean` の7枚形の例は、任意の `found` について
+同じcompletionを過不足なく表す。`MahjongTests/DirectWaitGeneration.lean` の7枚形の例は、任意の `found` について
 この同値定理をそのまま適用している。
 
-## 全Readingを有限添字と一対一に対応させる
+## 全待ち導出を有限添字と一対一に対応させる
 
-次に `DirectWaitReading.lean` の `readingCount`、`readingEquiv`、`ofIndex`、`toIndex`、
+次に `DirectWaitGeneration.lean` の `waitDerivationCount`、`waitDerivationEquiv`、`ofIndex`、`toIndex`、
 `ofIndex_bijective`、二つの往復定理を読む。
 
 読む前に知る語彙:
@@ -1622,29 +1623,29 @@ Finder側の `IsWaitFor` からは、通常手の面子数上限と4枚制限を
 - `Function.Bijective`
 - `@[simp]`
 
-`Reading n` は有限型なので、値の総数を `Fintype.card` で数えられる。`readingCount n` はこの総数の略記である。
-`Fin (readingCount n)` は、0以上Reading総数未満という範囲内の添字だけを持つ有限型になる。
+`WaitDerivation n` は有限型なので、値の総数を `Fintype.card` で数えられる。`waitDerivationCount n` はこの総数の略記である。
+`Fin (waitDerivationCount n)` は、0以上待ち導出総数未満という範囲内の添字だけを持つ有限型になる。
 
-`readingEquiv n` は、この有限添字型と `Reading n` の全単射を `A ≃ B` として表す。
-ここでいう完全ハッシュとは、各有効添字がちょうど1つのReadingに対応し、各Readingにも対応する添字が
+`waitDerivationEquiv n` は、この有限添字型と `WaitDerivation n` の全単射を `A ≃ B` として表す。
+ここでいう完全ハッシュとは、各有効添字がちょうど1つの待ち導出に対応し、各待ち導出にも対応する添字が
 ちょうど1つある、という意味である。通常のハッシュ表のように衝突処理を行うのではなく、型どうしの
 一対一対応そのものを証拠付きで持つ。
 
-`ofIndex` は添字からReadingへ進み、`toIndex` はReadingから添字へ戻る。`ofIndex_bijective` の単射部分は、
-異なる添字が同じReadingへ衝突しないことを保証する。全射部分は、どのReadingにも添字があり、列挙から
-欠落しないことを保証する。添字型の大きさ自体がReading総数なので、未使用の有効添字もない。
+`ofIndex` は添字から待ち導出へ進み、`toIndex` は待ち導出から添字へ戻る。`ofIndex_bijective` の単射部分は、
+異なる添字が同じ待ち導出へ衝突しないことを保証する。全射部分は、どの待ち導出にも添字があり、列挙から
+欠落しないことを保証する。添字型の大きさ自体が待ち導出総数なので、未使用の有効添字もない。
 
 二つの往復定理は、この対応を操作として使える形にする。
 
-- `toIndex_ofIndex`: 添字からReadingへ進んで戻ると、元の添字になる。
-- `ofIndex_toIndex`: Readingから添字へ進んで戻ると、元のReadingになる。
+- `toIndex_ofIndex`: 添字から待ち導出へ進んで戻ると、元の添字になる。
+- `ofIndex_toIndex`: 待ち導出から添字へ進んで戻ると、元の待ち導出になる。
 
 両方に `@[simp]` が付いているため、ソース中の例のように二つの往復を含む目標は `simp` で解ける。
 
-ただし `readingEquiv`、`ofIndex`、`toIndex` は `noncomputable` である。この完全ハッシュは全Readingの個数と
+ただし `waitDerivationEquiv`、`ofIndex`、`toIndex` は `noncomputable` である。この完全ハッシュは全待ち導出の個数と
 一対一対応が存在することを述べる数学的仕様であり、通常の実行用列挙器ではない。実際の計算では、
-完成形と選択部品から候補を構造的に作る `directReadings` を使う。
+完成形と選択部品から候補を構造的に作る `directWaitDerivations` を使う。
 
-直前に出てきた `sparseCode` との違いにも注意する。`sparseCode` はReadingを自然数へ衝突なく写すが、
-使われない自然数があり、Reading総数と一致する密な範囲を与えない。`readingEquiv` は非計算的である代わりに、
-`Fin (readingCount n)` という過不足のない有限範囲との完全な対応を保証する。
+直前に出てきた `sparseCode` との違いにも注意する。`sparseCode` は待ち導出を自然数へ衝突なく写すが、
+使われない自然数があり、待ち導出総数と一致する密な範囲を与えない。`waitDerivationEquiv` は非計算的である代わりに、
+`Fin (waitDerivationCount n)` という過不足のない有限範囲との完全な対応を保証する。

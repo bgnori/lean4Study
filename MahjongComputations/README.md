@@ -28,7 +28,7 @@ The report is written to `reports/seven-tile-report.txt`.
 Current modules:
 
 - `FourTile.lean`: enumerates all legal four-tile multisets and computes tenpai
-  waits, wait classifications, reducibility, and abstract wait-reading codes.
+  waits, wait classifications, reducibility, and wait decomposition codes.
 - `FourTileReport.lean`: writes the exhaustive four-tile report as a text file.
 - `SevenTile.lean`: folds all legal seven-tile multisets into aggregate wait
   report data without retaining every shape.

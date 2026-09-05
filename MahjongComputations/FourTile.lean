@@ -1,4 +1,4 @@
-import Mahjong.DirectWaitReading
+import Mahjong.DirectWaitGeneration
 import Mahjong.Wait.Analysis
 import MahjongComputations.Common
 
@@ -12,8 +12,8 @@ studying one-mentsu standard-form tenpai shapes.
 
 namespace MahjongComputations.FourTile
 
-open DirectWaitReading
-open WaitReadingCode
+open DirectWaitGeneration
+open WaitDecompositionCode
 open WaitCompletionFinder
 
 /-- A computed summary for one four-tile shape. -/
@@ -23,7 +23,7 @@ structure FourTileShapeReport where
   kind : Option WellKnownWaitKind
   candidateKinds : List WellKnownWaitKind
   reducibility : Option WaitReducibility
-  waitReadingCodes : List Nat
+  waitDecompositionCodes : List Nat
 deriving BEq, DecidableEq, Repr
 
 private def legalTileMultisetsOfLength (length : Nat) : List Tile → List (List Tile)
@@ -46,7 +46,7 @@ def report (tiles : List Tile) : FourTileShapeReport :=
     kind := WaitAnalysis.classifyWait tiles
     candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
     reducibility := WaitAnalysis.determineReducibility tiles
-    waitReadingCodes := findAbstractWaitReadingCode tiles }
+    waitDecompositionCodes := findWaitDecompositionCodes tiles }
 
 /-- Exhaustive four-tile tenpai reports. -/
 def tenpaiReports : List FourTileShapeReport :=
@@ -61,9 +61,9 @@ def tenpaiReports : List FourTileShapeReport :=
           kind := WaitAnalysis.classifyWait tiles
           candidateKinds := WaitAnalysis.candidateWellKnownWaitKinds tiles
           reducibility := WaitAnalysis.determineReducibility tiles
-          waitReadingCodes := findAbstractWaitReadingCode tiles }
+          waitDecompositionCodes := findWaitDecompositionCodes tiles }
 
-private structure DirectReadingEntry where
+private structure DirectDerivationEntry where
   key : Nat
   tiles : List Tile
   completion : WaitCompletion
@@ -75,21 +75,21 @@ private structure DirectFourTileShapeReport where
   completions : List WaitCompletion
 deriving BEq, DecidableEq, Repr
 
-private def directReadingEntry (reading : Reading 1) : DirectReadingEntry :=
-  let tiles := hand reading
+private def directDerivationEntry (derivation : WaitDerivation 1) : DirectDerivationEntry :=
+  let tiles := hand derivation
   { key := tileMultisetKey tiles
     tiles
-    completion := completion reading }
+    completion := completion derivation }
 
-private def directReadingEntryKeyLE (first second : DirectReadingEntry) : Bool :=
+private def directDerivationEntryKeyLE (first second : DirectDerivationEntry) : Bool :=
   decide (first.key ≤ second.key)
 
 private def insertCompletion (completion : WaitCompletion) (completions : List WaitCompletion) :
     List WaitCompletion :=
   if completions.contains completion then completions else completion :: completions
 
-private def groupSortedDirectReadingEntry
-    (groups : List DirectFourTileShapeReport) (entry : DirectReadingEntry) :
+private def groupSortedDirectDerivationEntry
+    (groups : List DirectFourTileShapeReport) (entry : DirectDerivationEntry) :
     List DirectFourTileShapeReport :=
   match groups with
   | [] => [{ key := entry.key, tiles := entry.tiles, completions := [entry.completion] }]
@@ -100,16 +100,16 @@ private def groupSortedDirectReadingEntry
         { key := entry.key, tiles := entry.tiles, completions := [entry.completion] } :: groups
 
 private def directFourTileShapeReports (_ : Unit) : List DirectFourTileShapeReport :=
-  (directReadings 1).map directReadingEntry
-    |>.mergeSort directReadingEntryKeyLE
-    |>.foldl groupSortedDirectReadingEntry []
+  (directWaitDerivations 1).map directDerivationEntry
+    |>.mergeSort directDerivationEntryKeyLE
+    |>.foldl groupSortedDirectDerivationEntry []
 
 private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
 
 private def waitProfilesFromCompletions (completions : List WaitCompletion) : List WaitProfile :=
-  (irreducibleWaitReadings completions).flatMap
-    WaitAnalysis.waitProfilesOfIrreducibleReading
+  (waitCoreExtractions completions).flatMap
+    WaitAnalysis.waitProfilesOfCoreExtraction
 
 private def directReport (report : DirectFourTileShapeReport) : FourTileShapeReport :=
   let completions := report.completions
@@ -123,14 +123,14 @@ private def directReport (report : DirectFourTileShapeReport) : FourTileShapeRep
         .reducible
       else
         .irreducible
-    waitReadingCodes := abstractWaitReadingCode completions }
+    waitDecompositionCodes := waitDecompositionCodes completions }
 
-/-- Number of normalized direct Readings enumerated for four-tile shapes. -/
-def directReadingCount : Nat :=
-  (directReadings 1).length
+/-- Number of normalized direct derivations enumerated for four-tile shapes. -/
+def directDerivationCount : Nat :=
+  (directWaitDerivations 1).length
 
-/-- Four-tile tenpai reports computed by projecting direct Readings and grouping equal hands. -/
-def directReadingTenpaiReports : List FourTileShapeReport :=
+/-- Four-tile tenpai reports computed by projecting direct derivations and grouping equal hands. -/
+def directDerivationTenpaiReports : List FourTileShapeReport :=
   (directFourTileShapeReports ()).map directReport
 
 /-- Exhaustive four-tile reports whose classified wait kind is `kind`. -/

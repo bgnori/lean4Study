@@ -3,22 +3,20 @@ import Mahjong.Pattern
 import Mahjong.WaitCompletionFinder
 
 /-!
-# 発見済みWaitCompletionのReadingコード
+# 発見済みWaitCompletionの待ち分解コード
 
-このモジュールでいう `Reading` は、麻雀一般の「相手の待ちを推測する待ち読み」ではない。
-1つの待ち牌に対して、待ち牌を除いた和了分割の部品がどのような種別として見えるかを表す
-観測結果である。
+1つの待ち牌に対して、待ち牌を除いた和了分割の部品がどのような種別へ分かれるかを表す。
 
 `WaitCompletionFinder.findWaitCompletions` が発見した `WaitCompletion` を入力とし、牌の位置を忘れて、
 待ち牌を除いた各分割を部品種別の多重集合として扱う。
 異なる部品種別に異なる素数を割り当て、その積を代表元とする。
 -/
-namespace WaitReadingCode
+namespace WaitDecompositionCode
 
 open WaitCompletionFinder
 
 /-- 待ち牌を除いた後に見える部品種別。 -/
-inductive WaitReadingComponentKind
+inductive WaitComponentKind
 | tanki
 | toitsu
 | ryanmen
@@ -28,17 +26,17 @@ inductive WaitReadingComponentKind
 | koutsu
 deriving BEq, DecidableEq, Repr
 
-namespace WaitReadingComponentKind
+namespace WaitComponentKind
 
 /-- すべての部品種別。キーの基数を部品数から導くためにも使う。 -/
-def all : List WaitReadingComponentKind :=
+def all : List WaitComponentKind :=
   [.tanki, .toitsu, .ryanmen, .kanchan, .penchan, .shuntsu, .koutsu]
 
 /-- 部品種別の数。 -/
 def count : Nat := all.length
 
 /-- 部品種別に割り当てる素数。積をとることで多重集合の代表コードにする。 -/
-def prime : WaitReadingComponentKind → Nat
+def prime : WaitComponentKind → Nat
   | .tanki => 2
   | .toitsu => 3
   | .ryanmen => 5
@@ -47,52 +45,52 @@ def prime : WaitReadingComponentKind → Nat
   | .shuntsu => 13
   | .koutsu => 17
 
-end WaitReadingComponentKind
+end WaitComponentKind
 
 /-- 具体的な牌種列を保持した部品。 -/
-structure ConcreteWaitReadingComponent where
-  kind : WaitReadingComponentKind
+structure WaitComponent where
+  kind : WaitComponentKind
   tiles : List Tile
 deriving BEq, DecidableEq, Repr
 
-/-- 1つの待ち牌に対する、具体牌付きのReading。 -/
-structure ConcreteWaitReading where
+/-- 1つの待ち牌に対する、具体牌付きの待ち分解。 -/
+structure WaitDecomposition where
   wait : Tile
-  components : List ConcreteWaitReadingComponent
+  components : List WaitComponent
 deriving BEq, DecidableEq, Repr
 
-/-- 完成面子を除いた核成分列と、除去した面子を分けて保持するReading。 -/
-structure IrreducibleWaitReading where
+/-- 完成面子を除いた核成分列と、除去した面子を分けて保持する抽出結果。 -/
+structure WaitCoreExtraction where
   wait : Tile
-  core : List ConcreteWaitReadingComponent
-  removedMentsu : List ConcreteWaitReadingComponent
+  core : List WaitComponent
+  removedMentsu : List WaitComponent
 deriving BEq, DecidableEq, Repr
 
 /--
 完成面子の文脈を忘れた、比較可能な待ち核。
 
 待ち核は、1つの待ち牌と、完成面子を除いたあとに残る核成分列の組である。
-`IrreducibleWaitReading.core` は具体牌付きの核成分列を保持し、`removedMentsu` はそこから分離された完成面子を保持する。
+`WaitCoreExtraction.core` は具体牌付きの核成分列を保持し、`removedMentsu` はそこから分離された完成面子を保持する。
 `WaitCore` は比較に必要な待ち牌と核成分列だけを残す。
 -/
 structure WaitCore where
   wait : Tile
-  components : List ConcreteWaitReadingComponent
+  components : List WaitComponent
 deriving BEq, DecidableEq, Repr
 
-/-- 牌の位置を忘れ、部品種別だけを残したReading。 -/
-structure AbstractWaitReading where
+/-- 牌の位置を忘れ、部品種別だけを残した待ち分解。 -/
+structure WaitKindDecomposition where
   wait : Tile
-  components : List WaitReadingComponentKind
+  components : List WaitComponentKind
 deriving BEq, DecidableEq, Repr
 
 /-- 待ち牌ごとの抽象形コード。 -/
-structure WaitReadingCodeEntry where
+structure WaitDecompositionCodeEntry where
   wait : Tile
   code : Nat
 deriving BEq, DecidableEq, Repr
 
-private def completeComponent (component : WinningComponent) : ConcreteWaitReadingComponent :=
+private def completeComponent (component : WinningComponent) : WaitComponent :=
   { kind := match component with
       | .inl _ => .toitsu
       | .inr (.shuntsu _) => .shuntsu
@@ -107,7 +105,7 @@ private def completeComponent (component : WinningComponent) : ConcreteWaitReadi
 指定牌がその和了構成部品を構成しない場合は `none` を返す。
 -/
 def componentKindAfterRemovingWait (wait : Tile) (component : WinningComponent) :
-    Option WaitReadingComponentKind :=
+    Option WaitComponentKind :=
   match component with
     | .inl (.toitsu tile) =>
       if tile == wait then some .tanki else none
@@ -145,11 +143,11 @@ def componentKindAfterRemovingWait (wait : Tile) (component : WinningComponent) 
 和了構成部品から指定した待ち牌を1枚除き、種別と残った牌種列を持つ具体的な不完全部品を作る。
 
 `componentKindAfterRemovingWait` が `some kind` を返した場合だけ、和了構成部品の牌種列から
-待ち牌を最初の1枚だけ除き、`ConcreteWaitReadingComponent` にまとめる。
+待ち牌を最初の1枚だけ除き、`WaitComponent` にまとめる。
 指定牌を除けず種別が `none` の場合は、この関数も `none` を返す。
 -/
 private def componentAfterRemovingWait (wait : Tile) (component : WinningComponent) :
-    Option ConcreteWaitReadingComponent :=
+    Option WaitComponent :=
   (componentKindAfterRemovingWait wait component).map fun kind =>
     { kind, tiles := component.tiles.erase wait }
 
@@ -157,50 +155,50 @@ example : componentAfterRemovingWait
     (.numbered .Manzu 4) (WinningComponent.pair (.numbered .Manzu 4)) =
       some { kind := .tanki, tiles := [.numbered .Manzu 4] } := rfl
 
-private def componentProduct (components : List WaitReadingComponentKind) : Nat :=
+private def componentProduct (components : List WaitComponentKind) : Nat :=
   components.foldl (fun product component => product * component.prime) 1
 
 private def keyDigitOffset : Nat := 1
 private def tileKeyBase : Nat := Tile.count + keyDigitOffset
 private def maxComponentTiles : Nat := mentsuTileCount
-private def maxWaitReadingComponents : Nat := standardHandMentsuCount + standardHandPairCount
+private def maxWaitComponents : Nat := standardHandMentsuCount + standardHandPairCount
 private def componentTileKeyStride : Nat := tileKeyBase ^ maxComponentTiles
-private def readingComponentKeyStride : Nat := WaitReadingComponentKind.count * componentTileKeyStride
-private def readingWaitKeyStride : Nat := readingComponentKeyStride ^ maxWaitReadingComponents
-private def abstractComponentKeyBase : Nat := WaitReadingComponentKind.count + keyDigitOffset
+private def decompositionComponentKeyStride : Nat := WaitComponentKind.count * componentTileKeyStride
+private def decompositionWaitKeyStride : Nat := decompositionComponentKeyStride ^ maxWaitComponents
+private def abstractComponentKeyBase : Nat := WaitComponentKind.count + keyDigitOffset
 private def waitKeyStride : Nat := Tile.count
 
-private def waitReadingComponentKey (component : WaitReadingComponentKind) : Nat :=
-  WaitReadingComponentKind.all.idxOf component
+private def waitComponentKey (component : WaitComponentKind) : Nat :=
+  WaitComponentKind.all.idxOf component
 
-private def concreteComponentKey (component : ConcreteWaitReadingComponent) : Nat :=
-  waitReadingComponentKey component.kind * componentTileKeyStride +
+private def concreteComponentKey (component : WaitComponent) : Nat :=
+  waitComponentKey component.kind * componentTileKeyStride +
     component.tiles.foldl
       (fun key tile => key * tileKeyBase + tile.orderKey + keyDigitOffset) 0
 
-private def canonicalizeWaitReading
-  (components : List ConcreteWaitReadingComponent) : List ConcreteWaitReadingComponent :=
+private def canonicalizeWaitDecomposition
+  (components : List WaitComponent) : List WaitComponent :=
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
-private def concreteWaitReadingKey (reading : ConcreteWaitReading) : Nat :=
-  reading.wait.orderKey * readingWaitKeyStride +
-    reading.components.foldl
-      (fun key component => key * readingComponentKeyStride + concreteComponentKey component) 0
+private def waitDecompositionKey (decomposition : WaitDecomposition) : Nat :=
+  decomposition.wait.orderKey * decompositionWaitKeyStride +
+    decomposition.components.foldl
+      (fun key component => key * decompositionComponentKeyStride + concreteComponentKey component) 0
 
 private def waitCoreKey (core : WaitCore) : Nat :=
-  core.wait.orderKey * readingWaitKeyStride +
+  core.wait.orderKey * decompositionWaitKeyStride +
     core.components.foldl
-      (fun key component => key * readingComponentKeyStride + concreteComponentKey component) 0
+      (fun key component => key * decompositionComponentKeyStride + concreteComponentKey component) 0
 
-private def abstractWaitReadingKey (reading : AbstractWaitReading) : Nat :=
-  reading.components.foldl
+private def waitKindDecompositionKey (decomposition : WaitKindDecomposition) : Nat :=
+  decomposition.components.foldl
     (fun key component =>
-      key * abstractComponentKeyBase + waitReadingComponentKey component + keyDigitOffset) 0 *
+      key * abstractComponentKeyBase + waitComponentKey component + keyDigitOffset) 0 *
       waitKeyStride +
-    reading.wait.orderKey
+    decomposition.wait.orderKey
 
-private def waitReadingCodeEntryKey (entry : WaitReadingCodeEntry) : Nat :=
+private def waitDecompositionCodeEntryKey (entry : WaitDecompositionCodeEntry) : Nat :=
   entry.code * waitKeyStride + entry.wait.orderKey
 
 private def deduplicateAndSortBy {α : Type} [BEq α]
@@ -212,11 +210,11 @@ private def deduplicateAndSortBy {α : Type} [BEq α]
 
 各結果では、分割中の和了構成部品をちょうど1つ選んで `componentAfterRemovingWait` で不完全部品へ変え、
 それ以外は `completeComponent` で完成した種別のまま残す。指定牌を除けない部品は選択肢にせず、
-同じ待ち牌を除ける部品が複数あれば、除去元ごとに別のReadingを作る。
+同じ待ち牌を除ける部品が複数あれば、除去元ごとに別の待ち分解を作る。
 -/
-private def waitReadings (completion : WaitCompletion) :
-    List (List ConcreteWaitReadingComponent) :=
-  let rec selectWinningComponent : List WinningComponent → List (List ConcreteWaitReadingComponent)
+private def componentDecompositions (completion : WaitCompletion) :
+    List (List WaitComponent) :=
+  let rec selectWinningComponent : List WinningComponent → List (List WaitComponent)
     | [] => []
     | component :: rest =>
         let later := (selectWinningComponent rest).map fun extraction =>
@@ -227,7 +225,7 @@ private def waitReadings (completion : WaitCompletion) :
         | none => later
   selectWinningComponent completion.winningComponents.toList
 
-example : waitReadings
+example : componentDecompositions
     { wait := .numbered .Manzu 4
       winningComponents :=
         CanonicalWinningComponents.ofList
@@ -238,21 +236,21 @@ example : waitReadings
   native_decide
 
 /--
-発見済みの待ちと和了分割をすべて処理し、待ち牌ごとの具体牌付きReadingを正規化して列挙する。
+発見済みの待ちと和了分割をすべて処理し、待ち牌ごとの具体牌付き待ち分解を正規化して列挙する。
 
-各 `WaitCompletion` に `waitReadings` を適用し、待ち牌と部品列を `ConcreteWaitReading` にまとめる。
-部品列を一定の順序に並べた後、全completionから得た同一Readingの重複を除いて結果全体も整列する。
+各 `WaitCompletion` に `componentDecompositions` を適用し、待ち牌と部品列を `WaitDecomposition` にまとめる。
+部品列を一定の順序に並べた後、全completionから得た同一待ち分解の重複を除いて結果全体も整列する。
 そのため、和了分割内の部品順や同じcompletionの重複は、返り値を変えない。
 -/
-def concreteWaitReadings
-    (completions : List WaitCompletion) : List ConcreteWaitReading :=
+def waitDecompositions
+    (completions : List WaitCompletion) : List WaitDecomposition :=
   let entries := completions.flatMap fun completion =>
-      (waitReadings completion).map fun reading =>
+      (componentDecompositions completion).map fun decomposition =>
         { wait := completion.wait
-          components := canonicalizeWaitReading reading }
-  deduplicateAndSortBy concreteWaitReadingKey entries
+          components := canonicalizeWaitDecomposition decomposition }
+  deduplicateAndSortBy waitDecompositionKey entries
 
-example : concreteWaitReadings
+example : waitDecompositions
     [{ wait := .numbered .Manzu 4
        winningComponents :=
          CanonicalWinningComponents.ofList
@@ -268,33 +266,33 @@ example : concreteWaitReadings
             [.numbered .Pinzu 0, .numbered .Pinzu 1, .numbered .Pinzu 2] }] }] := by
   native_decide
 
-private def isCompletedMentsu (component : ConcreteWaitReadingComponent) : Bool :=
+private def isCompletedMentsu (component : WaitComponent) : Bool :=
   component.kind == .shuntsu || component.kind == .koutsu
 
 /--
-1つの具体牌付きReadingを、待ち核の成分列と、そこから分離した完成面子に分ける。
+1つの具体牌付き待ち分解を、待ち核の成分列と、そこから分離した完成面子に分ける。
 
 順子 `.shuntsu` と刻子 `.koutsu` は `removedMentsu` に移し、それ以外の不完全部品は `core` に残す。
 待ち牌 `wait` と各部品の具体的な牌種列は保持するため、後続処理は「どの完成面子を除いたか」を失わずに、
 完成面子を除いた核成分列だけを比較できる。
-この関数は1つのReadingを二分するだけであり、牌姿全体が可約か既約かは判定しない。
+この関数は1つの待ち分解を二分するだけであり、牌姿全体が可約か既約かは判定しない。
 
 読むためのLean語彙: `structure`, `filter`, `fun`, `!`。
 -/
-def reduceWaitReading (reading : ConcreteWaitReading) : IrreducibleWaitReading :=
-  { wait := reading.wait
-    core := reading.components.filter fun component => !isCompletedMentsu component
-    removedMentsu := reading.components.filter isCompletedMentsu }
+def extractWaitCore (decomposition : WaitDecomposition) : WaitCoreExtraction :=
+  { wait := decomposition.wait
+    core := decomposition.components.filter fun component => !isCompletedMentsu component
+    removedMentsu := decomposition.components.filter isCompletedMentsu }
 
-/-- 発見済みのReadingを、完成面子を除いた待ち核へ正規化する。 -/
-def irreducibleWaitReadings
-    (completions : List WaitCompletion) : List IrreducibleWaitReading :=
-  (concreteWaitReadings completions).map reduceWaitReading
+/-- 発見済みの待ち分解から、完成面子を除いた待ち核を抽出する。 -/
+def waitCoreExtractions
+    (completions : List WaitCompletion) : List WaitCoreExtraction :=
+  (waitDecompositions completions).map extractWaitCore
 
 /--
-発見済みの全Readingから、比較可能な待ち核集合を作る。
+発見済みの全待ち分解から、比較可能な待ち核集合を作る。
 
-各 `IrreducibleWaitReading` から `removedMentsu` を忘れ、待ち牌 `wait` と核成分列 `core` だけを
+各 `WaitCoreExtraction` から `removedMentsu` を忘れ、待ち牌 `wait` と核成分列 `core` だけを
 `WaitCore` に残す。同じ待ち核が複数の和了分割から得られても1件として扱えるよう重複を除き、
 待ち牌と核成分列から作るキーの順に整列する。
 
@@ -302,26 +300,26 @@ def irreducibleWaitReadings
 読むためのLean語彙: `map`, `fun`, `|>`。
 -/
 def waitCores (completions : List WaitCompletion) : List WaitCore :=
-  irreducibleWaitReadings completions
-    |>.map (fun reading => { wait := reading.wait, components := reading.core })
+  waitCoreExtractions completions
+    |>.map (fun extraction => { wait := extraction.wait, components := extraction.core })
     |> deduplicateAndSortBy waitCoreKey
 
 /--
-発見済みの具体牌付きReadingから各部品の牌種列を忘れ、部品種別だけのReadingへ変換する。
+発見済みの具体牌付き待ち分解から各部品の牌種列を忘れ、部品種別だけの待ち分解へ変換する。
 
-待ち牌 `wait` は保持し、各 `ConcreteWaitReadingComponent` は `kind` だけに写す。
-具体牌が異なっても待ち牌と部品種別列が同じReadingは重複を除き、一定の順序に整列する。
+待ち牌 `wait` は保持し、各 `WaitComponent` は `kind` だけに写す。
+具体牌が異なっても待ち牌と部品種別列が同じ待ち分解は重複を除き、一定の順序に整列する。
 この段階では部品種別列をまだ数値コードには変換しない。
 -/
-def abstractWaitReadings
-    (completions : List WaitCompletion) : List AbstractWaitReading :=
-  concreteWaitReadings completions
-    |>.map (fun reading =>
-      { wait := reading.wait
-        components := reading.components.map (fun component => component.kind) })
-    |> deduplicateAndSortBy abstractWaitReadingKey
+def waitKindDecompositions
+    (completions : List WaitCompletion) : List WaitKindDecomposition :=
+  waitDecompositions completions
+    |>.map (fun decomposition =>
+      { wait := decomposition.wait
+        components := decomposition.components.map (fun component => component.kind) })
+    |> deduplicateAndSortBy waitKindDecompositionKey
 
-example : abstractWaitReadings
+example : waitKindDecompositions
     [{ wait := .numbered .Manzu 4
        winningComponents :=
          CanonicalWinningComponents.ofList
@@ -334,21 +332,21 @@ example : abstractWaitReadings
   native_decide
 
 /--
-抽象Readingの部品種別列を素数積へ変換し、待ち牌ごとのコードとして列挙する。
+種別だけの待ち分解を素数積へ変換し、待ち牌ごとのコードとして列挙する。
 
 各部品種別に割り当てた素数をすべて掛けるため、コードは部品順を忘れる一方、
 各種別が現れる個数を素因数の指数として保持する。待ち牌はコードと別のフィールドに残し、
 同じ待ち牌とコードの重複を除いて一定の順序に整列する。
 -/
-def waitReadingCodeEntries
-    (completions : List WaitCompletion) : List WaitReadingCodeEntry :=
-  abstractWaitReadings completions
-    |>.map (fun reading =>
-      { wait := reading.wait
-        code := componentProduct reading.components })
-    |> deduplicateAndSortBy waitReadingCodeEntryKey
+def waitDecompositionCodeEntries
+    (completions : List WaitCompletion) : List WaitDecompositionCodeEntry :=
+  waitKindDecompositions completions
+    |>.map (fun decomposition =>
+      { wait := decomposition.wait
+        code := componentProduct decomposition.components })
+    |> deduplicateAndSortBy waitDecompositionCodeEntryKey
 
-example : waitReadingCodeEntries
+example : waitDecompositionCodeEntries
     [{ wait := .numbered .Manzu 4
        winningComponents :=
          CanonicalWinningComponents.ofList
@@ -357,17 +355,17 @@ example : waitReadingCodeEntries
   native_decide
 
 /--
-待ち牌ごとのReadingコードを、`(コード, 待ち牌)` のペアとして列挙する。
+待ち牌ごとの待ち分解コードを、`(コード, 待ち牌)` のペアとして列挙する。
 
-`WaitReadingCodeEntry` の名前付きフィールドを単純なペアへ写すだけで、新しい符号化は行わない。
+`WaitDecompositionCodeEntry` の名前付きフィールドを単純なペアへ写すだけで、新しい符号化は行わない。
 待ち牌を残すため、同じ部品種別コードを持つ異なる待ち牌も区別できる。
 -/
-def abstractWaitReadingCodeWithWait
+def waitDecompositionCodesWithWait
     (completions : List WaitCompletion) : List (Nat × Tile) :=
-  waitReadingCodeEntries completions
+  waitDecompositionCodeEntries completions
     |>.map fun entry => (entry.code, entry.wait)
 
-example : abstractWaitReadingCodeWithWait
+example : waitDecompositionCodesWithWait
     [{ wait := .numbered .Manzu 4
        winningComponents :=
          CanonicalWinningComponents.ofList
@@ -376,18 +374,18 @@ example : abstractWaitReadingCodeWithWait
   native_decide
 
 /--
-待ち牌を忘れ、発見済みReadingに現れる部品種別コードだけを列挙する。
+待ち牌を忘れ、発見済みの待ち分解に現れる部品種別コードだけを列挙する。
 
 異なる待ち牌が同じコードを持つ場合は、待ち牌を除いた時点で同じ値になるため、再度重複を除いて整列する。
 この結果の一致は部品種別の多重集合が同じことだけを表し、待ち牌や具体牌、元の牌姿の一致は表さない。
-現行実装は同じコードを持つReadingの個数も失うため、コード多重集合を必要とする用途には使えない。
+現行実装は同じコードを持つ待ち分解の個数も失うため、コード多重集合を必要とする用途には使えない。
 -/
-def abstractWaitReadingCode (completions : List WaitCompletion) : List Nat :=
-  waitReadingCodeEntries completions
+def waitDecompositionCodes (completions : List WaitCompletion) : List Nat :=
+  waitDecompositionCodeEntries completions
     |>.map (fun entry => entry.code)
     |> deduplicateAndSortBy id
 
-example : abstractWaitReadingCode
+example : waitDecompositionCodes
     [{ wait := .numbered .Manzu 4
        winningComponents :=
          CanonicalWinningComponents.ofList
@@ -401,12 +399,12 @@ example : abstractWaitReadingCode
 
 /-! ## 牌列から探索して符号化する便利関数 -/
 
-def findConcreteWaitReadings (tiles : List Tile) : List ConcreteWaitReading :=
-  concreteWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitDecompositions (tiles : List Tile) : List WaitDecomposition :=
+  waitDecompositions (WaitCompletionFinder.findWaitCompletions tiles)
 
 /-- 牌列から、完成面子と分離した待ち核を列挙する。 -/
-def findIrreducibleWaitReadings (tiles : List Tile) : List IrreducibleWaitReading :=
-  irreducibleWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitCoreExtractions (tiles : List Tile) : List WaitCoreExtraction :=
+  waitCoreExtractions (WaitCompletionFinder.findWaitCompletions tiles)
 
 /-- 牌列から得られる待ち核集合。 -/
 def findWaitCores (tiles : List Tile) : List WaitCore :=
@@ -441,17 +439,17 @@ instance (tiles : List Tile) : Decidable (CanReduceMentsuPreservingWaitCores til
   unfold CanReduceMentsuPreservingWaitCores
   infer_instance
 
-def findAbstractWaitReadings (tiles : List Tile) : List AbstractWaitReading :=
-  abstractWaitReadings (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitKindDecompositions (tiles : List Tile) : List WaitKindDecomposition :=
+  waitKindDecompositions (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findWaitReadingCodeEntries (tiles : List Tile) : List WaitReadingCodeEntry :=
-  waitReadingCodeEntries (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitDecompositionCodeEntries (tiles : List Tile) : List WaitDecompositionCodeEntry :=
+  waitDecompositionCodeEntries (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findAbstractWaitReadingCodeWithWait (tiles : List Tile) : List (Nat × Tile) :=
-  abstractWaitReadingCodeWithWait (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitDecompositionCodesWithWait (tiles : List Tile) : List (Nat × Tile) :=
+  waitDecompositionCodesWithWait (WaitCompletionFinder.findWaitCompletions tiles)
 
-def findAbstractWaitReadingCode (tiles : List Tile) : List Nat :=
-  abstractWaitReadingCode (WaitCompletionFinder.findWaitCompletions tiles)
+def findWaitDecompositionCodes (tiles : List Tile) : List Nat :=
+  waitDecompositionCodes (WaitCompletionFinder.findWaitCompletions tiles)
 
 /--
 数牌1スートの既約な7枚待ち53形。最小ランクが1になるよう正規化している。
@@ -513,17 +511,17 @@ def irreducibleSingleSuitSevenTileExamples : List (String × List Tile) :=
    ("1111333m", manzu [0, 0, 0, 0, 2, 2, 2]),
    ("1111222m", manzu [0, 0, 0, 0, 1, 1, 1])]
 
-private def insertAbstractWaitReadingClass (entry : String × List Nat) :
+private def insertWaitDecompositionCodeClass (entry : String × List Nat) :
   List (List Nat × List String) → List (List Nat × List String)
   | [] => [(entry.2, [entry.1])]
   | current :: rest =>
       if current.1 == entry.2 then
         (current.1, current.2 ++ [entry.1]) :: rest
       else
-        current :: insertAbstractWaitReadingClass entry rest
+        current :: insertWaitDecompositionCodeClass entry rest
 
-def irreducibleSevenTileAbstractWaitReadingClasses : List (List Nat × List String) :=
+def irreducibleSevenTileWaitDecompositionCodeClasses : List (List Nat × List String) :=
   irreducibleSingleSuitSevenTileExamples.foldl (fun classes entry =>
-    insertAbstractWaitReadingClass (entry.1, findAbstractWaitReadingCode entry.2) classes) []
+    insertWaitDecompositionCodeClass (entry.1, findWaitDecompositionCodes entry.2) classes) []
 
-end WaitReadingCode
+end WaitDecompositionCode

@@ -939,7 +939,7 @@ example : CompletionFor [.honor .Red]
 待ちでない牌列を既約とは扱わない。
 
 これは分解数だけを比較する旧来の近似である。分類で使う根源的な既約性は
-`WaitReadingCode.CanReduceMentsuPreservingWaitCores` が待ち核集合を比較する。
+`WaitDecompositionCode.CanReduceMentsuPreservingWaitCores` が待ち核集合を比較する。
 -/
 def waitCompletionCount (tiles : List Tile) : Nat :=
   (findWaitCompletions tiles).length

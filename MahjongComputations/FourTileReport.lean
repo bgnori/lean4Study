@@ -60,7 +60,7 @@ private def reportLine (report : FourTileShapeReport) : String :=
     optionWellKnownWaitKindName report.kind,
     formatKinds report.candidateKinds,
     reducibilityName report.reducibility,
-    toString report.waitReadingCodes
+    toString report.waitDecompositionCodes
   ]
 
 private def countLine (entry : WellKnownWaitKind × Nat) : String :=
@@ -71,13 +71,13 @@ private def reducibilityCount (reports : List FourTileShapeReport)
   (reports.filter fun report => report.reducibility == some reducibility).length
 
 private def reportsByReducibility (reducibility : WaitReducibility) : List FourTileShapeReport :=
-  directReadingTenpaiReports.filter fun report => report.reducibility == some reducibility
+  directDerivationTenpaiReports.filter fun report => report.reducibility == some reducibility
 
 private def waitCountLine (count : Nat) : String :=
-  s!"{count} wait tile kinds: {(directReadingTenpaiReports.filter fun report => report.waits.length == count).length}"
+  s!"{count} wait tile kinds: {(directDerivationTenpaiReports.filter fun report => report.waits.length == count).length}"
 
-private def waitReadingCodeGroupLine (source : List FourTileShapeReport) (codes : List Nat) : String :=
-  let group := source.filter fun report => report.waitReadingCodes == codes
+private def waitDecompositionCodeGroupLine (source : List FourTileShapeReport) (codes : List Nat) : String :=
+  let group := source.filter fun report => report.waitDecompositionCodes == codes
   match group with
   | [] => ""
   | representative :: _ =>
@@ -93,17 +93,17 @@ private def reportText : String :=
   let irreducibleReports := reportsByReducibility .irreducible
   let nonTankiReducibleReports := reducibleReports.filter fun report => report.kind != some .tanki
   String.intercalate newline <|
-    ["# Four-tile direct Reading wait report",
+    ["# Four-tile direct derivation wait report",
      "",
      s!"allFourTileShapes: {allFourTileShapes.length}",
-     s!"enumeratedReadings: {directReadingCount}",
-     s!"tenpaiReports: {directReadingTenpaiReports.length}",
-     s!"unclassifiedTenpaiReports: {(directReadingTenpaiReports.filter fun report => report.kind.isNone).length}",
-     s!"ambiguousReports: {(directReadingTenpaiReports.filter fun report => 1 < report.candidateKinds.length).length}",
+    s!"enumeratedDerivations: {directDerivationCount}",
+    s!"tenpaiReports: {directDerivationTenpaiReports.length}",
+    s!"unclassifiedTenpaiReports: {(directDerivationTenpaiReports.filter fun report => report.kind.isNone).length}",
+    s!"ambiguousReports: {(directDerivationTenpaiReports.filter fun report => 1 < report.candidateKinds.length).length}",
      "",
     "## Counts by well-known kind"] ++
     (WellKnownWaitKind.all.map fun kind =>
-      countLine (kind, (directReadingTenpaiReports.filter fun report => report.kind == some kind).length)) ++
+      countLine (kind, (directDerivationTenpaiReports.filter fun report => report.kind == some kind).length)) ++
     ["",
      "## Reducibility",
      "",
@@ -115,17 +115,17 @@ private def reportText : String :=
      "### Irreducible",
      s!"count: {reducibilityCount tenpaiReports .irreducible}",
      "",
-     "#### Groups by waitReadingCodes",
-     "waitReadingCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
-    (irreducibleReports.map (·.waitReadingCodes)).eraseDups.map
-      (waitReadingCodeGroupLine irreducibleReports) ++
+    "#### Groups by waitDecompositionCodes",
+    "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
+    (irreducibleReports.map (·.waitDecompositionCodes)).eraseDups.map
+      (waitDecompositionCodeGroupLine irreducibleReports) ++
     ["",
      "## Wait tile count distribution"] ++
     ([1, 2, 3, 4].map waitCountLine) ++
     ["",
      "## Tenpai reports",
-    "tiles\twaits\twellKnownKind\tcandidateKinds\treducibility\twaitReadingCodes"] ++
-    directReadingTenpaiReports.map reportLine ++
+    "tiles\twaits\twellKnownKind\tcandidateKinds\treducibility\twaitDecompositionCodes"] ++
+    directDerivationTenpaiReports.map reportLine ++
     [""]
 
 def run (args : List String) : IO UInt32 := do

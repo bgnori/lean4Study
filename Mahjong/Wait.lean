@@ -9,7 +9,7 @@ import Mahjong.Pattern
 
 ここでいう待ち核は、待ち牌と核成分列の組である。`WaitPattern` はそのうち核成分列として
 抽出できる形を表す。
-可約・既約の判定は後続の `WaitReducibility` と `WaitReadingCode.CanReduceMentsuPreservingWaitCores` で扱う。
+可約・既約の判定は後続の `WaitReducibility` と `WaitDecompositionCode.CanReduceMentsuPreservingWaitCores` で扱う。
 -/
 
 /-!
@@ -26,7 +26,7 @@ import Mahjong.Pattern
 - `shanpon`: 2つの対子からなる4枚の待ち核。
 
 完成面子はこの型に含めず、抽出過程の `HandExtraction.mentsuThen` で表す。
-具体牌付きの核成分列は `IrreducibleWaitReading.core` に保持する。待ち牌と核成分列を組にして、
+具体牌付きの核成分列は `WaitCoreExtraction.core` に保持する。待ち牌と核成分列を組にして、
 除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
 
 `WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。

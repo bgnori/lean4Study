@@ -36,10 +36,23 @@
 和了構成部品を指す補助変数・定理名の `chunk(s)` も `component(s)` に寄せた。
 コード検索で残る `Chunk` は、物理牌集合を指すものに限定する。
 
-### Reading系の `Component`
+## Reading系の旧語彙
 
-`AbstractWaitReading`、`ConcreteWaitReadingComponent`、`WaitReadingComponentKind` は改名しない。
-これらは `WinningComponent` の別名ではなく、待ち牌を除いた後の観測結果を表す層である。
+`Reading` は、麻雀一般の「相手の待ちを推測する待ち読み」と衝突し、さらに観測結果と生成証人という
+異なる役割を同じ語で表していたため廃止した。
 
-`AbstractWaitReading` は、待ち牌を保持したまま各観測成分の具体的な牌種列だけを忘れた型である。
-そのため、和了分割入力層の `WinningComponent` とは役割を分けて読む。
+置き換え先:
+
+- `WaitReadingCode` → `WaitDecompositionCode`
+- `ConcreteWaitReadingComponent` → `WaitComponent`
+- `WaitReadingComponentKind` → `WaitComponentKind`
+- `ConcreteWaitReading` → `WaitDecomposition`
+- `AbstractWaitReading` → `WaitKindDecomposition`
+- `IrreducibleWaitReading` → `WaitCoreExtraction`
+- `WaitReadingCodeEntry` → `WaitDecompositionCodeEntry`
+- `DirectWaitReading` → `DirectWaitGeneration`
+- `DirectWaitReading.Reading` → `DirectWaitGeneration.WaitDerivation`
+- `HasNobetanReading` → `ContainsNobetan`
+
+`WinningComponent` は待ち牌を除く前の和了構成部品、`WaitComponent` はそこから待ち牌を除いた結果、
+または除去せず完成形のまま保持した部品である。両者は別の処理段階を表す。

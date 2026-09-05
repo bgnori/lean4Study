@@ -1,5 +1,5 @@
 import Mahjong.Wait.Specification
-import Mahjong.WaitReadingCode
+import Mahjong.WaitDecompositionCode
 
 /-!
 # 待ち分類の解析器
@@ -10,13 +10,13 @@ import Mahjong.WaitReadingCode
 
 namespace WaitAnalysis
 
-open WaitReadingCode
+open WaitDecompositionCode
 
 /-!
 ## 牌列から観測基本形を作る
 
-`WaitReadingCode.findIrreducibleWaitReadings` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
-`waitProfilesOfIrreducibleReading` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
+`WaitDecompositionCode.findWaitCoreExtractions` は、牌列から待ち牌ごとの核成分列と、そこから分離した完成面子を列挙する。
+`waitProfilesOfCoreExtraction` は、その結果から名前付き分類に必要な観測基本形 `WaitProfile` を作る。
 
 `observedWaitProfiles` は、牌列に対してこの変換をまとめて行う入口である。
 その後、`classifyWaitProfiles` が `WaitSpecification.expectedKind` を呼び、
@@ -28,7 +28,7 @@ open WaitReadingCode
 
 /-- 部品種別列から観測できる待ち基本形を列挙する。 -/
 def waitProfilesOfComponentKinds
-    (componentKinds : List WaitReadingComponentKind) : List WaitProfile :=
+    (componentKinds : List WaitComponentKind) : List WaitProfile :=
   let has componentKind := componentKinds.contains componentKind
   (if has .tanki && has .shuntsu then [WaitProfile.tanki .shuntsu] else []) ++
   (if has .tanki && has .koutsu then [WaitProfile.tanki .koutsu] else []) ++
@@ -41,10 +41,10 @@ def waitProfilesOfComponentKinds
     [])
 
 /-- 核成分列を先に観測し、除去した面子は単騎の複合分類に必要な文脈としてだけ使う。 -/
-def waitProfilesOfIrreducibleReading
-    (reading : IrreducibleWaitReading) : List WaitProfile :=
-  let coreKinds := reading.core.map fun component => component.kind
-  let removedKinds := reading.removedMentsu.map fun component => component.kind
+def waitProfilesOfCoreExtraction
+    (extraction : WaitCoreExtraction) : List WaitProfile :=
+  let coreKinds := extraction.core.map fun component => component.kind
+  let removedKinds := extraction.removedMentsu.map fun component => component.kind
   let hasCore componentKind := coreKinds.contains componentKind
   let hasRemoved componentKind := removedKinds.contains componentKind
   (if hasCore .tanki && !hasRemoved .shuntsu && !hasRemoved .koutsu then
@@ -63,7 +63,7 @@ def waitProfilesOfIrreducibleReading
 
 /-- 牌列から得られる待ち核集合を、名前付き分類に必要な観測基本形の列へ変換する。 -/
 def observedWaitProfiles (tiles : List Tile) : List WaitProfile :=
-  (findIrreducibleWaitReadings tiles).flatMap waitProfilesOfIrreducibleReading
+  (findWaitCoreExtractions tiles).flatMap waitProfilesOfCoreExtraction
 
 /-- 純粋な分類仕様を実行する、基本形列上の決定手続き。 -/
 def classifyWaitProfiles (profiles : List WaitProfile) : Option WellKnownWaitKind :=
@@ -85,7 +85,7 @@ private def basicWellKnownWaitKindOfProfile : WaitProfile → WellKnownWaitKind
 def candidateWellKnownWaitKindsOfProfiles (profiles : List WaitProfile) : List WellKnownWaitKind :=
   let basicKinds := profiles.map basicWellKnownWaitKindOfProfile
   let aliasKinds :=
-    (if WaitSpecification.HasNobetanReading profiles then [.nobetan] else []) ++
+    (if WaitSpecification.ContainsNobetan profiles then [.nobetan] else []) ++
     (if WaitSpecification.HasKuttsukiRyanmen profiles then [.kuttsukiRyanmen] else []) ++
     (if WaitSpecification.HasKuttsukiKanchan profiles then [.kuttsukiKanchan] else []) ++
     (if WaitSpecification.HasKuttsukiPenchan profiles then [.kuttsukiPenchan] else [])
@@ -149,7 +149,7 @@ theorem classifyWait_iff (tiles : List Tile) (kind : WellKnownWaitKind) :
 -/
 def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
     WaitReducibility :=
-  if WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles then
+  if WaitDecompositionCode.CanReduceMentsuPreservingWaitCores tiles then
     .reducible
   else
     .irreducible
@@ -180,7 +180,7 @@ def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
 theorem reducibility_eq_reducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .reducible ↔
-      WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles := by
+      WaitDecompositionCode.CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
 
 /--
@@ -196,7 +196,7 @@ theorem reducibility_eq_reducible_iff (tiles : List Tile)
 theorem reducibility_eq_irreducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
     reducibility tiles tenpai = .irreducible ↔
-      ¬WaitReadingCode.CanReduceMentsuPreservingWaitCores tiles := by
+      ¬WaitDecompositionCode.CanReduceMentsuPreservingWaitCores tiles := by
   simp [reducibility]
 
 end WaitAnalysis

@@ -30,7 +30,7 @@ private def formatTiles (tiles : List Tile) : String :=
     formatHonorGroup tiles
   ].filter fun group => !group.isEmpty
 
-private def waitReadingCodeGroupLine (group : WaitReadingCodeGroup) : String :=
+private def waitDecompositionCodeGroupLine (group : WaitDecompositionCodeGroup) : String :=
   String.intercalate "\t" [
     toString group.codes,
     toString group.count,
@@ -43,10 +43,10 @@ private def waitCountLine (distribution : List (Nat × Nat)) (count : Nat) : Str
 
 private def reportBody (summary : SevenTileSummary) : String :=
   String.intercalate newline <|
-    ["# Seven-tile direct Reading wait report",
+    ["# Seven-tile direct derivation wait report",
      "",
      s!"allSevenTileShapes: {summary.allSevenTileShapes}",
-     s!"enumeratedReadings: {summary.enumeratedReadings}",
+    s!"enumeratedDerivations: {summary.enumeratedDerivations}",
      s!"tenpaiReports: {summary.tenpaiReports}",
      "",
      "## Reducibility",
@@ -57,9 +57,9 @@ private def reportBody (summary : SevenTileSummary) : String :=
      "### Irreducible",
      s!"count: {summary.irreducibleReports}",
      "",
-     "#### Groups by waitReadingCodes",
-     "waitReadingCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
-    summary.irreducibleGroups.map waitReadingCodeGroupLine ++
+    "#### Groups by waitDecompositionCodes",
+    "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
+    summary.irreducibleGroups.map waitDecompositionCodeGroupLine ++
     ["",
      "## Wait tile count distribution"] ++
     ((List.range Tile.count).map (fun index => waitCountLine summary.waitTileCountDistribution (index + 1))) ++

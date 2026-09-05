@@ -48,7 +48,7 @@ components.length = fuel ∧
 後で確認すること:
 
 - 上の外延的特徴づけ定理を追加し、証明が既存補助定理の短い合成で閉じるか。
-- `DirectWaitReading` の利用側を、帰納的証拠の `cases` ではなく外延的仕様経由で簡潔にできるか。
+- `DirectWaitGeneration` の利用側を、帰納的証拠の `cases` ではなく外延的仕様経由で簡潔にできるか。
 - `WinningPartition` も「先頭が雀頭候補」「末尾がすべて面子候補」「全和了構成部品牌が入力牌列の順列」
 	という外延的条件で特徴づけられるか。
 - `remaining.length / mentsuTileCount` は実行器の再帰回数としてだけ計算し、宣言的仕様の基本表現から
@@ -85,18 +85,18 @@ components.length = fuel ∧
 - Boolの存在判定だけでなく、成功した除去面子、残り牌列、待ち核一致の証拠を返す探索にも再利用できるか。
 - 実行用の有限探索と、健全性・完全性を述べる命題側の存在量化を対応付けやすくなるか。
 - 探索順、重複候補、全解列挙、最初の解、解の存在判定を、同じ基礎表現から必要に応じて導出できるか。
-- `WaitCompletionFinder`、`Hand`、`DirectWaitReading` にある他の `flatMap` / `filterMap` 型探索にも
+- `WaitCompletionFinder`、`Hand`、`DirectWaitGeneration` にある他の `flatMap` / `filterMap` 型探索にも
 	共通化する価値があるか。
 - `WaitAmbiguity` は待ち分類上の曖昧性であり、非決定的探索の意味ではないため、名前や説明を混同しないこと。
 - 抽象化する場合も、現在のリスト実装と同等の計算可能性を保ち、探索エンジンを新たに自作する必要がないか。
 
-### Readingコード列の重複を保持する
+### 待ち分解コード列の重複を保持する
 
 状態: 要仕様変更
 
-現在の `abstractWaitReadingCode` は、待ち牌を忘れてコードだけを取り出した後、`deduplicateAndSortBy id` で
+現在の `waitDecompositionCodes` は、待ち牌を忘れてコードだけを取り出した後、`deduplicateAndSortBy id` で
 同じコードの重複を除いている。そのため `2345678m` の3つの待ち牌 `2m`、`5m`、`8m` がいずれも
-単騎と順子2つのコード338を持っていても、結果は `[338]` になり、3つのReadingがあるという多重度を失う。
+単騎と順子2つのコード338を持っていても、結果は `[338]` になり、3つの待ち分解があるという多重度を失う。
 
 望ましい基礎表現は、重複を保った正規順のコード多重集合である。この例なら `[338, 338, 338]` を返す。
 多重集合からは明示的に重複を除いて現行のコード集合 `[338]` を導出できるが、集合から元の多重度は復元できない。
@@ -104,14 +104,14 @@ components.length = fuel ∧
 
 変更時に確認すること:
 
-- `abstractWaitReadingCode` を重複保持へ変更するか、新しい多重集合APIを追加して現行APIを集合版として改名するか。
+- `waitDecompositionCodes` を重複保持へ変更するか、新しい多重集合APIを追加して現行APIを集合版として改名するか。
 - 集合版には `...Set`、重複保持版には `...Multiset` または複数形 `...Codes` など、情報量が分かる名前を付けるか。
 - `2345678m` の期待値を `[338, 338, 338]` とする最小テストを追加する。
-- `MahjongComputations.FourTile` と `SevenTile` の `waitReadingCodes` グループキーを、多重集合と集合のどちらにするか。
-- `irreducibleSevenTileAbstractWaitReadingClasses.length = 26` とレポートのグループ数・代表形がどう変わるか。
+- `MahjongComputations.FourTile` と `SevenTile` の `waitDecompositionCodes` グループキーを、多重集合と集合のどちらにするか。
+- `irreducibleSevenTileWaitDecompositionCodeClasses.length = 26` とレポートのグループ数・代表形がどう変わるか。
 - 集合へ潰す用途では、多重集合からの射影であることと、その射影で失う情報を仕様として明示する。
 
-実施時期は、`WaitReadingCode` のドキュメントが一巡した後、レポート層のドキュメントへ進む前がよい。
+実施時期は、`WaitDecompositionCode` のドキュメントが一巡した後、レポート層のドキュメントへ進む前がよい。
 レポートの分類単位を説明した後で変更すると、読書順・期待値・生成済みレポートを二度直すことになるためである。
 
 ### Tanki実装変更後の可約・既約レポート差分を確認する
@@ -131,84 +131,23 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 - 旧実装で、既約であるべき牌姿が誤って可約に分類されていたか。
 - `canReduceMentsuPreservingWaitCores` が、待ち核集合にもとづく可約性として期待どおりか。
-- レポート内の `waitReadingCodes` グループ `[21, 26]`、`[26, 33]` が新たに既約側へ出ている理由。
+- レポート内の `waitDecompositionCodes` グループ `[21, 26]`、`[26, 33]` が新たに既約側へ出ている理由。
 - 検証が必要なら、`1223m` と `1233m` を最小例として仕様・テストに落とすか。
 
-### `Reading` と「読み」という日本語説明の衝突を避ける
+### 待ち分解と待ち導出の語彙を分離する
 
-状態: 改名方針案あり
+状態: 対応済み
 
-`DirectWaitReading` や `WaitReadingCode` には、プロジェクト内の技術語として `Reading` が出てくる。
-一方で、麻雀一般にも「待ち読み」という言葉があり、これは相手の待ちを推測する意味で使われやすい。
+観測・コード化側を `WaitDecomposition`（待ち分解）、完成形からの直接生成側を
+`WaitDerivation`（待ち導出）として分離した。
 
-`WaitPattern` の説明で「待ちをどう読むか」と書くと、プロジェクト内の `Reading` とも麻雀一般語彙とも衝突し、
-読者が混乱する可能性が高い。
+`WinningComponent` は待ち牌を除く前の和了構成部品、`WaitComponent` はそこから待ち牌を除いた結果、
+または除去せず完成形のまま保持した部品である。具体牌を忘れた種別は `WaitComponentKind`、
+種別だけの待ち分解は `WaitKindDecomposition` とした。
 
-調査すると、現在の `Reading` は1種類の概念ではなく、少なくとも次の2種類を指している。
-
-- `WaitReadingCode` 側: `WaitCompletion` の和了分割から `WinningComponent` を1つ選び、待ち牌を
-	1枚除いた結果。これはテンパイ形の「分解」を表す。
-- `DirectWaitReading` 側: `WinningShape`、除去対象の `ComponentIndex`、待ち牌を保持し、
-	完成形からテンパイ形を得る根拠となる値。これは直接生成の「導出」を表す。
-
-両者を単一の置換語へ揃えると、この役割の違いが再び隠れる。そのため、次の2語へ分ける案を第一候補とする。
-
-- 観測・コード化側: `WaitDecomposition`（待ち分解）
-- 直接生成側: `WaitDerivation`（待ち導出）
-
-`WinningComponent` との対応は次のようにする。
-
-- `WinningComponent`: 待ち牌を除く前の、和了分割を構成する部品。
-- `WaitComponent`: `WinningComponent` から待ち牌を除いた結果、または除去せず完成形のまま保持した部品。
-- `WaitComponentKind`: `WaitComponent` から具体的な牌種列を忘れた種別。
-- `WaitDecomposition`: 待ち牌と `List WaitComponent` の組。1つの `WaitCompletion` から、
-	どの `WinningComponent` を除去元に選ぶかごとに得られる。
-- `WaitKindDecomposition`: 待ち牌と `List WaitComponentKind` の組。`WaitDecomposition` から
-	各部品の具体的な牌種列だけを忘れたもの。
-- `WaitDerivation`: `WinningShape` と、待ち牌を除く `WinningComponent` の位置を保持する直接生成の証人。
-	`WaitDecomposition` より前段の情報を持ち、`WaitCompletion` とテンパイ牌姿の両方へ射影できる。
-
-この対応なら、変換の向きは概ね次のようになる。
-
-```text
-WinningShape + selected WinningComponent + wait
-    -> WaitDerivation
-    -> WaitCompletion
-    -> WaitDecomposition
-    -> WaitKindDecomposition
-    -> WaitDecompositionCode
-```
-
-候補となる具体的な改名:
-
-- `WaitReadingComponentKind` → `WaitComponentKind`
-- `ConcreteWaitReadingComponent` → `WaitComponent`
-- `ConcreteWaitReading` → `WaitDecomposition`
-- `AbstractWaitReading` → `WaitKindDecomposition`
-- `IrreducibleWaitReading` → `WaitCoreExtraction`
-- `WaitReadingCodeEntry` → `WaitDecompositionCodeEntry`
-- `DirectWaitReading.Reading` → `DirectWaitGeneration.WaitDerivation`
-- `HasNobetanReading` → `ContainsNobetan`
-
-`IrreducibleWaitReading` は牌姿全体の既約性を保証せず、完成面子と核成分列を分離した結果にすぎない。
-そのため `Irreducible` は外し、`WaitCore` とそこから分離した `removedMentsu` を保持する操作結果として
-`WaitCoreExtraction` を候補とする。
-また `AbstractWaitReading` の `Abstract` も、何を忘れたかが名前から分からないため、
-具体牌だけを忘れて部品種別を残す `WaitKindDecomposition` とする。
-
-`HasNobetanReading` は `List WaitProfile` 上の条件であり、分解や導出そのものを引数に取らない。
-ノベタン相当の基本形を部分的に含むという実際の意味に合わせて `ContainsNobetan` とし、
-牌姿全体を狭義ノベタンとする `IsNobetan` との対比を保つ。
-
-移行時の方針:
-
-- `WaitPattern` の説明では、原則として「読み」ではなく「抽出パターン」または「終端抽出」を使う。
-- 実装名、モジュール名、定理名、レポート見出しを一度に置き換え、`Reading` を現行語彙として残さない。
-- [domain-vocabulary.md](domain-vocabulary.md) の `Reading` 節は、`WaitDecomposition` と
-	`WaitDerivation` の別々の節へ置き換える。
-- `WaitReadingCode` と `DirectWaitReading` のモジュール名も、それぞれ `WaitDecompositionCode` と
-	`DirectWaitGeneration` に変えるか、import互換性への影響を確認する。
-- コードAPIの機械的改名だけでなく、レポート中の `Reading` と日本語本文の「Reading」も同時に更新する。
+完成面子と核成分列を分離した結果は、牌姿全体の既約性を意味しないため `WaitCoreExtraction` とした。
+直接生成モジュールは `DirectWaitGeneration`、待ち分解とコード化のモジュールは
+`WaitDecompositionCode` とした。旧名の対応表は [obsolete-vocabulary.md](obsolete-vocabulary.md) に置く。
 
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
@@ -225,7 +164,7 @@ WinningShape + selected WinningComponent + wait
 - `WellKnownWaitKind` を基本分類と通称・複合分類に分けるべきか。
 - `WaitClassification`、`WellKnownWaitKind.classification`、`WellKnownWaitKind.ambiguity` の役割をどう切るか。
 - `Mahjong.Wait.Specification` と `Mahjong.Wait.Analysis` の定理名・返り値への影響。
-- 既存レポートや `WaitReadingCode` の表示語彙への影響。
+- 既存レポートや `WaitDecompositionCode` の表示語彙への影響。
 
 ### 和了構成部品まわりの命名を整理する
 

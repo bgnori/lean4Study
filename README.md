@@ -28,8 +28,8 @@ Lean 4 and mathlib study repository. The main worked example is a formalization 
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean
-│   ├── WaitReadingCode.lean
-│   ├── DirectWaitReading.lean
+│   ├── WaitDecompositionCode.lean
+│   ├── DirectWaitGeneration.lean
 │   ├── Tenpai.lean
 │   └── README.md
 ├── MahjongTests/          # Explicitly-built computational regression tests

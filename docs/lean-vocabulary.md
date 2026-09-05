@@ -14,8 +14,8 @@
 
 ### open
 
-`open WaitReadingCode` は、`WaitReadingCode` 名前空間の中にある名前を短く書けるようにする。
-たとえば `WaitReadingCode.findIrreducibleWaitReadings` を、文脈によっては `findIrreducibleWaitReadings` と書ける。
+`open WaitDecompositionCode` は、`WaitDecompositionCode` 名前空間の中にある名前を短く書けるようにする。
+たとえば `WaitDecompositionCode.findWaitCoreExtractions` を、文脈によっては `findWaitCoreExtractions` と書ける。
 
 ### def
 
@@ -24,12 +24,12 @@
 ### let
 
 `let name := value` は、式の途中で一時的な名前を付ける構文である。
-`waitProfilesOfIrreducibleReading` では、核成分列の種類を `coreKinds`、除去した面子の種類を `removedKinds` として使う。
+`waitProfilesOfCoreExtraction` では、核成分列の種類を `coreKinds`、除去した面子の種類を `removedKinds` として使う。
 
 ### `let rec`
 
 `let rec name ...` は、定義の途中で、自分自身を呼び出せる局所的な再帰関数を作る。
-`waitReadings` の `selectWinningComponent` は、和了構成部品列の先頭を調べた後、残りの列に対して自分自身を呼び出す。
+`componentDecompositions` の `selectWinningComponent` は、和了構成部品列の先頭を調べた後、残りの列に対して自分自身を呼び出す。
 
 ### fuel
 
@@ -90,22 +90,22 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `Function.Surjective f` は、出力側のどの値にも、それを返す入力が少なくとも1つあることを表す。
 `Function.Bijective f` は、`f` が単射かつ全射であることをまとめた主張である。
-`ofIndex_bijective` は、異なる添字が同じReadingへ衝突せず、すべてのReadingに添字があることを保証する。
+`ofIndex_bijective` は、異なる添字が同じ待ち導出へ衝突せず、すべての待ち導出に添字があることを保証する。
 
 ### 有限添字型 `Fin n`
 
 `Fin n` は、`0` 以上 `n` 未満の自然数を表す型である。値だけでなく上限未満である証拠も持つため、
-範囲外の添字はこの型の値として作れない。完全ハッシュでは `Fin (readingCount n)` を有効な添字範囲に使う。
+範囲外の添字はこの型の値として作れない。完全ハッシュでは `Fin (waitDerivationCount n)` を有効な添字範囲に使う。
 
 ### `Fintype.card`
 
-`Fintype.card A` は、有限型 `A` が持つ値の個数である。`readingCount n` は
-`Fintype.card (Reading n)` の略記なので、添字の個数をReadingの総数と定義上同じにする。
+`Fintype.card A` は、有限型 `A` が持つ値の個数である。`waitDerivationCount n` は
+`Fintype.card (WaitDerivation n)` の略記なので、添字の個数を待ち導出の総数と定義上同じにする。
 
 ### 型の同値 `A ≃ B`
 
 `A ≃ B` は、`A` から `B` への関数とその逆関数、および両方向へ往復すると元に戻る証拠をまとめた型である。
-`.symm` は対応の向きを反転する。`readingEquiv` は有限添字とReadingの同値であり、`ofIndex` と `toIndex` は
+`.symm` は対応の向きを反転する。`waitDerivationEquiv` は有限添字と待ち導出の同値であり、`ofIndex` と `toIndex` は
 その二つの向きをそれぞれ名前付き関数として公開する。
 
 ### Prop
@@ -270,7 +270,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 部分型の値 `value` からは、`value.1` で元の値、`value.2` で条件の証拠を取り出せる。
 `Subtype.ext` は、条件の証拠を作った手順が異なっていても、`.1` の元の値が等しければ部分型の値も等しいと示す。
-`mem_directReadings` では、同じSeedに別の経路で妥当性証拠を付けた二つのReadingを同一視する。
+`mem_directWaitDerivations` では、同じSeedに別の経路で妥当性証拠を付けた二つの待ち導出を同一視する。
 
 ### 直積 `×`
 
@@ -296,7 +296,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### if
 
 `if condition then a else b` は、条件が成り立つかどうかで返す値を分ける構文である。
-`waitProfilesOfIrreducibleReading` では、特定の部品種別が含まれるかどうかで、観測基本形を追加するか空リストにする。
+`waitProfilesOfCoreExtraction` では、特定の部品種別が含まれるかどうかで、観測基本形を追加するか空リストにする。
 
 ### 証拠付き `if`
 
@@ -335,12 +335,12 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### map
 
 `xs.map f` は、リスト `xs` の各要素に関数 `f` を適用し、結果を同じ順番で並べたリストを作る。
-`waitCores` では、各 `IrreducibleWaitReading` から待ち牌と核成分列だけを持つ `WaitCore` を作る。
+`waitCores` では、各 `WaitCoreExtraction` から待ち牌と核成分列だけを持つ `WaitCore` を作る。
 
 ### `List.attach`
 
 `xs.attach` は各要素 `x` に、`x ∈ xs` という所属証拠を付けたリストを返す。要素の追加や削除は行わない。
-`directReadings` では、`directSeeds n` の各Seedへ所属証拠を付け、その証拠を健全性定理に渡して
+`directWaitDerivations` では、`directSeeds n` の各Seedへ所属証拠を付け、その証拠を健全性定理に渡して
 `Seed.valid` の証拠へ変換するために使う。
 
 ### `List.mem_map`
@@ -381,7 +381,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `value |> f` は `f value` と同じ意味で、左側の値を右側の関数へ渡す。
 複数行で続けると、前の処理結果を次の処理へ順番に渡す流れとして読める。
-`waitCores` では、Readingの列を待ち核の列へ変換し、その結果を重複排除と整列の処理へ渡す。
+`waitCores` では、待ち分解の列を待ち核の列へ変換し、その結果を重複排除と整列の処理へ渡す。
 
 ### `.1`
 

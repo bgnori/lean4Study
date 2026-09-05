@@ -6,7 +6,7 @@ import Mahjong.Pattern
 
 `WaitCompletion` は、1つの待ち牌と、その牌を加えたときの通常形の和了分割を表す。
 牌列から `WaitCompletion` を見つける処理は `WaitCompletionFinder`、見つかった形の符号化は
-`WaitReadingCode` が担当する。
+`WaitDecompositionCode` が担当する。
 -/
 
 namespace WinningComponent

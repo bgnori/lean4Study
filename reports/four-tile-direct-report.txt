@@ -1,7 +1,7 @@
-# Four-tile direct Reading wait report
+# Four-tile direct derivation wait report
 
 allFourTileShapes: 66045
-enumeratedReadings: 5100
+enumeratedDerivations: 5100
 tenpaiReports: 3756
 unclassifiedTenpaiReports: 0
 ambiguousReports: 171
@@ -27,8 +27,8 @@ allReportsAreTanki: true
 ### Irreducible
 count: 2109
 
-#### Groups by waitReadingCodes
-waitReadingCodes	count	representativeTiles	representativeWaits
+#### Groups by waitDecompositionCodes
+waitDecompositionCodes	count	representativeTiles	representativeWaits
 [33, 34]	12	1112m	23m
 [21, 34]	42	1113m	23m
 [9]	561	1122m	12m
@@ -48,7 +48,7 @@ waitReadingCodes	count	representativeTiles	representativeWaits
 4 wait tile kinds: 0
 
 ## Tenpai reports
-tiles	waits	wellKnownKind	candidateKinds	reducibility	waitReadingCodes
+tiles	waits	wellKnownKind	candidateKinds	reducibility	waitDecompositionCodes
 1112m	23m	kuttsukiPenchan	tanki+toitsuPenchan+kuttsukiPenchan	irreducible	[33, 34]
 1113m	23m	kuttsukiKanchan	toitsuKanchan+tanki+kuttsukiKanchan	irreducible	[21, 34]
 1114m	4m	tanki	tanki	reducible	[34]
