@@ -252,6 +252,11 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `Bool.and_eq_true` は、`a && b = true` を `a = true ∧ b = true` として読み替える定理である。
 `mem_waitingTiles_iff` では、実行器が使うBoolの条件を、`IsWaitFor` が使う命題の論理積へ対応させる。
 
+### `<|`
+
+`f <| x` は `f x` と同じ意味で、右側の式全体を左側の関数へ渡すための記法である。
+`guard <| condition` は `guard condition` と読める。括弧を減らし、条件式が長い場合でも処理の流れを左から読みやすくする。
+
 ### 直和 `⊕`
 
 `A ⊕ B` は、A型の値またはB型の値のどちらかを持つ型である。
@@ -287,6 +292,30 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `option.map f` は、`option` が `some value` なら `some (f value)` を返し、`none` ならそのまま `none` を返す。
 `componentAfterRemovingWait` では、部品種別を得られた場合だけ、残った具体牌と組み合わせる。
+
+### `do` 記法と `←`
+
+`do` 記法は、`Option` や `List` などの計算を、上から順に進む手続きのように書く構文である。
+`let value ← computation` は、`computation` から取り出した結果を `value` として後続の行で使う。
+`value` のスコープは、この行より後ろの同じ `do` ブロック内である。行より前には戻って効かず、
+`do` ブロックの外側へも出ない。
+
+`Option` では、途中で `none` になると全体も失敗する。`List` では、候補を1つずつ取り出して後続の処理へ流し、
+得られた結果をまとめたリストを返す。`waitCorePreservingMentsuReductions` では、`mentsuReductions tiles` が返す
+各候補 `remaining` を順に調べるために使う。
+
+### guard
+
+`guard condition` は、`do` 記法の中で条件を満たす枝だけを残すために使う。
+`List` の探索では、`condition` が `true` ならその枝を続け、`false` なら空リストとして捨てる。
+`waitCorePreservingMentsuReductions` では、除去後にも待ち牌があることと、待ち核集合が変わらないことを
+`guard` で要求している。
+
+### pure
+
+`pure value` は、`do` 記法の中で通常の値 `value` を現在の計算の結果として返す。
+`List` の探索では、`pure remaining` は候補 `remaining` を1要素のリストとして成功結果に入れる。
+`Option` の探索では、`pure value` は `some value` と同じように成功結果を返す。
 
 ### match
 

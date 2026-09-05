@@ -411,19 +411,27 @@ def findWaitCores (tiles : List Tile) : List WaitCore :=
   waitCores (WaitCompletionFinder.findWaitCompletions tiles)
 
 /--
+完成面子を1つ除いても、同じ待ち核集合を持つ聴牌形が残る削減候補を列挙する。
+
+読むためのLean語彙: `do`記法, `←`, `guard`, `<|`, `pure`。
+-/
+def waitCorePreservingMentsuReductions (tiles : List Tile) : List (List Tile) := do
+  let remaining ← mentsuReductions tiles
+  guard <| !(waitingTiles remaining).isEmpty
+  guard <| findWaitCores remaining == findWaitCores tiles
+  pure remaining
+
+/--
 完成面子を1つ除いても、同じ待ち核集合を持つ聴牌形が残るかを判定する。
 
-`mentsuReductions tiles` が列挙する各除去候補について、除去後にも待ち牌があり、かつ
-`findWaitCores remaining` が元の `findWaitCores tiles` と一致するものが1つでもあるかを調べる。
+`waitCorePreservingMentsuReductions tiles` が列挙する成功候補が1つでもあるかを調べる。
 待ち牌が残るという条件により、たまたま空の待ち核集合どうしが一致する場合は可約とみなさない。
 
 `1 < tiles.length` は、完成面子を含み得ない1枚単騎を除外するための入口条件である。
-読むためのLean語彙: `Bool`, `&&`, `!`, `List.any`, `==`。
+読むためのLean語彙: `Bool`, `&&`, `!`, `List.isEmpty`。
 -/
 def canReduceMentsuPreservingWaitCores (tiles : List Tile) : Bool :=
-  1 < tiles.length &&
-    (mentsuReductions tiles).any fun remaining =>
-      !(waitingTiles remaining).isEmpty && findWaitCores remaining == findWaitCores tiles
+  1 < tiles.length && !(waitCorePreservingMentsuReductions tiles).isEmpty
 
 /--
 待ち核集合を保ったまま完成面子を除去できることを表す命題。
