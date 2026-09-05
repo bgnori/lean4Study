@@ -214,7 +214,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `proof.length_eq` は、`xs.Perm ys` の証拠 `proof` から `xs.length = ys.length` を得る。
 順列は要素の順番だけを変え、追加や削除をしないため、リストの長さも保存する。
-`WinningPartition.of_perm` では、雀頭を除いた新旧の残り牌列から計算される面子数の型を揃えるために使う。
+`DirectWaitGeneration` では、完成形と待ち牌を戻した牌姿の長さを比較し、面子数の上限を復元するために使う。
 
 ### `List.Perm.count`
 
@@ -586,8 +586,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `mem_decomposeMentsu_iff`では、`removeTiles`の計算結果を成功時の`some remaining`へ書き換える。
 
 `rw [← proof]` の矢印 `←` は、等式を右辺から左辺への向きで使う。`at hypothesis` を付けると、
-目標ではなく指定した仮定の型を書き換える。`WinningPartition.of_perm` では、残り牌列の長さの等式を
-逆向きに使い、手元の面子分解証拠の型を新しい残り牌列に必要な形へ揃える。
+目標ではなく指定した仮定の型を書き換える。
 
 ### `▸`
 

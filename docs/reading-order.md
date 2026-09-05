@@ -812,31 +812,21 @@
 読む前に知る語彙:
 
 - `List.Perm`
-- `cases`
 - `obtain`
-- `.trans` と `.symm`
-- `List.Perm.length_eq`
-- `rw [← ...] at ...`
+- `.trans`
+- `↔` の `.mp` と `.mpr`
 
 定理は `WinningPartition tiles components` と `tiles.Perm other` から、同じ和了構成部品列 `components` を持つ
 `WinningPartition other components` を作る。牌種と枚数が同じなら、入力牌列の順番を変えても通常和了分割の
 証拠を保てるという主張である。
 
-証明では `cases partition` により、雀頭 `pair`、元の除去結果 `remaining`、残りの面子分解証拠を取り出す。
-`removePair` と `exists_removeTiles_eq_some_iff_perm` から得た `removedPerm` を、入力間の `permutation` と
-つなぐと、並べ替え後の `other` からも同じ雀頭を除ける。
+証明では `WinningPartition.iff_extensional.mp` により、操作履歴を `WinningPartitionSpec` へ変換する。
+この外延仕様が持つ牌保存則 `tilesPerm` は、全和了構成部品を牌へ戻した列と入力 `tiles` の順列である。
+入力間の `permutation : tiles.Perm other` を `tilesPerm.trans permutation` でつなげば、同じ雀頭と
+完成面子列が `other` の外延仕様も満たす。最後に `WinningPartition.iff_extensional.mpr` で操作履歴へ戻す。
 
-ただし、`removeTiles other pair.tiles` が返す残りは、元の `remaining` と同じ順番とは限らない。
-同値定理から新しい残り `output`、除去成功 `removeOther`、`output.Perm remaining` をまとめて取り出す。
-末尾の面子分解証拠は、前に読んだ `MentsuPartition.of_perm` で `remaining` から `output` へ移せる。
-
-ここには添字付き命題による追加の型合わせがある。元の証拠が持つ面子数は
-`remaining.length / mentsuTileCount` だが、新しい `WinningPartition` が要求する面子数は
-`output.length / mentsuTileCount` である。順列は長さを保存するため、`outputPerm.length_eq` から
-`output.length = remaining.length` を得る。`rw [← sameLength] at mentsuPartition` は、この等式で
-証拠の型に現れる長さを書き換え、新しい残り牌列へ移せる形に揃える。
-
-最後に、同じ雀頭候補、並べ替え後の除去結果、移送した面子分解証拠を `WinningPartition.intro` へ渡す。
+この経路では、雀頭除去後のリスト、除去の具体的な戻り値、`remaining.length / mentsuTileCount` の
+添字を利用側で扱わない。入力順だけを変える性質が、全体の牌保存則の推移として直接読める。
 ソース中の例は `55m123m` の分割証拠を、入力だけ並べ替えた `3m5m1m5m2m` へ移している。
 
 ## 待ち牌の実行器と宣言的仕様の一致を読む
@@ -1534,11 +1524,11 @@ $2 \times 13 = 26$、`[tanki, shuntsu, shuntsu]` は $2 \times 13^2 = 338$ に�
 読む前に知る語彙:
 
 - `IsWaitFor`
-- `WinningPartition`
+- `WinningPartitionSpec`
 - `WaitCompletion`
 - `mem_findWaitCompletions_iff`
 - `.mpr`
-- `WinningPartition.of_perm`
+- `WinningPartitionSpec.of_perm`
 
 `completion derivation` は、待ち導出が持つ待ち牌と完成形の部品列を、既存Finderが返す `WaitCompletion` の形へ
 写す。部品列は `WinningComponent.canonicalize` で正規化するため、面子の並び順だけが異なる同じ分割は同じ結果になる。
@@ -1553,9 +1543,9 @@ Finder所属の仕様 `mem_findWaitCompletions_iff` が要求する証拠は二�
 4枚制限、待ち牌を戻した完成形の分割からこの証拠を作る。仮定 `n ≤ standardHandMentsuCount` は、生成牌姿が
 通常手として許される1、4、7、10、13枚の範囲にあることを保証するために使う。
 
-もう一つは、待ち牌を加えた牌姿の `WinningPartition` である。`winningShape_partition` は元の完成形に対する
+もう一つは、待ち牌を加えた牌姿の `WinningPartitionSpec` である。`winningShape_partition` は元の完成形に対する
 分割を構成する。直前に読んだ `wait_cons_hand_perm_winningShape` により、その完成形と
-`derivation.1.wait :: hand derivation` は順列関係にあるため、`WinningPartition.of_perm` で同じ分割証拠を移せる。
+`derivation.1.wait :: hand derivation` は順列関係にあるため、`WinningPartitionSpec.of_perm` で同じ分割仕様を移せる。
 
 最後に `mem_findWaitCompletions_iff` の `.mpr` を使い、この二つの宣言的証拠から実行結果への所属を得る。
 これは直接生成器が不正なcompletionを作らないという、既存Finderを基準にした健全性である。逆向き、つまり

@@ -27,7 +27,7 @@
 - `MentsuPartition.tiles_perm`: 各除去履歴から牌全体の保存則を復元する。
 - `MentsuPartition.all_mentsu`: 各構築段階の候補所属を列全体の条件として取り出す。
 - `MentsuPartition.components_length`: 帰納段階と `fuel` の対応を列長として取り出す。
-- `WinningPartition.of_perm`: 雀頭除去後の残り長を揃えて、面子分解証拠を移す。
+- 変更前の `WinningPartition.of_perm`: 雀頭除去後の残り長を揃えて、面子分解証拠を移す。
 - `WinningPartition.tiles_perm`: 面子側の保存則へ雀頭除去の保存則を再び連結する。
 
 証明の粒度が細かく見える主因は、必要な数学的性質が細かいというより、順序依存の操作履歴と
@@ -60,7 +60,8 @@ components.length = fuel ∧
 
 公開側の `CompletionFor` は `WinningPartitionSpec` を保持するよう変更した。`DirectWaitGeneration` も
 外延仕様を使い、完成形から分割を示す証明から `fuel` の算術、`removeTiles` の具体的結果、帰納的証拠の構築を
-除いた。順列移送は `WinningPartitionSpec.of_perm` で全体の牌保存則を合成するだけになった。
+除いた。`WinningPartitionSpec.of_perm` は、全和了構成部品から入力牌列への順列と入力間の順列を
+`List.Perm.trans` でつなぎ、雀頭・面子列・候補所属を変えずに新しい入力の仕様を作る。
 
 ### `List` による有限探索として候補生成と成功条件を表す
 
