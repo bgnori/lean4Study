@@ -554,16 +554,10 @@ private theorem winningShape_tiles_length (shape : WinningShape n) :
 
 private theorem winningShape_partition (shape : WinningShape n) :
     WinningPartitionSpec shape.tiles shape.components := by
-  let rest : List WinningComponent :=
-    (List.ofFn shape.mentsu).map fun candidate => (Sum.inr candidate : WinningComponent)
-  have allMentsu : ∀ component ∈ rest, component ∈ mentsuComponentCandidates := by
-    intro component member
-    obtain ⟨candidate, _, rfl⟩ := List.mem_map.mp member
-    exact mentsu_mem_mentsuComponentCandidates candidate
   unfold WinningPartitionSpec
-  refine ⟨.inl shape.pair, rest, ?_, pair_mem_pairComponentCandidates shape.pair,
-    allMentsu, ?_⟩
-  · simp [WinningShape.components, rest]
+  refine ⟨.inl shape.pair, List.ofFn shape.mentsu, ?_,
+    pair_mem_pairComponentCandidates shape.pair, ?_⟩
+  · simp [WinningShape.components]
   · exact .refl shape.tiles
 
 private theorem hasLegalTileCounts_of_valid (derivation : WaitDerivation n) :
@@ -700,10 +694,9 @@ theorem exists_derivation_of_mem_findWaitCompletions {tiles : List Tile}
   cases completionFor with
   | intro wait rawComponents waitFor partition =>
         unfold WinningPartitionSpec at partition
-        obtain ⟨pairComponent, rest, rfl, pairCandidate, allMentsu, rawTilesPerm⟩ :=
+        obtain ⟨pairComponent, rawMentsu, rfl, pairCandidate, rawTilesPerm⟩ :=
           partition
         obtain ⟨pair, rfl⟩ := pair_of_mem_pairComponentCandidates pairCandidate
-        obtain ⟨rawMentsu, rfl⟩ := exists_mentsuCandidates_of_all rest allMentsu
         let sorted := canonicalMentsu rawMentsu
         let shape : WinningShape sorted.length :=
           { pair

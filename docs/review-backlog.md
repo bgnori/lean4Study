@@ -17,7 +17,7 @@
 状態: 対応済み
 
 `MentsuPartition` と `WinningPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
-各段階で、選んだ和了構成部品、その候補所属、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
+各段階で、選んだ完成面子、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
 この形は `decomposeMentsu` と `winningPartitions` の健全性・完全性を直接証明しやすい一方、利用側が
 必要とする外延的な性質を得るたび、操作履歴を順列の意味へ変換し直す必要がある。
 
@@ -25,7 +25,6 @@
 
 - `MentsuPartition.of_perm`: 除去履歴を別の入力順へ移す。
 - `MentsuPartition.tiles_perm`: 各除去履歴から牌全体の保存則を復元する。
-- `MentsuPartition.all_mentsu`: 各構築段階の候補所属を列全体の条件として取り出す。
 - `MentsuPartition.components_length`: 帰納段階と `fuel` の対応を列長として取り出す。
 - 変更前の `WinningPartition.of_perm`: 雀頭除去後の残り長を揃えて、面子分解証拠を移す。
 - `WinningPartition.tiles_perm`: 面子側の保存則へ雀頭除去の保存則を再び連結する。
@@ -37,15 +36,14 @@
 
 ```lean
 components.length = fuel ∧
-	(∀ component ∈ components, component ∈ mentsuComponentCandidates) ∧
-	(components.flatMap WinningComponent.tiles).Perm tiles
+	(components.flatMap MentsuCandidate.tiles).Perm tiles
 ```
 
-左から右は `components_length`、`all_mentsu`、`tiles_perm`、右から左は `mentsuPartition_flatMap` と
+左から右は `components_length`、`tiles_perm`、右から左は `mentsuPartition_flatMap` と
 `of_perm` の合成で示し、この同値を `MentsuPartition.iff_extensional` として実装した。
 
-外延仕様は `MentsuPartitionSpec` と `WinningPartitionSpec` に名前を与えた。前者は部品数、候補所属、
-牌の順列がすべて証明フィールドなので、各条件を射影できる `Prop` 構造体とした。後者は雀頭と末尾列という
+外延仕様は `MentsuPartitionSpec` と `WinningPartitionSpec` に名前を与えた。前者は部品数と
+牌の順列が証明フィールドなので、各条件を射影できる `Prop` 構造体とした。後者は雀頭と面子列という
 データの witness を含む。Leanでは `Prop` 構造体からデータ射影を生成できず、`Type` にすると仕様証明が
 計算データを不必要に保持するため、名前付きの存在命題とした。
 
@@ -61,7 +59,7 @@ components.length = fuel ∧
 公開側の `CompletionFor` は `WinningPartitionSpec` を保持するよう変更した。`DirectWaitGeneration` も
 外延仕様を使い、完成形から分割を示す証明から `fuel` の算術、`removeTiles` の具体的結果、帰納的証拠の構築を
 除いた。`WinningPartitionSpec.of_perm` は、全和了構成部品から入力牌列への順列と入力間の順列を
-`List.Perm.trans` でつなぎ、雀頭・面子列・候補所属を変えずに新しい入力の仕様を作る。
+`List.Perm.trans` でつなぎ、雀頭と面子列を変えずに新しい入力の仕様を作る。
 
 ### `List` による有限探索として候補生成と成功条件を表す
 
@@ -74,7 +72,7 @@ components.length = fuel ∧
 
 現行コードでも、この有限探索はすでに `List` で表現されている。
 
-- `mentsuComponentCandidates`: 取り除く完成面子を選ぶ。
+- `MentsuCandidate.candidates`: 取り除く完成面子を選ぶ。
 - `filterMap (removeTiles tiles)`: 実際に取り除けない候補を失敗枝として捨てる。
 - `mentsuReductions`: 成功した残り牌列をすべて列挙する。
 - `waitCorePreservingMentsuReductions`: 聴牌であり、待ち核集合を保つ成功枝だけを列挙する。

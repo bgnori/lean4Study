@@ -478,7 +478,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `have name : proposition := proof` は、証明の途中で補助的な事実を示し、`name` を付けて後から使えるようにする。
 型をLeanが推論できる場合は、`have name := proof` のように命題を省略できる。
-`mentsuPartition_flatMap` では、先頭の候補所属、末尾の分解証拠、先頭部品を除いた計算結果を順に保持する。
+`mentsuPartition_flatMap` では、末尾の分解証拠と、先頭面子を除いた計算結果を順に保持する。
 
 ### apply
 
@@ -507,8 +507,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 `rcases shuntsuPattern with ⟨suit, start⟩` は、順子パターンからスート `suit` と開始位置 `start` を取り出している。
 
 `rcases proof with firstPattern | secondPattern`は、証拠が表す2つの可能性に分け、それぞれのパターンで
-別の証明目標を作る。`MentsuPartition.all_mentsu`では、リストの要素が先頭と等しい場合を`rfl`、
-末尾に含まれる場合を`restMember`として扱う。
+別の証明目標を作る。
 
 ### obtain
 
@@ -645,7 +644,6 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `List.mem_cons`
 
 `List.mem_cons`は、値`x`が`first :: rest`に含まれることを、`x = first`または`x ∈ rest`として読み替える。
-`MentsuPartition.all_mentsu`では、分解列の要素が先頭か末尾のどちらに由来するかを分けるために使う。
 
 ### `∃`
 

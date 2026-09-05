@@ -189,6 +189,24 @@ def tiles : MentsuCandidate → List Tile
   | .shuntsu shuntsuPattern => shuntsuPattern.tiles
   | .koutsu tile => [tile, tile, tile]
 
+/-- 完成面子候補を構成する牌は常に `mentsuTileCount` 枚である。 -/
+theorem tiles_length (candidate : MentsuCandidate) :
+    candidate.tiles.length = mentsuTileCount := by
+  cases candidate with
+  | shuntsu pattern => cases pattern; rfl
+  | koutsu tile => rfl
+
+/-- 完成面子候補列を牌へ戻した列の長さは、面子数の `mentsuTileCount` 倍である。 -/
+theorem flatMap_tiles_length (candidates : List MentsuCandidate) :
+    (candidates.flatMap MentsuCandidate.tiles).length =
+      candidates.length * mentsuTileCount := by
+  induction candidates with
+  | nil => rfl
+  | cons first rest inductionHypothesis =>
+      simp only [List.flatMap_cons, List.length_append, List.length_cons]
+      rw [first.tiles_length, inductionHypothesis]
+      simp [Nat.add_mul, Nat.add_comm]
+
 example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .mpsz) = ["7p", "7p", "7p"] := rfl
 example : (MentsuCandidate.koutsu (.honor .East)).tiles.map (Tile.format .mpsz) = ["1z", "1z", "1z"] := rfl
 

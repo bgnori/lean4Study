@@ -292,41 +292,13 @@
 健全性の証明は、候補が `map` 元のどの牌種から作られたかを取り出し、その牌種の対子を存在例として返す。
 この2定理を合わせると、後続の和了分割探索が調べる雀頭候補は、全雀頭とちょうど一致する。
 
-## 完成面子候補を和了構成部品として列挙する
+## 完成面子候補を直接列挙する
 
-次の実例は、`WaitCompletionFinder.lean` の `mentsuComponentCandidates`、
-`mentsu_mem_mentsuComponentCandidates`、`mentsu_of_mem_mentsuComponentCandidates` である。
+面子分解では、`Pattern.lean` が提供する `MentsuCandidate.candidates` を直接使う。
+この段階の値は順子または刻子であることが型によって保証されるため、雀頭も持てる
+`WinningComponent` へ包んだ候補列や、雀頭が混ざらないことを示す追加の証明は必要ない。
 
-先に、`MentsuCandidate.candidates` と `MentsuCandidate.mem_candidates` の節を読む。
-
-読む前に知る語彙:
-
-- `map`
-- `.inr`
-- `List.mem_map`
-- `.mp` と `.mpr`
-- `_root_`
-- `∈`
-- `∃`
-- `obtain`
-- `exact`
-- `rfl`
-
-先の節では、すべての順子・刻子が `MentsuCandidate.candidates` に含まれることを確認した。
-`mentsuComponentCandidates` は、その各候補を直和 `WinningComponent` の完成面子側 `.inr` に包む。
-順子や刻子の内容を変えるのではなく、雀頭と同じ和了構成部品列へ入れられる形に持ち上げる処理である。
-
-雀頭候補と同様に、2つの定理が列挙の両方向を保証する。
-
-- `mentsu_mem_mentsuComponentCandidates`: 任意の順子・刻子を包んだ値が候補列に含まれる。
-- `mentsu_of_mem_mentsuComponentCandidates`: 候補列の各要素は何らかの順子・刻子を包んだ値である。
-
-完全性は、既存の `MentsuCandidate.mem_candidates` を `List.mem_map.mpr` で写像後の所属へ移す。
-健全性は、`List.mem_map.mp` で写像元の完成面子候補を取り出す。
-ソース中の `example` は、字牌の刻子 `777z` も和了構成部品候補に含まれることを確認する。
-
-この2定理により、後続の分割探索が完成面子として試す候補は、先に列挙した全順子・刻子とちょうど一致し、
-雀頭候補とは直和の左右で区別される。
+`WinningComponent` への変換は、雀頭と面子をまとめて通常和了分割を作る境界でだけ行う。
 
 ## 牌種列を指定個数の完成面子へ分解する
 
@@ -336,7 +308,7 @@
 
 - `fuel`
 - `fuel + 1`
-- `List (List WinningComponent)`
+- `List (List MentsuCandidate)`
 - `List.flatten`
 - `map`
 - `match`
@@ -345,7 +317,7 @@
 `decomposeMentsu fuel tiles` は、牌種列全体をちょうど `fuel` 個の順子・刻子へ分解する方法を列挙する。
 `fuel` は「最大で何個まで試すか」ではなく、求める完成面子の個数である。
 
-返り値の外側のリストは、異なる分解方法の列である。各内側の `List WinningComponent` が、
+返り値の外側のリストは、異なる分解方法の列である。各内側の `List MentsuCandidate` が、
 1つの分解を構成する完成面子列になる。したがって、次の2つは意味が異なる。
 
 - `[]`: 条件を満たす分解方法が1つもない。
@@ -354,7 +326,7 @@
 `fuel = 0` の場合、入力牌列も空なら `[[]]`、牌が1枚でも残っていれば `[]` を返す。
 ソース中の2つの `example` は、この基底ケースの違いを `rfl` で確認する。
 
-`fuel + 1` の場合は、前節の `mentsuComponentCandidates` から最初の完成面子を1つずつ試す。
+`fuel + 1` の場合は、`MentsuCandidate.candidates` から最初の完成面子を1つずつ試す。
 その牌を `removeTiles` で除けた枝だけについて、残りの牌をちょうど `fuel` 個へ再帰的に分解する。
 各候補から得た分解列を `List.flatten` で1つにつなぐため、可能な分解を1つに決めず、すべて返す。
 
@@ -389,11 +361,10 @@
 - `done`: 空の牌種列を0個の完成面子へ分解した基底ケース
 - `next`: 完成面子を1つ選び、残りの牌種列に対する分解証拠の前へ追加する再帰ケース
 
-`next`を使うには、選んだ値が`mentsuComponentCandidates`に含まれること、入力からその面子の牌を除けること、
-除去後の牌種列も残りの面子へ分解できることの3つを示す必要がある。この条件により、雀頭を完成面子として
-混ぜたり、入力にない牌を使った分解証拠を作ったりできない。
+`next`を使うには、入力からその面子の牌を除けることと、除去後の牌種列も残りの面子へ分解できることを示す。
+選ぶ値の型が `MentsuCandidate` なので、雀頭を完成面子として混ぜることは型検査で防がれる。
 
-ソース中の`777z`の例は、`next`で字牌刻子を1つ選び、候補所属、3枚の除去、残りの空列に対する`done`を
+ソース中の`777z`の例は、`next`で字牌刻子を1つ選び、3枚の除去、残りの空列に対する`done`を
 順に与える。これにより、`777z`がちょうど1個の完成面子へ分解できることをLeanが確認する。
 
 次の`mem_decomposeMentsu_iff`では、実行器の返すリストに`components`が含まれることと、
@@ -423,7 +394,7 @@
 定理はこの2つが同値であり、実行と仕様の間にずれがないことを保証する。
 
 左から右は健全性に対応する。列挙結果に含まれる分解について、`flatten`から最初の候補の枝を、
-`map`から残りの分解を取り出す。候補所属、`removeTiles`の成功、帰納法で得た残りの証拠を
+`map`から残りの分解を取り出す。`removeTiles`の成功と、帰納法で得た残りの証拠を
 `MentsuPartition.next`へ渡すため、実行器が不正な分解を返さないことが分かる。
 
 右から左は完全性に対応する。`MentsuPartition.next`から最初の完成面子、除去の成功、残りの分解証拠を取り出す。
@@ -510,77 +481,6 @@
 ソース中の例は、赤牌刻子 `777z` と萬子順子 `123m` の和了構成部品列を使う。入力側では両面子の牌を
 交互に並べているため列としては等しくないが、`tiles_perm` により同じ牌を同じ枚数だけ持つことを取り出せる。
 
-## 面子分解の全要素が完成面子候補であることを読む
-
-次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.all_mentsu` である。
-
-読む前に知る語彙:
-
-- `∀`
-- `induction`
-- `intro`
-- `List.mem_cons`
-- `rcases`
-- `rfl | restMember`
-- `exact`
-
-定理の結論 `∀ component ∈ components, component ∈ mentsuComponentCandidates` は、分解結果`components`から
-任意の要素`component`を1つ選ぶと、それが完成面子候補列に含まれることを表す。
-
-`MentsuPartition.next`は、完成面子を追加するたびに、その値が`mentsuComponentCandidates`に含まれるという
-`candidate`証拠を要求していた。`all_mentsu`は、この局所的な条件が完成した分解列の全要素について
-保存されていることを取り出す定理である。
-
-証明は`MentsuPartition`の証拠に対する帰納法で進む。
-
-- `done`: 分解結果が空なので、調べる要素は存在しない。
-- `next`: 要素が先頭なら、その段階の`candidate`が直接使える。末尾の要素なら、残りの分解に対する帰納法の仮定を使う。
-
-`rcases List.mem_cons.mp member with rfl | restMember`は、調べている要素が先頭そのものの場合と、
-末尾に含まれる場合へ分ける。先頭の場合は`rfl`によってその要素を現在の完成面子と同一視する。
-
-この定理だけでは候補の内部構造までは展開しない。前に読んだ`mentsu_of_mem_mentsuComponentCandidates`と合わせると、
-各要素が何らかの順子または刻子を`.inr`に包んだ値であり、雀頭は混ざらないことが分かる。
-ソース中の例は、`777z`の1面子分解から、その刻子が完成面子候補に含まれることを取り出す。
-
-## 面子分解を型付き候補列として復元する
-
-次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.exists_candidates` である。
-
-読む前に知る語彙:
-
-- `∃`
-- `List.map`
-- 直和の `.inr`
-- `induction`
-- `obtain`
-- `rfl`
-- `⟨...⟩`
-
-`WinningComponent` は雀頭または完成面子を持てる型だが、面子分解の `components` に雀頭は現れない。
-定理はこの事実を、次のように列全体の形として表す。
-
-```lean
-∃ candidates : List MentsuCandidate,
-  components = candidates.map fun candidate => (Sum.inr candidate : WinningComponent)
-```
-
-右辺は、順子または刻子だけを持つ `candidates` の各要素を、`WinningComponent` の完成面子側である
-`.inr` へ入れた列である。この列が `components` と等しいため、雀頭が混ざらないだけでなく、
-元の要素の順番と重複を保ったまま `MentsuCandidate` の列へ戻せる。
-
-証明は `MentsuPartition` の証拠に対する帰納法で進む。
-
-- `done`: 分解結果は空なので、復元する候補列にも `[]` を選ぶ。
-- `next`: 先頭の `candidate` 証拠へ `mentsu_of_mem_mentsuComponentCandidates` を使い、具体的な順子または刻子 `first` を取り出す。残りの分解から帰納法で得た `rest` の先頭へ `first` を追加する。
-
-2回の `obtain` にある `rfl` は、取り出した値に合わせて先頭の和了構成部品と末尾の列をその場で
-書き換える。その結果、最後に選ぶ復元列 `first :: rest` を `map` した値と元の列は定義上同じになり、
-`rfl` で証明できる。
-
-ソース中の例は、`777z` の1面子分解に対応する `MentsuCandidate` 列が存在し、それを `.inr` へ
-写した列が元の赤牌刻子の列に一致することを、この定理から直接取り出す。
-
 ## 面子分解の個数保証を読む
 
 次の実例は、`WaitCompletionFinder.lean` の `MentsuPartition.components_length` である。
@@ -606,7 +506,7 @@
 1個分を除いた等式へ単純化できる。
 
 ソース中の `777z` の例では、1個の赤牌刻子からなる分解証拠にこの定理を適用し、
-結果列の長さが `1` であることを確認する。`all_mentsu` が各要素の種類を保証したのに対し、
+結果列の長さが `1` であることを確認する。要素の種類は `List MentsuCandidate` という型が保証し、
 `components_length` は列全体の要素数を保証する。
 
 ## 完成面子列から分解証拠を組み立てる
@@ -622,21 +522,20 @@
 - `simp`
 - inductive型のconstructor `.done` と `.next`
 
-これまでの `all_mentsu`、`exists_candidates`、`components_length` は、すでにある `MentsuPartition` の
-証拠から性質を取り出す定理だった。`mentsuPartition_flatMap` は逆向きに、すべての要素が
-`mentsuComponentCandidates` に含まれる部品列 `components` から分解証拠を組み立てる。
+`components_length` は、すでにある `MentsuPartition` の証拠から性質を取り出す定理だった。
+`mentsuPartition_flatMap` は逆向きに、`MentsuCandidate` の列から分解証拠を組み立てる。
 
-`components.flatMap WinningComponent.tiles` は、各完成面子を構成する3枚の牌種列を、部品の順番どおりに
+`components.flatMap MentsuCandidate.tiles` は、各完成面子を構成する3枚の牌種列を、部品の順番どおりに
 すべて連結する。定理の結論は、この牌列をちょうど `components.length` 個へ分解すると、元の
 `components` 自身が正しい分解になることを述べる。
 
 証明は `components` に対する帰納法で進む。
 
 - `nil`: 部品も牌もないため、空の分解を表す `.done` を使う。
-- `cons`: `allMentsu` から先頭 `first` の候補所属と、末尾 `rest` の全要素の候補所属を取り出す。帰納法の仮定へ後者を渡して末尾の分解証拠 `tail` を作る。
+- `cons`: 帰納法の仮定から末尾の分解証拠 `tail` を作る。
 
 先頭部品の牌列を平坦化後の入力から除くと、末尾を平坦化した牌列が残る。この計算は前に読んだ
-`removeTiles_append_left` が保証する。先頭の候補所属、除去結果、末尾の分解証拠を `.next` へ渡すと、
+`removeTiles_append_left` が保証する。先頭面子、除去結果、末尾の分解証拠を `.next` へ渡すと、
 列全体の分解証拠になる。
 
 保証の対象は、部品の牌を順番どおりに連結した入力である。牌列を任意に並べ替えた場合は、この定理で

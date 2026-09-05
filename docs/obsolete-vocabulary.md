@@ -30,7 +30,7 @@
 
 - `WaitCompletion.winningChunks` → `WaitCompletion.winningComponents`
 - `pairChunkCandidates` → `pairComponentCandidates`
-- `mentsuChunkCandidates` → `mentsuComponentCandidates`
+- `mentsuChunkCandidates` → `mentsuComponentCandidates` → `MentsuCandidate.candidates`
 - `WinningShape.chunk` → `WinningShape.component`
 - `WinningShape.chunks` → `WinningShape.components`
 
@@ -85,6 +85,28 @@
 表すため、独立した型と付随APIを削除した。
 
 ## 待ち分解の便宜API
+
+### `mentsuComponentCandidates` と面子所属証明
+
+置き換え先: `MentsuCandidate.candidates` と `List MentsuCandidate`
+
+面子分解は以前、順子・刻子を `WinningComponent` の右側へ包んだ
+`mentsuComponentCandidates : List WinningComponent` を使っていた。そのため、面子列に雀頭が
+混ざらないことを候補所属条件として別途保持し、後で `MentsuCandidate` の列へ復元していた。
+
+`Pattern.lean` がすでに順子または刻子を表す `MentsuCandidate` を提供しているため、面子分解器、
+`MentsuPartition`、`MentsuPartitionSpec` はこの型を直接使うよう変更した。これに伴い次を削除した。
+
+- `mentsuComponentCandidates`
+- `mentsu_mem_mentsuComponentCandidates`
+- `mentsu_of_mem_mentsuComponentCandidates`
+- `MentsuPartition.all_mentsu`
+- `exists_mentsuCandidates_of_all`
+- `MentsuPartition.exists_candidates`
+- `WinningComponent.tiles_length_of_mem_mentsuComponentCandidates`
+- `WinningComponent.flatMap_tiles_length_of_all_mentsu`
+
+面子を `WinningComponent` へ包む処理は、雀頭と面子を一つの和了構成部品列へまとめる境界にだけ残る。
 
 ### `waitDecompositionCodesWithWait`
 
