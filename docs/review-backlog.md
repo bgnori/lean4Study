@@ -136,7 +136,7 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 
 ### `Reading` と「読み」という日本語説明の衝突を避ける
 
-状態: 対応中
+状態: 改名方針案あり
 
 `DirectWaitReading` や `WaitReadingCode` には、プロジェクト内の技術語として `Reading` が出てくる。
 一方で、麻雀一般にも「待ち読み」という言葉があり、これは相手の待ちを推測する意味で使われやすい。
@@ -144,22 +144,71 @@ Tanki関係の実装変更後に `fourTileReport` を再生成したところ、
 `WaitPattern` の説明で「待ちをどう読むか」と書くと、プロジェクト内の `Reading` とも麻雀一般語彙とも衝突し、
 読者が混乱する可能性が高い。
 
-対応方針:
+調査すると、現在の `Reading` は1種類の概念ではなく、少なくとも次の2種類を指している。
+
+- `WaitReadingCode` 側: `WaitCompletion` の和了分割から `WinningComponent` を1つ選び、待ち牌を
+	1枚除いた結果。これはテンパイ形の「分解」を表す。
+- `DirectWaitReading` 側: `WinningShape`、除去対象の `ComponentIndex`、待ち牌を保持し、
+	完成形からテンパイ形を得る根拠となる値。これは直接生成の「導出」を表す。
+
+両者を単一の置換語へ揃えると、この役割の違いが再び隠れる。そのため、次の2語へ分ける案を第一候補とする。
+
+- 観測・コード化側: `WaitDecomposition`（待ち分解）
+- 直接生成側: `WaitDerivation`（待ち導出）
+
+`WinningComponent` との対応は次のようにする。
+
+- `WinningComponent`: 待ち牌を除く前の、和了分割を構成する部品。
+- `WaitComponent`: `WinningComponent` から待ち牌を除いた結果、または除去せず完成形のまま保持した部品。
+- `WaitComponentKind`: `WaitComponent` から具体的な牌種列を忘れた種別。
+- `WaitDecomposition`: 待ち牌と `List WaitComponent` の組。1つの `WaitCompletion` から、
+	どの `WinningComponent` を除去元に選ぶかごとに得られる。
+- `WaitKindDecomposition`: 待ち牌と `List WaitComponentKind` の組。`WaitDecomposition` から
+	各部品の具体的な牌種列だけを忘れたもの。
+- `WaitDerivation`: `WinningShape` と、待ち牌を除く `WinningComponent` の位置を保持する直接生成の証人。
+	`WaitDecomposition` より前段の情報を持ち、`WaitCompletion` とテンパイ牌姿の両方へ射影できる。
+
+この対応なら、変換の向きは概ね次のようになる。
+
+```text
+WinningShape + selected WinningComponent + wait
+    -> WaitDerivation
+    -> WaitCompletion
+    -> WaitDecomposition
+    -> WaitKindDecomposition
+    -> WaitDecompositionCode
+```
+
+候補となる具体的な改名:
+
+- `WaitReadingComponentKind` → `WaitComponentKind`
+- `ConcreteWaitReadingComponent` → `WaitComponent`
+- `ConcreteWaitReading` → `WaitDecomposition`
+- `AbstractWaitReading` → `WaitKindDecomposition`
+- `IrreducibleWaitReading` → `WaitCoreExtraction`
+- `WaitReadingCodeEntry` → `WaitDecompositionCodeEntry`
+- `DirectWaitReading.Reading` → `DirectWaitGeneration.WaitDerivation`
+- `HasNobetanReading` → `ContainsNobetan`
+
+`IrreducibleWaitReading` は牌姿全体の既約性を保証せず、完成面子と核成分列を分離した結果にすぎない。
+そのため `Irreducible` は外し、`WaitCore` とそこから分離した `removedMentsu` を保持する操作結果として
+`WaitCoreExtraction` を候補とする。
+また `AbstractWaitReading` の `Abstract` も、何を忘れたかが名前から分からないため、
+具体牌だけを忘れて部品種別を残す `WaitKindDecomposition` とする。
+
+`HasNobetanReading` は `List WaitProfile` 上の条件であり、分解や導出そのものを引数に取らない。
+ノベタン相当の基本形を部分的に含むという実際の意味に合わせて `ContainsNobetan` とし、
+牌姿全体を狭義ノベタンとする `IsNobetan` との対比を保つ。
+
+移行時の方針:
 
 - `WaitPattern` の説明では、原則として「読み」ではなく「抽出パターン」または「終端抽出」を使う。
-- `HasNobetanReading` の名前に残る `Reading` が、プロジェクト内技術語や麻雀一般語彙と衝突しないか確認する。
-- `Reading` 系のモジュールを説明するときは、[domain-vocabulary.md](domain-vocabulary.md) の `Reading` 定義へ導く。
-- 麻雀一般の「待ち読み」と違う意味であることを、初出時に明示する。
-
-命名体系として後で確認すること:
-
-- `AbstractWaitReading` の `Abstract` が、待ち牌を抽象化せず、部品の具体的な牌種列だけを忘れることを十分に表すか。
-- `ConcreteWaitReading` と `AbstractWaitReading` の対比を、具体牌付き・部品種別のみという情報差が分かる名前にするべきか。
-- `IrreducibleWaitReading` が牌姿全体の既約判定と誤解されないか。実際には完成面子を核成分列から分離した観測結果である。
-
-`WinningComponent` と Reading 側の `Component` の関係は整理済み。
-前者は待ち牌を除く前の和了構成部品、後者は除去後または保持後の観測成分であり、
-[domain-vocabulary.md](domain-vocabulary.md) に変換関係を明記した。
+- 実装名、モジュール名、定理名、レポート見出しを一度に置き換え、`Reading` を現行語彙として残さない。
+- [domain-vocabulary.md](domain-vocabulary.md) の `Reading` 節は、`WaitDecomposition` と
+	`WaitDerivation` の別々の節へ置き換える。
+- `WaitReadingCode` と `DirectWaitReading` のモジュール名も、それぞれ `WaitDecompositionCode` と
+	`DirectWaitGeneration` に変えるか、import互換性への影響を確認する。
+- コードAPIの機械的改名だけでなく、レポート中の `Reading` と日本語本文の「Reading」も同時に更新する。
 
 ### `WellKnownWaitKind` が基本分類と通称・複合分類を同じ層に置いている
 
