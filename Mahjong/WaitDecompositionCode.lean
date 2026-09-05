@@ -66,17 +66,8 @@ structure WaitCoreExtraction where
   removedMentsu : List WaitComponent
 deriving BEq, DecidableEq, Repr
 
-/--
-完成面子の文脈を忘れた、比較可能な待ち核。
-
-待ち核は、1つの待ち牌と、完成面子を除いたあとに残る核成分列の組である。
-`WaitCoreExtraction.core` は具体牌付きの核成分列を保持し、`removedMentsu` はそこから分離された完成面子を保持する。
-`WaitCore` は比較に必要な待ち牌と核成分列だけを残す。
--/
-structure WaitCore where
-  wait : Tile
-  components : List WaitComponent
-deriving BEq, DecidableEq, Repr
+/-- 完成面子を除去済みの `WaitDecomposition`。待ち核であることは生成経路が保証する。 -/
+abbrev WaitCore := WaitDecomposition
 
 /-- 牌の位置を忘れ、部品種別だけを残した待ち分解。 -/
 structure WaitKindDecomposition where
@@ -192,11 +183,6 @@ private def waitDecompositionKey (decomposition : WaitDecomposition) : Nat :=
     decomposition.components.foldl
       (fun key component => key * decompositionComponentKeyStride + concreteComponentKey component) 0
 
-private def waitCoreKey (core : WaitCore) : Nat :=
-  core.wait.orderKey * decompositionWaitKeyStride +
-    core.components.foldl
-      (fun key component => key * decompositionComponentKeyStride + concreteComponentKey component) 0
-
 private def waitKindDecompositionKey (decomposition : WaitKindDecomposition) : Nat :=
   decomposition.components.foldl
     (fun key component =>
@@ -308,7 +294,7 @@ def waitCoreExtractions
 def waitCores (completions : List WaitCompletion) : List WaitCore :=
   waitCoreExtractions completions
     |>.map (fun extraction => { wait := extraction.wait, components := extraction.core })
-    |> deduplicateAndSortBy waitCoreKey
+    |> deduplicateAndSortBy waitDecompositionKey
 
 /--
 発見済みの具体牌付き待ち分解から各部品の牌種列を忘れ、部品種別だけの待ち分解へ変換する。

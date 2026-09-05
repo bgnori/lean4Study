@@ -178,7 +178,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `++`
 
 `xs ++ ys` は、リスト `xs` の後ろにリスト `ys` を連結する記法である。
-`WaitPattern.tiles` では、対子の牌種列とターツの牌種列を連結して、抽出パターン全体に必要な牌種列を作る。
+`WinningComponent.tiles` では、和了構成部品が持つ牌種列を共通の形で取り出す。
 
 ### `List.Perm`
 

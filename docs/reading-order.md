@@ -21,9 +21,8 @@
 
 1. `Basic.lean`、`Pattern.lean`、`Hand.lean` で牌、和了構成部品、物理牌を表す。
 2. `WaitCompletionFinder.lean` で牌の除去、面子分解、通常和了分割、待ち牌、Finderを結ぶ。
-3. `Wait.lean` で待ち核の抽出パターンを定義する。
-4. `WaitDecompositionCode.lean` でFinderが得た待ち分解から段階的に情報を忘れ、コード化する。
-5. `DirectWaitGeneration.lean` で完成形から待ち導出を直接生成し、既存Finderとの完全対応と有限添字を示す。
+3. `WaitDecompositionCode.lean` でFinderが得た待ち分解から段階的に情報を忘れ、コード化する。
+4. `DirectWaitGeneration.lean` で完成形から待ち導出を直接生成し、既存Finderとの完全対応と有限添字を示す。
 
 各節の「読む前に知る語彙」に未知の項目があれば、先に [lean-vocabulary.md](lean-vocabulary.md) を参照する。
 麻雀固有の「待ち核」「可約」「待ち分解」「待ち導出」などは [domain-vocabulary.md](domain-vocabulary.md) にまとめている。
@@ -994,41 +993,6 @@
 通してBool値を返す。ソース中の二つの例は、赤牌1枚が単騎聴牌として `true`、空手牌が合法な
 通常形聴牌ではないため `false` になることを `native_decide` で確認する。
 
-## 核成分列の抽出パターンを読む
-
-次のまとまりは、`Wait.lean` の `WaitPattern` と `WaitPattern.tiles` である。
-
-先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核」「待ち核集合」「可約と既約」を読む。
-
-読む前に知る語彙:
-
-- `inductive`
-- `namespace`
-- `List Tile`
-- `++`
-- `instance`
-- `HasTilePattern`
-- `example`
-- `rfl`
-
-`WaitPattern` は、完成面子を取り除いたあとに残る核成分列の抽出パターンを表す。
-ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
-実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
-
-- `tanki`: 単騎として扱う1枚。
-- `toitsuRyanmen`: 対子と両面ターツからなる4枚の核成分列。
-- `toitsuKanchan`: 対子と嵌張ターツからなる4枚の核成分列。
-- `toitsuPenchan`: 対子と辺張ターツからなる4枚の核成分列。
-- `shanpon`: 2つの対子からなる4枚の核成分列。
-
-完成面子は `WaitPattern` に含めず、`HandExtraction.mentsuThen` による抽出過程として表す。
-完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
-具体牌付きの核成分列は `WaitCoreExtraction.core` に保持する。待ち牌と核成分列を組にして、
-除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
-
-`WaitPattern.tiles` は、それぞれの抽出パターンで必要になる牌種列を返す。
-`Tile.format .mpsz` を使った `example` により、抽出パターンが実際の牌姿としてどう見えるかを確認する。
-
 ## 可約性の計算と意味の一致を読む
 
 次の実例は、`WaitDecompositionCode.lean` の `reducibility`、`determineReducibility`、`reducibility_eq_reducible_iff`、
@@ -1151,7 +1115,7 @@
 大文字側で別の条件を追加しているわけではなく、同じ計算結果を定理の仮定や結論として使える形にしている。
 
 直後の `Decidable` インスタンスは、この命題が小文字側のBool計算によって判定できることをLeanへ登録する。
-これにより、`Analysis.lean` の `reducibility` は `CanReduceMentsuPreservingWaitCores tiles` を `if` の条件にでき、
+これにより、`WaitDecompositionCode.lean` の `reducibility` は `CanReduceMentsuPreservingWaitCores tiles` を `if` の条件にでき、
 後続の同値定理では同じ名前を可約性の意味として使える。
 
 ## 和了構成部品から待ち牌を除いた形を読む

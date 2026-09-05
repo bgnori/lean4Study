@@ -1,7 +1,6 @@
 import Mahjong.Basic
 import Mahjong.Pattern
 import Mahjong.WaitCompletion
-import Mahjong.Wait
 import Mahjong.Hand
 import Mahjong.WaitCompletionFinder
 import Mahjong.WaitDecompositionCode

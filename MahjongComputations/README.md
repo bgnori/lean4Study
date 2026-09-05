@@ -15,7 +15,7 @@ Generate the four-tile text report:
 lake build fourTileReport
 ```
 
-The report is written to `reports/four-tile-report.txt`.
+The report is written to `reports/four-tile-direct-report.txt`.
 
 Generate the seven-tile text report:
 

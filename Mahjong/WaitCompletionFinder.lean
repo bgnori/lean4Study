@@ -1052,19 +1052,6 @@ example : CompletionFor [.honor .Red]
     native_decide
   simp [output]
 
-/-!
-## 分解に関する既約性
-
-`waitCompletionCount` は待ち牌と和了形の組を数える。メンツを1つ除いた
-聴牌形が同じ個数の分解を持つなら、その手牌はメンツ除去により可約である。
-待ちでない牌列を既約とは扱わない。
-
-これは分解数だけを比較する旧来の近似である。分類で使う根源的な既約性は
-`WaitDecompositionCode.CanReduceMentsuPreservingWaitCores` が待ち核集合を比較する。
--/
-def waitCompletionCount (tiles : List Tile) : Nat :=
-  (findWaitCompletions tiles).length
-
 /--
 宣言的な通常形聴牌 `IsTenpai tiles` が成り立つかを、Leanが計算で判定できるようにする。
 
@@ -1091,38 +1078,6 @@ example : decide (IsTenpai ([] : List Tile)) = false := by
 def mentsuReductions (tiles : List Tile) : List (List Tile) :=
   mentsuComponentCandidates.filterMap fun mentsu =>
     removeTiles tiles mentsu.tiles
-
-/-- 完成面子を1つ除いても同じ分解数の聴牌形が残るとする旧来の可約性判定。 -/
-def CanReduceMentsu (tiles : List Tile) : Prop :=
-  1 < tiles.length ∧ IsTenpai tiles ∧
-    (mentsuReductions tiles).any (fun remaining =>
-      !(waitingTiles remaining).isEmpty &&
-        waitCompletionCount remaining == waitCompletionCount tiles) = true
-
-instance decidableCanReduceMentsu (tiles : List Tile) : Decidable (CanReduceMentsu tiles) := by
-  unfold CanReduceMentsu
-  infer_instance
-
-/-- それ以上、完成面子除去で同じ待ち構造へ小さくできない聴牌形。 -/
-def IsIrreducible (tiles : List Tile) (_ : IsTenpai tiles) : Prop :=
-  ¬CanReduceMentsu tiles
-
-instance decidableIsIrreducible (tiles : List Tile) (tenpai : IsTenpai tiles) :
-    Decidable (IsIrreducible tiles tenpai) := by
-  unfold IsIrreducible
-  infer_instance
-
-/-- 1枚手牌は単騎として既約である。 -/
-theorem singleton_irreducible (tile : Tile) (tenpai : IsTenpai [tile]) :
-    IsIrreducible [tile] tenpai := by
-  intro reducible
-  simpa using reducible.1
-
-/-- 可約なら既約ではない。 -/
-theorem not_irreducible_of_canReduceMentsu (tiles : List Tile)
-    (tenpai : IsTenpai tiles) (reducible : CanReduceMentsu tiles) :
-    ¬IsIrreducible tiles tenpai := by
-  exact fun irreducible => irreducible reducible
 
 def manzu (ranks : List Rank) : List Tile :=
   Tile.numberedTiles .Manzu ranks

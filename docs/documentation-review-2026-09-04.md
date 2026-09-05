@@ -7,7 +7,7 @@
 - 計算モジュール概要: [MahjongComputations/README.md](../MahjongComputations/README.md)
 - 読書導線と語彙: [reading-order.md](reading-order.md), [lean-vocabulary.md](lean-vocabulary.md), [domain-vocabulary.md](domain-vocabulary.md), [proof-comment-policy.md](proof-comment-policy.md)
 - 設計・命名の保留事項: [review-backlog.md](review-backlog.md)
-- 関連する主要ソースコメント: [Mahjong/Wait.lean](../Mahjong/Wait.lean), [Mahjong/Wait/Specification.lean](../Mahjong/Wait/Specification.lean), [Mahjong/Wait/Analysis.lean](../Mahjong/Wait/Analysis.lean), [Mahjong/WaitDecompositionCode.lean](../Mahjong/WaitDecompositionCode.lean), [Mahjong/DirectWaitGeneration.lean](../Mahjong/DirectWaitGeneration.lean)
+- 関連する主要ソースコメント: [Mahjong/WaitDecompositionCode.lean](../Mahjong/WaitDecompositionCode.lean), [Mahjong/DirectWaitGeneration.lean](../Mahjong/DirectWaitGeneration.lean)
 
 ## 総評
 
@@ -38,20 +38,8 @@
 
 重要度: 中
 
-[docs/reading-order.md](reading-order.md), [docs/proof-comment-policy.md](proof-comment-policy.md), [Mahjong/Wait.lean](../Mahjong/Wait.lean) は、`WaitPattern` が完成面子を含めないことの説明として `HandExtraction.mentsuThen` を参照している。`HandExtraction` は確かに [Mahjong/Hand.lean](../Mahjong/Hand.lean) に存在し、物理牌集合からの抽出列挙を表している。
-
-ただし現在の読書順の主線では、待ち核の抽出と可約性の理解は [Mahjong/WaitDecompositionCode.lean](../Mahjong/WaitDecompositionCode.lean) の `extractWaitCore`, `WaitCoreExtraction.removedMentsu`, `waitCores`, `canReduceMentsuPreservingWaitCores` にも強く依存している。`WaitPattern` の初出で `HandExtraction.mentsuThen` だけを挙げると、完成面子の分離が `Hand` 側の物理牌抽出だけで担われるように読める。
-
-影響:
-
-- `Wait.lean` から読んだ読者が、分類解析の実行経路を `HandExtraction` 側へ探しに行きやすい。
-- `WaitDecompositionCode` 側で実際に説明される `removedMentsu` と「完成面子を取り除く」という語の対応が少し遅れて分かる。
-- ソースコメントが、モジュールの直接の依存関係より後続モジュールの一実装に強く結びついて見える。
-
-推奨対応:
-
-- `WaitPattern` の説明では、まず「完成面子は `WaitPattern` には含めず、後続の抽出・待ち分解処理で扱う」と抽象的に述べる。
-- 必要なら補足として、物理牌からの抽出列挙では `HandExtraction.mentsuThen`、発見済み completion からの待ち分解側では `WaitCoreExtraction.removedMentsu` に対応すると分けて書く。
+後続の概念整理で、実行経路から孤立していた `WaitPattern` と `HandExtraction` は削除された。
+待ち核の抽出は `WaitDecompositionCode` の `WaitCoreExtraction` と `waitCores` に一本化された。
 
 ### 3. `reading-order.md` が包括的すぎて、更新単位が大きい
 
@@ -112,7 +100,7 @@
 ## 先に直す順番
 
 1. [MahjongComputations/README.md](../MahjongComputations/README.md) の 4 枚形レポート出力先を修正する。
-2. `WaitPattern` の説明から `HandExtraction.mentsuThen` だけに寄った表現を緩め、`HandExtraction` と `WaitDecompositionCode` 側の責務を分ける。
+2. 待ち核の説明を `WaitDecompositionCode` の実行経路へ揃える。
 3. [docs/reading-order.md](reading-order.md) の冒頭に目次と大区分を追加する。
 4. `Mahjong/README.md` に日本語 docs への導線、または日本語読者向けの短い説明を加える。
 5. [docs/review-backlog.md](review-backlog.md) の状態語と「次の最小確認」を揃える。

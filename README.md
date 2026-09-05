@@ -22,7 +22,6 @@ Lean 4 and mathlib study repository. The main worked example formalizes Mahjong 
 ├── Mahjong/               # Mahjong study modules
 │   ├── Basic.lean
 │   ├── Pattern.lean
-│   ├── Wait.lean
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean

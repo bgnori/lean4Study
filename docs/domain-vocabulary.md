@@ -97,7 +97,8 @@ WinningShape + selected WinningComponent + wait
 ## 待ち核
 
 待ち核は、このプロジェクトで「1つの待ち牌」と「完成面子を除いたあとに残る核成分列」の組を指す説明語彙である。
-コード上では `WaitCore` に対応する。
+コード上では `WaitCore` に対応する。`WaitCore` は `WaitDecomposition` の型別名であり、
+完成面子を除去済みであることは `waitCores` までの生成経路が保証する。
 
 数学でいう kernel ではなく、完成面子を削ったあとにも保存される、分類上の本質部分を表すために `core` という語を使う。
 
@@ -107,8 +108,6 @@ WinningShape + selected WinningComponent + wait
 - `WaitCore.components`: 待ち牌を除いたあとに残る核成分列。
 - `WaitCoreExtraction.core`: `WaitCore.components` に対応する核成分列。名前は `core` だが、待ち牌は含まない。
 - `WaitCoreExtraction.removedMentsu`: 核から分離された完成面子。
-- `WaitPattern`: 核成分列として抽出できる形を表す。
-- `WaitPattern.tiles`: その抽出パターンに必要な牌種列を返す。
 
 例:
 

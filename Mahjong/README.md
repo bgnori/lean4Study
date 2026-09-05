@@ -12,34 +12,31 @@ This directory contains the Mahjong formalization used as the main Lean study ex
    - Shared tile-pattern machinery.
    - Taatsu, toitsu, tanki, shuntsu, and mentsu candidates.
 
-3. `Wait.lean`
-   - Size-independent wait extraction syntax.
-
-4. `Hand.lean`
+3. `Hand.lean`
    - Hand sizes used in the study project.
-   - Verified enumeration of exact physical-tile extractions.
+   - Projection from physical hands to tile-type lists.
 
-5. `WaitCompletion.lean`
+4. `WaitCompletion.lean`
    - The `WaitCompletion` data type: one wait tile and one winning partition.
    - Winning components and their canonical ordering.
 
-6. `WaitCompletionFinder.lean`
+5. `WaitCompletionFinder.lean`
    - Shared semantics: `IsStandardAgari`, `IsWaitFor`, `IsTenpai`, and `Wait`.
    - Legal tenpai sizes and physical copy-count validation.
-   - `WaitCompletionFinder.findWaitCompletions`, executable completion discovery, and evidence-indexed irreducibility.
+   - `WaitCompletionFinder.findWaitCompletions` and executable completion discovery.
 
-7. `WaitDecompositionCode.lean`
+6. `WaitDecompositionCode.lean`
    - Decomposes and codes already-found `List WaitCompletion` values without performing discovery.
    - `find...` convenience functions explicitly compose `WaitCompletionFinder` with coding.
    - Computes evidence-indexed reducibility for concrete tenpai hands.
    - The 53 one-suit irreducible seven-tile examples.
 
-8. `DirectWaitGeneration.lean`
+7. `DirectWaitGeneration.lean`
    - Generates normalized wait derivations directly from completed winning shapes.
    - Proves exact correspondence with `WaitCompletionFinder` in the standard-hand range.
    - Provides a noncomputable perfect-hash specification between all derivations and finite indices.
 
-9. `Tenpai.lean`
+8. `Tenpai.lean`
    - A thin bridge from physical `Hand` values to the single semantic `Wait` type.
 
 ## Import Entry Points
@@ -53,7 +50,6 @@ import Mahjong
 For focused work, import the smallest module that contains the definitions you need:
 
 ```lean
-import Mahjong.Wait
 import Mahjong.WaitCompletionFinder
 import Mahjong.WaitDecompositionCode
 ```

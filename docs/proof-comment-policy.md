@@ -141,7 +141,7 @@
 /--
 「この型の値は、対応する牌種列を持つ」ことを表す型クラス。
 
-`WaitPattern` や面子候補のように、具体的な型は違っても「必要な牌種列」を取り出せるものを、
+ターツや面子候補のように、具体的な型は違っても「必要な牌種列」を取り出せるものを、
 同じ物理牌取り出し処理に渡すための小さな共通インターフェースである。
 
 読むためのLean語彙: `class`, 型引数, 型クラス引数。
@@ -260,35 +260,4 @@ example : (MentsuCandidate.koutsu (.numbered .Pinzu 6)).tiles.map (Tile.format .
 `WinningComponent.tiles` は、どちらの部品であっても構成する牌種列を返す。
 -/
 ```
-
-## `WaitPattern` の読解ブロック例
-
-待ち分類に入る箇所では、「実際に待ちであること」と「核成分列をどう抽出するか」を混同しないように説明する。
-麻雀一般の「待ち読み」と衝突しやすいため、`WaitPattern` の説明では原則として「読み」ではなく「抽出パターン」を使う。
-「待ち核」はプロジェクト語彙なので、初出前に [domain-vocabulary.md](domain-vocabulary.md) の定義へ導く。
-
-```lean
-/-!
-## 核成分列の抽出パターン
-
-`WaitPattern` は、完成面子を取り除いたあとに残る核成分列の抽出パターンを表す。
-ここでは麻雀一般の「待ち読み」という語を避け、抽出に使うデータ構造として扱う。
-実際に待ちであることの証明は `WaitCompletionFinder.IsWaitFor` が担当する。
-
-- `tanki`: 単騎として扱う1枚。
-- `toitsuRyanmen`: 対子と両面ターツからなる4枚の核成分列。
-- `toitsuKanchan`: 対子と嵌張ターツからなる4枚の核成分列。
-- `toitsuPenchan`: 対子と辺張ターツからなる4枚の核成分列。
-- `shanpon`: 2つの対子からなる4枚の核成分列。
-
-完成面子は `WaitPattern` に含めず、抽出過程として分離する。
-完成面子を取り除けるかどうかは、後続の `WaitReducibility` で別に扱う。
-具体牌付きの核成分列は `WaitCoreExtraction.core` に保持する。待ち牌と核成分列を組にして、
-除去した完成面子の文脈を忘れて比較する形は `WaitCore` で表す。
-
-`WaitPattern.tiles` は、その抽出パターンで必要になる牌種列を返す。
--/
-```
-
-具体例が有効なため、`WaitPattern.tiles` の近くに `Tile.format .mpsz` を使った `example` を置く。
 

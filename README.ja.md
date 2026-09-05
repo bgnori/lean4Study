@@ -22,7 +22,6 @@ Lean 4 と mathlib の学習用リポジトリです。中心的な題材とし�
 ├── Mahjong/               # 麻雀の形式化
 │   ├── Basic.lean
 │   ├── Pattern.lean
-│   ├── Wait.lean
 │   ├── Hand.lean
 │   ├── WaitCompletion.lean
 │   ├── WaitCompletionFinder.lean
