@@ -840,7 +840,13 @@ example : IsTenpai [.honor .Red] := by
   apply (waitingTiles_ne_nil_iff _).mp
   exact List.ne_nil_of_mem (a := .honor .Red) (by native_decide)
 
-/-- 待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。 -/
+/--
+待ち牌と、その待ち牌を加えた和了形の正規化済み分割を列挙する。
+
+`winningPartitions` は完成面子を除去した順序も列として保持するため、同じ面子集合でも除去順が異なれば
+複数の候補を生成する。`CanonicalWinningComponents.ofList` で部品順を標準化した後の `dedup` は、
+同じ待ち牌と同じ標準分割になった候補だけを1件にまとめる。異なる待ち牌や異なる標準分割は保持する。
+-/
 def findWaitCompletions (tiles : List Tile) : List WaitCompletion :=
   let candidates : List WaitCompletion := do
     let wait ← waitingTiles tiles
