@@ -12,7 +12,7 @@
 - [reading-order.md](reading-order.md): Lean未経験者が成果と正しさを追うための読む順番を示す。
 - [lean-vocabulary.md](lean-vocabulary.md): Lean語彙の初出説明を集約する。
 - [domain-vocabulary.md](domain-vocabulary.md): 麻雀待ち分類のプロジェクト語彙を集約する。
-- [obsolete-vocabulary.md](obsolete-vocabulary.md): 現在の読書導線から外した旧用語だけを記録する。
+- [obsolete-vocabulary.md](obsolete-vocabulary.md): コードから削除した概念・用語・APIと、置き換え先または削除理由を記録する。
 - [review-backlog.md](review-backlog.md): 説明中に見つかった設計・命名の検討事項を分離する。
 
 ## 読者向け成果物の原則
