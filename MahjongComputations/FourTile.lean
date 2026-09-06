@@ -45,70 +45,16 @@ def report (tiles : List Tile) : FourTileShapeReport :=
 
 /-- Exhaustive four-tile tenpai reports. -/
 def tenpaiReports : List FourTileShapeReport :=
-  allFourTileShapes.filterMap fun tiles =>
-    let waits := waitingTiles tiles
-    if waits.isEmpty then
-      none
-    else
-      some
-        { tiles
-          waits
-          reducibility := determineReducibility tiles
-          waitDecompositionCodes := findWaitDecompositionCodes tiles }
+  (allFourTileShapes.map report).filter fun report => !report.waits.isEmpty
 
-private structure DirectDerivationEntry where
-  key : Nat
-  tiles : List Tile
-  completion : WaitCompletion
-deriving BEq, DecidableEq, Repr
+private def directFourTileShapeReports (_ : Unit) : List WaitCompletionGroup :=
+  groupWaitDerivations (directWaitDerivations 1)
 
-private structure DirectFourTileShapeReport where
-  key : Nat
-  tiles : List Tile
-  completions : List WaitCompletion
-deriving BEq, DecidableEq, Repr
-
-private def directDerivationEntry (derivation : WaitDerivation 1) : DirectDerivationEntry :=
-  let tiles := hand derivation
-  { key := tileMultisetKey tiles
-    tiles
-    completion := completion derivation }
-
-private def directDerivationEntryKeyLE (first second : DirectDerivationEntry) : Bool :=
-  decide (first.key ≤ second.key)
-
-private def insertCompletion (completion : WaitCompletion) (completions : List WaitCompletion) :
-    List WaitCompletion :=
-  if completions.contains completion then completions else completion :: completions
-
-private def groupSortedDirectDerivationEntry
-    (groups : List DirectFourTileShapeReport) (entry : DirectDerivationEntry) :
-    List DirectFourTileShapeReport :=
-  match groups with
-  | [] => [{ key := entry.key, tiles := entry.tiles, completions := [entry.completion] }]
-  | group :: _ =>
-      if group.key == entry.key then
-        { group with completions := insertCompletion entry.completion group.completions } :: groups.tail
-      else
-        { key := entry.key, tiles := entry.tiles, completions := [entry.completion] } :: groups
-
-private def directFourTileShapeReports (_ : Unit) : List DirectFourTileShapeReport :=
-  (directWaitDerivations 1).map directDerivationEntry
-    |>.mergeSort directDerivationEntryKeyLE
-    |>.foldl groupSortedDirectDerivationEntry []
-
-private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
-  (completions.map fun completion => completion.wait).eraseDups
-
-private def directReport (report : DirectFourTileShapeReport) : FourTileShapeReport :=
+private def directReport (report : WaitCompletionGroup) : FourTileShapeReport :=
   let completions := report.completions
   { tiles := report.tiles
     waits := waitsFromCompletions completions
-    reducibility :=
-      some <| if canReduceMentsuPreservingWaitCores report.tiles then
-        .reducible
-      else
-        .irreducible
+    reducibility := determineReducibility report.tiles
     waitDecompositionCodes := waitDecompositionCodes completions }
 
 /-- Number of normalized direct derivations enumerated for four-tile shapes. -/

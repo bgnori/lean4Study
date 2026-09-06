@@ -27,6 +27,8 @@ The report is written to `reports/seven-tile-report.txt`.
 
 Current modules:
 
+- `Common.lean`: provides shared tile-multiset keys and groups direct
+  derivations into deduplicated completion sets for each hand.
 - `FourTile.lean`: enumerates all legal four-tile multisets and computes tenpai
   waits, reducibility, and wait decomposition codes.
 - `FourTileReport.lean`: writes the exhaustive four-tile report as a text file.

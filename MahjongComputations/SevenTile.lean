@@ -74,50 +74,10 @@ termination_by _ tiles => tiles.length
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
 
-private structure DerivationEntry where
-  key : Nat
-  tiles : List Tile
-  completion : WaitCompletion
-deriving BEq, DecidableEq, Repr
+private def sevenTileShapeReports (_ : Unit) : List WaitCompletionGroup :=
+  groupWaitDerivations (directWaitDerivations 2)
 
-private structure SevenTileShapeReport where
-  key : Nat
-  tiles : List Tile
-  completions : List WaitCompletion
-deriving BEq, DecidableEq, Repr
-
-private def derivationEntry (derivation : WaitDerivation 2) : DerivationEntry :=
-  let tiles := hand derivation
-  { key := tileMultisetKey tiles
-    tiles
-    completion := completion derivation }
-
-private def derivationEntryKeyLE (first second : DerivationEntry) : Bool :=
-  decide (first.key ≤ second.key)
-
-private def insertCompletion (completion : WaitCompletion) (completions : List WaitCompletion) :
-    List WaitCompletion :=
-  if completions.contains completion then completions else completion :: completions
-
-private def groupSortedDerivationEntry (groups : List SevenTileShapeReport) (entry : DerivationEntry) :
-    List SevenTileShapeReport :=
-  match groups with
-  | [] => [{ key := entry.key, tiles := entry.tiles, completions := [entry.completion] }]
-  | group :: rest =>
-      if group.key == entry.key then
-        { group with completions := insertCompletion entry.completion group.completions } :: rest
-      else
-        { key := entry.key, tiles := entry.tiles, completions := [entry.completion] } :: groups
-
-private def sevenTileShapeReports (_ : Unit) : List SevenTileShapeReport :=
-  (directWaitDerivations 2).map derivationEntry
-    |>.mergeSort derivationEntryKeyLE
-    |>.foldl groupSortedDerivationEntry []
-
-private def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
-  (completions.map fun completion => completion.wait).eraseDups
-
-private def addShapeReport (report : SevenTileShapeReport) (summary : SevenTileSummary) :
+private def addShapeReport (report : WaitCompletionGroup) (summary : SevenTileSummary) :
     SevenTileSummary :=
   let completions := report.completions
   let waits := waitsFromCompletions completions
