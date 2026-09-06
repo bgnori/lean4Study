@@ -11,21 +11,16 @@ import Mahjong.Pattern
 -/
 /--
 解析対象にする手牌。通常手の上限以下の面子数と、その面子数に対応する枚数の物理牌を持つ。
-各物理牌は `deck` から重複なく取られる。
+埋め込みにより、同じ物理牌は重複しない。
 -/
 structure Hand where
   mentsuCount : Fin (standardHandMentsuCount + 1)
-  tiles : Fin (standardTenpaiHandSize mentsuCount) ↪ { pt : PhysicalTile // pt ∈ deck }
+  tiles : Fin (standardTenpaiHandSize mentsuCount) ↪ PhysicalTile
 
 namespace Hand
 
-/-- 手牌を物理牌の有限集合に変換する。 -/
-noncomputable def toFinset (hand : Hand) : Finset PhysicalTile :=
-  (Finset.univ : Finset (Fin (standardTenpaiHandSize hand.mentsuCount))).image fun i =>
-    (hand.tiles i).1
-
 /-- 手牌を通常形の意味論が扱う牌種列へ変換する。 -/
-noncomputable def tileTypes (hand : Hand) : List Tile :=
-  hand.toFinset.toList.map Prod.fst
+def tileTypes (hand : Hand) : List Tile :=
+  List.ofFn fun index => (hand.tiles index).1
 
 end Hand

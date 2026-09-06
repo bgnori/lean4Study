@@ -149,15 +149,11 @@ namespace MentsuCandidate
 ## 完成面子候補と列挙
 
 `MentsuCandidate` は、通常形で完成面子として扱う候補を順子または刻子として表す。
-`candidates` は実行用に全順子候補と全刻子候補を並べ、`mem_candidates` がその列挙に
+`candidates` は全順子候補と全刻子候補を並べ、`mem_candidates` がその列挙に
 取りこぼしがないことを確認する。
 -/
 
-/-- 有限型として列挙できるすべての完成面子候補。 -/
-noncomputable def all : List MentsuCandidate :=
-  (Finset.univ : Finset MentsuCandidate).toList
-
-/-- 実行用の完成面子候補列。全順子候補と全刻子候補を含む。 -/
+/-- すべての完成面子候補を含む実行可能な列挙。 -/
 def candidates : List MentsuCandidate :=
   (Suit.all.flatMap fun suit =>
     List.ofFn fun start : ShuntsuStart => MentsuCandidate.shuntsu (.shuntsu suit start)) ++

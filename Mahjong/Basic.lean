@@ -150,13 +150,6 @@ def orderKey : Tile → Nat
 
 end Tile
 
-/-!
- ## セットの定義
--/
-/-- すべての牌種。 -/
-def tileTypes : Finset Tile :=
-  Tile.all.toFinset
-
 /-- 同じ牌種ごとの物理牌の枚数。 -/
 abbrev copiesPerTile : Nat := 4
 
