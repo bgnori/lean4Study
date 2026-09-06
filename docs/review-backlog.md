@@ -28,6 +28,11 @@
 また、`DirectWaitGeneration.lean` に局所定義されていた面子列の牌数補題は、
 `Pattern.lean` の `MentsuCandidate.flatMap_tiles_length` と同じ内容だったため削除し、既存補題を直接使う。
 
+`Hand` も、1枚、4枚、7枚、10枚、13枚ごとに同じ物理牌埋め込みを持つ5コンストラクタから、
+`mentsuCount : Fin (standardHandMentsuCount + 1)` と
+`Fin (standardTenpaiHandSize mentsuCount)` の牌を持つ1つの構造体へ変更した。これにより、合法な5サイズを
+型で制限する性質を保ったまま、サイズ名、コンストラクタ、`toFinset` の分岐による同じ規則の再列挙を除いた。
+
 ### 分解の操作履歴と外延的な正しさを分離する
 
 状態: 対応済み
@@ -100,11 +105,14 @@ components.length = fuel ∧
 待ち核集合が一致することを証拠フィールドとして持つ証拠付き構造体にする選択肢もある。ただし、実行結果として
 扱いたいデータと、証明だけに必要な証拠を同じ構造体へ入れると、計算や表示が読みにくくなる可能性がある。
 
-2つ目は、Bool判定とProp仕様の対応である。実行用には `waitCorePreservingMentsuReductions tiles` が空でないことを
-見るのが簡潔だが、証明上は「ある完成面子と残り牌列が存在し、除去に成功し、待ち核集合を保つ」という存在命題のほうが
-読みやすい可能性がある。まずは実行用列挙を基礎に、`remaining ∈ waitCorePreservingMentsuReductions tiles` と
-外延的な存在条件を対応させる補題を置けるか確認する。その後で、`CanReduceMentsuPreservingWaitCores tiles` を
-Bool等式のまま公開するか、存在命題を主仕様としてBool判定との健全性・完全性定理を添えるかを判断する。
+2つ目は、Bool判定とProp仕様の対応である。実行用の `canReduceMentsuPreservingWaitCores` に対して、以前は
+`canReduceMentsuPreservingWaitCores tiles = true` をそのまま包む
+`CanReduceMentsuPreservingWaitCores` も公開していた。この別名は独立した外延仕様を与えず、利用箇所も実行判定の
+言い換えに限られていたため削除した。可約性の分岐はBoolを直接使い、特徴付け定理は `= true` / `= false` を結論にする。
+
+今後、証明向けの主仕様が必要になった場合は、単なるBool等式の別名ではなく、
+「ある完成面子と残り牌列が存在し、除去に成功し、待ち核集合を保つ」という外延的な存在命題を定義する。
+その前段として、`remaining ∈ waitCorePreservingMentsuReductions tiles` と外延条件の対応補題を検討する。
 
 3つ目は、他の探索への展開である。`WaitCompletionFinder`、`Hand`、`DirectWaitGeneration` には、候補列挙、
 失敗枝の破棄、成功結果の列挙を `flatMap` / `filterMap` で書いている箇所がある。共通APIへ抽象化するのではなく、
@@ -135,7 +143,7 @@ Bool等式のまま公開するか、存在命題を主仕様としてBool判定
 - 成功した除去面子と残り牌列を返す実行用構造体を追加すると、レポートやデバッグで有用か。
 - 候補所属、除去成功、待ち牌の存在、待ち核一致を証拠として持つ構造体を、実行用データと分けて用意すべきか。
 - `remaining ∈ waitCorePreservingMentsuReductions tiles` と、完成面子除去に関する存在命題の対応補題を短く証明できるか。
-- `CanReduceMentsuPreservingWaitCores` の主仕様をBool等式のままにするか、存在命題へ寄せるか。
+- 可約性の命題仕様が必要になったとき、Bool等式の別名ではなく存在命題として導入できるか。
 - 探索順、重複候補、全解列挙、最初の解、解の存在判定を、同じ基礎表現から必要に応じて導出できるか。
 - 新しい探索を追加するときも、連続する候補選択には `do`記法、単純な失敗枝の破棄には `filterMap`、
 	データとしてのリスト連結には `flatMap` という局所的な使い分けが読みやすいか。

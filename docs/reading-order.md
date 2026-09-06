@@ -547,12 +547,12 @@
 可能であることが同値だと保証する。左から右は誤って可約と判定しないこと、右から左は可能な面子除去を
 見落とさないことに対応する。
 
-証明の `simp [reducibility]` は、`reducibility` の条件分岐を展開し、その判定条件が右辺の命題
-`CanReduceMentsuPreservingWaitCores` そのものであることを確認する。
+証明の `simp [reducibility]` は、`reducibility` の条件分岐を展開し、その判定条件が右辺の
+`canReduceMentsuPreservingWaitCores tiles = true` と一致することを確認する。
 
 `reducibility_eq_irreducible_iff` は対になる保証で、計算結果が `irreducible` であることを、待ち核集合を
 保ったまま除去できる完成面子がないこととして特徴づける。既約性のために別の探索をするのではなく、
-可約性を表す同じ命題の否定 `¬CanReduceMentsuPreservingWaitCores` を使っている点を読む。
+同じBool判定が `false` であることを使っている点を読む。
 
 ## 待ち分解から核成分列を分離する処理を読む
 
@@ -608,8 +608,7 @@
 
 ## 待ち核集合を保つ面子除去を読む
 
-次の実例は、`WaitDecompositionCode.lean` の `canReduceMentsuPreservingWaitCores`、
-`CanReduceMentsuPreservingWaitCores` と、その `Decidable` インスタンスである。
+次の実例は、`WaitDecompositionCode.lean` の `canReduceMentsuPreservingWaitCores` である。
 
 先に [domain-vocabulary.md](domain-vocabulary.md) の「待ち核集合」と「可約と既約」を読む。
 
@@ -620,8 +619,6 @@
 - `!`
 - `List.any`
 - `==`
-- `Prop`
-- `Decidable`
 
 `mentsuReductions tiles` は、牌列から完成面子を1つ取り除いて得られる候補を列挙する。
 `canReduceMentsuPreservingWaitCores` は、その候補の中に次の2条件を両方満たすものがあるかを調べる。
@@ -635,13 +632,9 @@
 結果が `true` なら、元の牌姿には待ち核集合を変えずに分離できる完成面子が少なくとも1つある。
 どの候補が成功したかではなく、そのような候補が存在するかだけを返す判定である。
 
-先頭が小文字の `canReduceMentsuPreservingWaitCores` は、実際に実行して `true` または `false` を返す。
-先頭が大文字の `CanReduceMentsuPreservingWaitCores` は、その結果が `true` であることを表す `Prop` である。
-大文字側で別の条件を追加しているわけではなく、同じ計算結果を定理の仮定や結論として使える形にしている。
-
-直後の `Decidable` インスタンスは、この命題が小文字側のBool計算によって判定できることをLeanへ登録する。
-これにより、`WaitDecompositionCode.lean` の `reducibility` は `CanReduceMentsuPreservingWaitCores tiles` を `if` の条件にでき、
-後続の同値定理では同じ名前を可約性の意味として使える。
+`canReduceMentsuPreservingWaitCores` は、実際に実行して `true` または `false` を返す唯一の可約性判定である。
+`reducibility` はこのBoolを直接 `if` の条件に使う。後続の同値定理では、判定が `true` または `false` であることを
+それぞれ可約・既約という分類結果に対応させる。
 
 ## 和了構成部品から待ち牌を除いた形を読む
 

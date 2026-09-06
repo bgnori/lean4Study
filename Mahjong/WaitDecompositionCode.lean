@@ -397,24 +397,10 @@ def waitCorePreservingMentsuReductions (tiles : List Tile) : List (List Tile) :=
 def canReduceMentsuPreservingWaitCores (tiles : List Tile) : Bool :=
   1 < tiles.length && !(waitCorePreservingMentsuReductions tiles).isEmpty
 
-/--
-待ち核集合を保ったまま完成面子を除去できることを表す命題。
-
-実行用のBool判定 `canReduceMentsuPreservingWaitCores` が `true` を返すことを `Prop` として包む。
-新しい探索条件を加える定義ではなく、同じ判定結果を定理の仮定や結論に使える形で公開する。
--/
-def CanReduceMentsuPreservingWaitCores (tiles : List Tile) : Prop :=
-  canReduceMentsuPreservingWaitCores tiles = true
-
-/-- Bool判定との等式により、可約性の命題を条件分岐や計算で決定できるようにする。 -/
-instance (tiles : List Tile) : Decidable (CanReduceMentsuPreservingWaitCores tiles) := by
-  unfold CanReduceMentsuPreservingWaitCores
-  infer_instance
-
 /-- 聴牌の証拠を前提に、待ち核集合を保った面子除去による可約性を計算する。 -/
 def reducibility (tiles : List Tile) (_ : WaitCompletionFinder.IsTenpai tiles) :
     WaitReducibility :=
-  if CanReduceMentsuPreservingWaitCores tiles then .reducible else .irreducible
+  if canReduceMentsuPreservingWaitCores tiles then .reducible else .irreducible
 
 /-- 聴牌なら可約性を返し、非聴牌なら `none` を返す。 -/
 def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
@@ -425,12 +411,14 @@ def determineReducibility (tiles : List Tile) : Option WaitReducibility :=
 
 theorem reducibility_eq_reducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
-    reducibility tiles tenpai = .reducible ↔ CanReduceMentsuPreservingWaitCores tiles := by
+    reducibility tiles tenpai = .reducible ↔
+      canReduceMentsuPreservingWaitCores tiles = true := by
   simp [reducibility]
 
 theorem reducibility_eq_irreducible_iff (tiles : List Tile)
     (tenpai : WaitCompletionFinder.IsTenpai tiles) :
-    reducibility tiles tenpai = .irreducible ↔ ¬CanReduceMentsuPreservingWaitCores tiles := by
+    reducibility tiles tenpai = .irreducible ↔
+      canReduceMentsuPreservingWaitCores tiles = false := by
   simp [reducibility]
 
 def findWaitDecompositionCodes (tiles : List Tile) : List Nat :=

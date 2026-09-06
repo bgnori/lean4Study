@@ -145,4 +145,4 @@ WinningShape + selected WinningComponent + wait
 
 - `WaitReducibility`: 可約か既約かを表す分類ラベル。
 - `WaitDecompositionCode.reducibility`: 聴牌の証拠を前提に可約性を計算する。
-- `WaitDecompositionCode.CanReduceMentsuPreservingWaitCores`: 待ち核集合を保ったまま完成面子を除去できることを表す命題。
+- `WaitDecompositionCode.canReduceMentsuPreservingWaitCores`: 待ち核集合を保ったまま完成面子を除去できるかをBoolで判定する。
