@@ -16,7 +16,7 @@
 
 状態: 対応済み
 
-`MentsuPartition` と `WinningPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
+`MentsuPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
 各段階で、選んだ完成面子、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
 この形は `decomposeMentsu` と `winningPartitions` の健全性・完全性を直接証明しやすい一方、利用側が
 必要とする外延的な性質を得るたび、操作履歴を順列の意味へ変換し直す必要がある。
@@ -47,14 +47,12 @@ components.length = fuel ∧
 データの witness を含む。Leanでは `Prop` 構造体からデータ射影を生成できず、`Type` にすると仕様証明が
 計算データを不必要に保持するため、名前付きの存在命題とした。
 
-帰納的な `MentsuPartition` と `WinningPartition` は、`decomposeMentsu` と `winningPartitions` の
-実行手順に対応する操作履歴として残した。`remaining.length / mentsuTileCount` も列挙器が再帰回数を決める式として
-この層だけに残る。帰納的関係から除いても公開仕様は変わらず、実行器との対応証明だけが複雑になるため、
-追加効果はないと判断した。
+帰納的な `MentsuPartition` は、再帰的な `decomposeMentsu` の証明に使う操作履歴として残した。
+一方、非再帰の `winningPartitions` に対応していた `WinningPartition` は、同じ引数の
+`WinningPartitionSpec` と概念的に重複していたため削除した。
 
-二層間は `MentsuPartition.iff_extensional` と `WinningPartition.iff_extensional` で対応させた。
-さらに `mem_decomposeMentsu_iff_spec` と `mem_winningPartitions_iff_spec` により、列挙結果への所属を
-操作履歴を介さず公開仕様として読める。計算可能な列挙器と、従来の操作履歴に対する健全性・完全性定理も維持した。
+`mem_decomposeMentsu_iff_spec` と `mem_winningPartitions_iff_spec` により、どちらの列挙結果も
+外延仕様として読める。後者は上位の操作履歴を介さず、雀頭の除去と面子分解仕様から直接証明する。
 
 公開側の `CompletionFor` は `WinningPartitionSpec` を保持するよう変更した。`DirectWaitGeneration` も
 外延仕様を使い、完成形から分割を示す証明から `fuel` の算術、`removeTiles` の具体的結果、帰納的証拠の構築を

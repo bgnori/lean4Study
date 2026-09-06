@@ -454,34 +454,17 @@ def winningPartitions (tiles : List Tile) : List (List WinningComponent) :=
           pairComponent :: mentsu.map fun candidate => (Sum.inr candidate : WinningComponent)
     | none => [])
 
-/-- `winningPartitions` が雀頭を除き、残りを完成面子へ分解する操作履歴。 -/
-inductive WinningPartition (tiles : List Tile) : List WinningComponent → Prop
-| intro {remaining mentsu} (pair : WinningComponent)
-    (pairCandidate : pair ∈ pairComponentCandidates)
-    (removePair : removeTiles tiles pair.tiles = some remaining)
-    (mentsuPartition : MentsuPartition (remaining.length / mentsuTileCount) remaining mentsu) :
-    WinningPartition tiles
-      (pair :: mentsu.map fun candidate => (Sum.inr candidate : WinningComponent))
+/-- 通常和了分割の、除去順に依存しない公開仕様。 -/
+def WinningPartitionSpec (tiles : List Tile) (components : List WinningComponent) : Prop :=
+  ∃ pair, ∃ mentsu : List MentsuCandidate,
+    components = pair :: mentsu.map (fun candidate => (Sum.inr candidate : WinningComponent)) ∧
+    pair ∈ pairComponentCandidates ∧
+    (components.flatMap WinningComponent.tiles).Perm tiles
 
-/--
-`winningPartitions` が列挙する和了構成部品列と、`WinningPartition` の証拠を作れる和了構成部品列は一致する。
-
-左辺は実行可能な探索結果への所属、右辺は同じ除去手順を記録した操作履歴を表す。
-外延的な公開仕様との対応は `mem_winningPartitions_iff_spec` が与える。
-
-健全性方向では、外側の `flatten` と雀頭候補の `map` から、実際に選ばれた雀頭を取り出す。
-雀頭の除去が成功した枝では、内側の `map` から残りの完成面子列を取り出し、
-`mem_decomposeMentsu_iff` の健全性方向で `MentsuPartition` の証拠へ変換して `WinningPartition.intro` を作る。
-
-完全性方向では `WinningPartition.intro` に保存された雀頭、除去結果、面子分解証拠を取り出す。
-`mem_decomposeMentsu_iff` の完全性方向で残りの分解を実行器の結果へ戻し、対応する雀頭候補の
-`map` の枝と、その中の完成面子列の `map` への所属を順に組み立てる。
-
-読むためのLean語彙: `↔`, 健全性と完全性, `List.mem_flatten`, `List.mem_map`, `obtain`,
-`cases`, `.mp`, `.mpr`, `▸`, `refine`, `?_`。
--/
-theorem mem_winningPartitions_iff (tiles : List Tile) (components : List WinningComponent) :
-    components ∈ winningPartitions tiles ↔ WinningPartition tiles components := by
+/-- `winningPartitions` の列挙所属を、操作履歴を介さず外延仕様として読む。 -/
+theorem mem_winningPartitions_iff_spec (tiles : List Tile)
+    (components : List WinningComponent) :
+    components ∈ winningPartitions tiles ↔ WinningPartitionSpec tiles components := by
   constructor
   · intro member
     simp only [winningPartitions] at member
@@ -490,75 +473,17 @@ theorem mem_winningPartitions_iff (tiles : List Tile) (components : List Winning
     cases removeEq : removeTiles tiles pair.tiles with
     | none => simp [removeEq] at member
     | some remaining =>
-      rw [removeEq] at member
-      obtain ⟨mentsu, mentsuMember, componentsEq⟩ := List.mem_map.mp member
-      exact componentsEq ▸
-        WinningPartition.intro pair pairCandidate removeEq
-          ((mem_decomposeMentsu_iff _ _ _).mp mentsuMember)
-  · intro partition
-    cases partition with
-    | intro pair pairCandidate removePair partition =>
-        rename_i remaining mentsu
-        apply List.mem_flatten.mpr
-        refine ⟨(decomposeMentsu (remaining.length / mentsuTileCount) remaining).map
-          fun candidates =>
-            pair :: candidates.map fun candidate => (Sum.inr candidate : WinningComponent), ?_, ?_⟩
-        · apply List.mem_map.mpr
-          exact ⟨pair, pairCandidate, by simp [removePair]⟩
-        · exact List.mem_map.mpr
-            ⟨mentsu, (mem_decomposeMentsu_iff _ _ _).mpr partition, rfl⟩
-
-example :
-    [WinningComponent.pair (.numbered .Manzu 4),
-      WinningComponent.shuntsu .Manzu ⟨0, by decide⟩] ∈
-      winningPartitions
-        [.numbered .Manzu 4, .numbered .Manzu 4, .numbered .Manzu 0,
-          .numbered .Manzu 1, .numbered .Manzu 2] := by
-  apply (mem_winningPartitions_iff _ _).mpr
-  apply WinningPartition.intro
-    (remaining := [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2])
-    (mentsu := [MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)])
-    (WinningComponent.pair (.numbered .Manzu 4))
-  · exact pair_mem_pairComponentCandidates (.toitsu (.numbered .Manzu 4))
-  · rfl
-  · change MentsuPartition 1
-      [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2]
-      [MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)]
-    apply MentsuPartition.next (.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩))
-    · rfl
-    · exact .done
-
-/-- 通常和了分割の、除去順に依存しない公開仕様。 -/
-def WinningPartitionSpec (tiles : List Tile) (components : List WinningComponent) : Prop :=
-  ∃ pair, ∃ mentsu : List MentsuCandidate,
-    components = pair :: mentsu.map (fun candidate => (Sum.inr candidate : WinningComponent)) ∧
-    pair ∈ pairComponentCandidates ∧
-    (components.flatMap WinningComponent.tiles).Perm tiles
-
-/--
-`WinningPartition` を、除去順に依存しない雀頭、完成面子列、牌の保存条件で特徴づける。
-
-先頭部品が雀頭候補で、残りが `MentsuCandidate` から構成され、全部品を牌へ戻した列が入力牌列の
-順列なら、実際の雀頭除去後の並びに対して `MentsuPartition.iff_extensional` を適用できる。
--/
-theorem WinningPartition.iff_extensional {tiles : List Tile}
-    {components : List WinningComponent} :
-    WinningPartition tiles components ↔ WinningPartitionSpec tiles components := by
-  unfold WinningPartitionSpec
-  constructor
-  · intro partition
-    cases partition with
-    | intro pair pairCandidate removePair mentsuPartition =>
-        rename_i remaining mentsu
+        rw [removeEq] at member
+        obtain ⟨mentsu, mentsuMember, rfl⟩ := List.mem_map.mp member
+        have mentsuSpec := (mem_decomposeMentsu_iff_spec _ _ _).mp mentsuMember
         have removedPerm : (pair.tiles ++ remaining).Perm tiles :=
           (exists_removeTiles_eq_some_iff_perm tiles pair.tiles remaining).mp
-            ⟨remaining, removePair, .refl remaining⟩
-        have combinedPerm :=
-          (List.Perm.append_left pair.tiles mentsuPartition.tiles_perm).trans removedPerm
+            ⟨remaining, removeEq, .refl remaining⟩
         have tilesPerm :
             ((pair :: mentsu.map fun candidate =>
               (Sum.inr candidate : WinningComponent)).flatMap WinningComponent.tiles).Perm tiles := by
-          simpa only [List.flatMap_cons, flatMap_mentsuComponents_tiles] using combinedPerm
+          simpa only [List.flatMap_cons, flatMap_mentsuComponents_tiles] using
+            (List.Perm.append_left pair.tiles mentsuSpec.tiles_perm).trans removedPerm
         exact ⟨pair, mentsu, rfl, pairCandidate, tilesPerm⟩
   · rintro ⟨pair, mentsu, rfl, pairCandidate, permutation⟩
     let remaining := mentsu.flatMap MentsuCandidate.tiles
@@ -567,22 +492,19 @@ theorem WinningPartition.iff_extensional {tiles : List Tile}
     obtain ⟨output, removePair, outputPerm⟩ :=
       (exists_removeTiles_eq_some_iff_perm tiles (WinningComponent.tiles pair) remaining).mpr
         removedPerm
-    have remainingLength : remaining.length = mentsu.length * mentsuTileCount := by
-      exact MentsuCandidate.flatMap_tiles_length mentsu
     have outputLength : output.length = mentsu.length * mentsuTileCount :=
-      outputPerm.length_eq.trans remainingLength
+      outputPerm.length_eq.trans (MentsuCandidate.flatMap_tiles_length mentsu)
     have fuelEq : mentsu.length = output.length / mentsuTileCount := by
       rw [outputLength]
       simp [mentsuTileCount]
-    apply WinningPartition.intro pair pairCandidate removePair
-    apply MentsuPartition.iff_extensional.mpr
-    exact ⟨fuelEq, outputPerm.symm⟩
-
-/-- `winningPartitions` の列挙所属を、操作履歴を介さず外延仕様として読む。 -/
-theorem mem_winningPartitions_iff_spec (tiles : List Tile)
-    (components : List WinningComponent) :
-    components ∈ winningPartitions tiles ↔ WinningPartitionSpec tiles components :=
-  (mem_winningPartitions_iff tiles components).trans WinningPartition.iff_extensional
+    have mentsuMember : mentsu ∈ decomposeMentsu (output.length / mentsuTileCount) output :=
+      (mem_decomposeMentsu_iff_spec _ _ _).mpr ⟨fuelEq, outputPerm.symm⟩
+    apply List.mem_flatten.mpr
+    refine ⟨(decomposeMentsu (output.length / mentsuTileCount) output).map fun candidates =>
+      pair :: candidates.map fun candidate => (Sum.inr candidate : WinningComponent), ?_, ?_⟩
+    · apply List.mem_map.mpr
+      exact ⟨pair, pairCandidate, by simp [removePair]⟩
+    · exact List.mem_map.mpr ⟨mentsu, mentsuMember, rfl⟩
 
 /-- 外延的な通常和了分割仕様を、同じ牌の別の入力順へ移す。 -/
 theorem WinningPartitionSpec.of_perm {tiles other : List Tile}
@@ -591,67 +513,6 @@ theorem WinningPartitionSpec.of_perm {tiles other : List Tile}
   unfold WinningPartitionSpec at specification ⊢
   obtain ⟨pair, mentsu, componentsEq, pairCandidate, tilesPerm⟩ := specification
   exact ⟨pair, mentsu, componentsEq, pairCandidate, tilesPerm.trans permutation⟩
-
-/--
-正しい通常和了分割の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
-
-`tiles.Perm other` は入力牌列の順番だけが異なることを表す。結論では雀頭と完成面子列 `components` を
-変えず、入力だけを `other` へ置き換えるため、通常和了としての分割可能性が入力順に依存しないと分かる。
-
-証明は操作履歴を `WinningPartitionSpec` へ変換し、外延的な牌の順列を `other` まで推移させた後、
-再び操作履歴へ戻す。除去後リストや `fuel` 添字をこの境界で扱う必要はない。
-
-読むためのLean語彙: `List.Perm`, `.trans`, `.mp`, `.mpr`。
--/
-theorem WinningPartition.of_perm {tiles other : List Tile} {components : List WinningComponent}
-    (partition : WinningPartition tiles components) (permutation : tiles.Perm other) :
-    WinningPartition other components := by
-  exact WinningPartition.iff_extensional.mpr
-    ((WinningPartition.iff_extensional.mp partition).of_perm permutation)
-
-example
-    (partition : WinningPartition
-      [.numbered .Manzu 4, .numbered .Manzu 4, .numbered .Manzu 0,
-        .numbered .Manzu 1, .numbered .Manzu 2]
-      [WinningComponent.pair (.numbered .Manzu 4),
-        WinningComponent.shuntsu .Manzu ⟨0, by decide⟩]) :
-    WinningPartition
-      [.numbered .Manzu 2, .numbered .Manzu 4, .numbered .Manzu 0,
-        .numbered .Manzu 4, .numbered .Manzu 1]
-      [WinningComponent.pair (.numbered .Manzu 4),
-        WinningComponent.shuntsu .Manzu ⟨0, by decide⟩] := by
-  exact partition.of_perm (by decide)
-
-/--
-通常和了分割の全和了構成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。
-
-`WinningPartition` は先頭に雀頭を1つ持ち、その後ろに `MentsuPartition` が保証する完成面子列を持つ。
-この定理は、雀頭を含む分割全体について牌の欠落、追加、重複数の変化がないことを `List.Perm` で表す。
-
-証明では分割証拠を `cases` で唯一の構築規則 `intro` へ分解する。雀頭の除去結果から
-`exists_removeTiles_eq_some_iff_perm` を使い、「雀頭の牌と残り牌」が入力牌列の順列であることを得る。
-残りの完成面子を牌へ戻した列と残り牌の順列は `mentsuPartition.tiles_perm` が保証する。
-その両側へ雀頭の牌を `List.Perm.append_left` で加え、`.trans` で入力牌列までつなぐ。
-
-読むためのLean語彙: `cases`, `List.flatMap`, `List.Perm`, `List.Perm.append_left`, `.trans`。
--/
-theorem WinningPartition.tiles_perm {tiles : List Tile} {components : List WinningComponent}
-    (partition : WinningPartition tiles components) :
-    (components.flatMap WinningComponent.tiles).Perm tiles := by
-  obtain ⟨_, _, _, _, permutation⟩ := WinningPartition.iff_extensional.mp partition
-  exact permutation
-
-example
-    (partition : WinningPartition
-      [.numbered .Manzu 4, .numbered .Manzu 0, .numbered .Manzu 4,
-        .numbered .Manzu 1, .numbered .Manzu 2]
-      [WinningComponent.pair (.numbered .Manzu 4),
-        WinningComponent.shuntsu .Manzu ⟨0, by decide⟩]) :
-    ([WinningComponent.pair (.numbered .Manzu 4),
-      WinningComponent.shuntsu .Manzu ⟨0, by decide⟩].flatMap WinningComponent.tiles).Perm
-      [.numbered .Manzu 4, .numbered .Manzu 0, .numbered .Manzu 4,
-        .numbered .Manzu 1, .numbered .Manzu 2] := by
-  exact partition.tiles_perm
 
 /-- 牌種リストが通常形の和了形として分解できるか。 -/
 def isWinning (tiles : List Tile) : Bool :=
@@ -695,8 +556,8 @@ def IsWaitFor (tiles : List Tile) (candidate : Tile) : Prop :=
 
 `IsWaitFor` の3条件のうち、合法な手牌枚数は `permutation.length_eq`、各牌種の合法枚数と候補牌を
 もう1枚使えることは `permutation.count` で新しい入力へ移す。加牌後の和了条件はBool値を直接移さず、
-`winningPartitions` が空でないことから分割を1つ取り出し、`mem_winningPartitions_iff` で
-`WinningPartition` の証拠へ変換する。その証拠を `WinningPartition.of_perm` で並べ替え後へ移し、
+`winningPartitions` が空でないことから分割を1つ取り出し、`mem_winningPartitions_iff_spec` で
+外延仕様へ変換する。その仕様を `WinningPartitionSpec.of_perm` で並べ替え後へ移し、
 対応する分割が列挙されることから再び `IsStandardAgari` を得る。
 
 したがって待ちの意味は、牌姿リストの入力順ではなく、各牌種が何枚あるかだけで決まる。
@@ -719,8 +580,8 @@ theorem IsWaitFor.of_perm {tiles other : List Tile} {candidate : Tile}
       have nonempty : winningPartitions (candidate :: tiles) ≠ [] := by
         simpa [List.isEmpty_iff] using winning
       obtain ⟨components, componentsMember⟩ := List.exists_mem_of_ne_nil _ nonempty
-      have partition := (mem_winningPartitions_iff _ _).mp componentsMember
-      have otherMember := (mem_winningPartitions_iff _ _).mpr
+      have partition := (mem_winningPartitions_iff_spec _ _).mp componentsMember
+      have otherMember := (mem_winningPartitions_iff_spec _ _).mpr
         (partition.of_perm (permutation.cons candidate))
       have otherNonempty : winningPartitions (candidate :: other) ≠ [] :=
         List.ne_nil_of_mem otherMember

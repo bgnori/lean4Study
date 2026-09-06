@@ -544,113 +544,21 @@
 ソース中の例は赤牌刻子1個について一般形の `partition` を作り、最後に `simpa` で `flatMap` を
 具体的な `777z` の牌列へ計算している。
 
-## 通常和了分割の実行器と宣言的仕様の一致を読む
+## 通常和了分割の実行器と外延仕様の一致を読む
 
-次の実例は、`WaitCompletionFinder.lean` の `winningPartitions`、`WinningPartition`、
-`mem_winningPartitions_iff` である。
+次の実例は、`WaitCompletionFinder.lean` の `winningPartitions`、`WinningPartitionSpec`、
+`mem_winningPartitions_iff_spec` である。
 
-読む前に知る語彙:
+`winningPartitions tiles` は、雀頭候補を除いた残りを `decomposeMentsu` で分解し、雀頭と面子を
+`WinningComponent` の列へまとめる実行器である。`WinningPartitionSpec` は同じ結果を、雀頭、
+`List MentsuCandidate`、全部品の牌列と入力の `List.Perm` だけで表す。
 
-- `List.flatten`
-- `List.map`
-- `match`
-- `inductive`
-- `↔`
-- 健全性と完全性
-- `List.mem_flatten`
-- `List.mem_map`
-- `.mp` と `.mpr`
-- `cases name : expression`
-- `▸`
+`mem_winningPartitions_iff_spec` は列挙所属とこの外延仕様を直接結ぶ。健全性方向では雀頭の除去結果と
+`MentsuPartitionSpec.tiles_perm` を合成する。完全性方向では全体の順列から雀頭を除ける結果を取り出し、
+残りを `mem_decomposeMentsu_iff_spec` で面子列挙へ戻す。
 
-`winningPartitions tiles` は、牌種列を雀頭1つと完成面子列へ分解する方法をすべて列挙する実行器である。
-各 `pairComponentCandidates` を雀頭として試し、実際に2枚を除けた枝だけを残す。その残り牌列を
-`decomposeMentsu` で分解し、得られた各完成面子列の先頭へ雀頭を追加する。
-
-`WinningPartition tiles components` は、特定の和了構成部品列 `components` が正しい通常和了分割であることを表す
-宣言的仕様である。唯一の構築規則 `intro` は次の情報を要求する。
-
-- `pair`: 分割結果の先頭に置く雀頭
-- `pairCandidate`: その値が雀頭候補列に含まれる証拠
-- `removePair`: 入力牌列から雀頭の2枚を除いた結果 `remaining`
-- `mentsuPartition`: 残り牌列を完成面子列 `rest` へ分解する証拠
-
-`intro` の結論は `WinningPartition tiles (pair :: rest)` なので、雀頭が必ず先頭に1つあり、
-その後ろは順子・刻子だけになる。
-
-`mem_winningPartitions_iff` は、実行器が `components` を列挙することと、この宣言的証拠を作れることが
-同値だと示す。左から右の健全性により、実行器は不正な分割を返さない。右から左の完全性により、
-正しい分割を実行器が取りこぼさない。
-
-健全性方向では、外側の `flatten` と `map` の所属証拠から、選ばれた雀頭とその探索枝を取り出す。
-`cases removeEq : removeTiles tiles pair.tiles` で除去結果を調べ、`none` の失敗枝には要素がないことを示す。
-`some remaining` の成功枝では、内側の `map` から残りの完成面子列を取り出す。
-あとは `mem_decomposeMentsu_iff` の健全性方向で面子分解証拠へ変換し、`WinningPartition.intro` を作る。
-
-完全性方向では `WinningPartition.intro` に保存された情報を逆順に使う。面子分解証拠を
-`mem_decomposeMentsu_iff` の完全性方向で実行器の列挙結果へ戻し、雀頭を追加する内側の `map`、
-その雀頭を選ぶ外側の `map`、全枝をまとめる `flatten` への所属を順に組み立てる。
-
-この上位証明は、面子分解の再帰をもう一度証明しない。`mem_decomposeMentsu_iff` を境界として再利用し、
-新しく扱うのは雀頭候補の選択と除去だけである。
-
-ソース中の例は、雀頭 `55m` と順子 `123m` を持つ `WinningPartition` の証拠を直接作り、同値定理の
-`.mpr` 方向へ渡す。これにより、その和了構成部品列が `winningPartitions 55m123m` の実行結果へ実際に
-含まれることをLeanが確認する。
-
-## 通常和了分割が入力牌を保存することを読む
-
-次の実例は、`WaitCompletionFinder.lean` の `WinningPartition.tiles_perm` である。
-
-読む前に知る語彙:
-
-- `inductive`
-- inductive型のconstructor
-- `cases`
-- `List.flatMap`
-- `List.Perm`
-- `List.Perm.append_left`
-- `.trans`
-
-`WinningPartition.tiles_perm` の結論は、分割結果の全和了構成部品を牌種列へ戻して連結すると、入力牌列と
-同じ牌種を同じ枚数だけ含むことである。前に読んだ `MentsuPartition.tiles_perm` が面子部分を保証し、
-この定理はそこへ雀頭を加えて通常和了分割全体の保存則にする。
-
-証明では `cases partition` により、`WinningPartition` の唯一の構築規則 `intro` に保存された情報を取り出す。
-`removePair` と `exists_removeTiles_eq_some_iff_perm` から、`pair.tiles ++ remaining` が入力 `tiles` の
-順列であるという `removedPerm` を得る。
-
-一方、`mentsuPartition.tiles_perm` は、末尾の完成面子列を牌へ戻した列が `remaining` の順列であると保証する。
-`List.Perm.append_left` で両側へ `pair.tiles` を加えると、雀頭を含む全和了構成部品の牌列と
-`pair.tiles ++ remaining` の順列になる。これを `.trans removedPerm` で入力牌列までつなぐ。
-
-ソース中の例は、雀頭 `55m` と順子 `123m` からなる分割を使う。入力側では `5m 1m 5m 2m 3m` と
-牌が交互に並んでいるが、分割側では `55m` と `123m` にまとまる。両者は列として等しくなくても、
-同じ牌を同じ枚数だけ持つことを `tiles_perm` から取り出せる。
-
-## 通常和了分割が入力順に依存しないことを読む
-
-次の実例は、`WaitCompletionFinder.lean` の `WinningPartition.of_perm` である。
-
-読む前に知る語彙:
-
-- `List.Perm`
-- `obtain`
-- `.trans`
-- `↔` の `.mp` と `.mpr`
-
-定理は `WinningPartition tiles components` と `tiles.Perm other` から、同じ和了構成部品列 `components` を持つ
-`WinningPartition other components` を作る。牌種と枚数が同じなら、入力牌列の順番を変えても通常和了分割の
-証拠を保てるという主張である。
-
-証明では `WinningPartition.iff_extensional.mp` により、操作履歴を `WinningPartitionSpec` へ変換する。
-この外延仕様が持つ牌保存則 `tilesPerm` は、全和了構成部品を牌へ戻した列と入力 `tiles` の順列である。
-入力間の `permutation : tiles.Perm other` を `tilesPerm.trans permutation` でつなげば、同じ雀頭と
-完成面子列が `other` の外延仕様も満たす。最後に `WinningPartition.iff_extensional.mpr` で操作履歴へ戻す。
-
-この経路では、雀頭除去後のリスト、除去の具体的な戻り値、`remaining.length / mentsuTileCount` の
-添字を利用側で扱わない。入力順だけを変える性質が、全体の牌保存則の推移として直接読める。
-ソース中の例は `55m123m` の分割証拠を、入力だけ並べ替えた `3m5m1m5m2m` へ移している。
+入力順を変える場合は `WinningPartitionSpec.of_perm` が牌保存則へ新しい順列を合成する。
+上位層には除去順を記録する別の操作履歴型を置かず、この外延仕様を通常和了分割の唯一の意味表現として使う。
 
 ## 待ち牌の実行器と宣言的仕様の一致を読む
 
@@ -702,12 +610,12 @@
 
 加牌後の通常和了だけは `isWinning` というBool計算で表されているため、順列保存則を直接適用できない。
 そこで、まず `winningPartitions` が空でないことへ読み替えて分割を1つ取り出し、
-`mem_winningPartitions_iff` の `.mp` で宣言的な `WinningPartition` の証拠へ変える。
+`mem_winningPartitions_iff_spec` の `.mp` で宣言的な `WinningPartitionSpec` の証拠へ変える。
 手牌間の順列の両側へ同じ候補牌を加えた `permutation.cons candidate` を
-`WinningPartition.of_perm` に渡せば、並べ替え後にも同じ分割を移せる。最後に同値定理の `.mpr` で
+`WinningPartitionSpec.of_perm` に渡せば、並べ替え後にも同じ分割を移せる。最後に同値定理の `.mpr` で
 列挙結果への所属へ戻し、結果が空でないことから `IsStandardAgari` を復元する。
 
-この往復は、入力順に依存しないという意味論上の性質を `WinningPartition` が担当し、
+この往復は、入力順に依存しないという意味論上の性質を `WinningPartitionSpec` が担当し、
 `isWinning` はその証拠を探索する実行器として使われていることを表す。ソース中の例は、
 「東・東・東・赤」で赤待ちであることを具体計算し、その証拠を「赤・東・東・東」へ移す。
 
@@ -1271,7 +1179,7 @@ Finderの各結果に対応する待ち導出が存在することは、後続�
 正規化分割を持つ待ち導出を復元する。復元される面子数 `n` は固定の入力ではなく、Finderが見つけた完成分割から
 決まるため、結論では `∃ n, ∃ derivation : WaitDerivation n` と存在量化されている。
 
-復元では、Finderの `WinningPartition` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
+復元では、Finderの `WinningPartitionSpec` から雀頭と面子列を取り出し、面子列を標準順へ整列して `WinningShape` を作る。
 待ち牌が雀頭に含まれる場合は `.pair`、そうでなければ待ち牌を含む最初の面子位置を `.mentsu` として選ぶ。
 この選び方により、面子順と同一面子の選択位置に関する `Seed.valid` の正規化条件も満たせる。
 Finder側の `IsWaitFor` からは、通常手の面子数上限と4枚制限を復元する。

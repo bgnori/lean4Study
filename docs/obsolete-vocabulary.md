@@ -108,6 +108,22 @@
 
 面子を `WinningComponent` へ包む処理は、雀頭と面子を一つの和了構成部品列へまとめる境界にだけ残る。
 
+### `WinningPartition` と操作履歴用補題
+
+置き換え先: `WinningPartitionSpec` と `mem_winningPartitions_iff_spec`
+
+`WinningPartition` は、雀頭の除去結果と後続の `MentsuPartition` を保持し、`winningPartitions` の
+探索手順を表していた。非再帰の上位処理に対して、同じ和了分割を `WinningPartitionSpec` が
+雀頭・面子列・牌の順列としてすでに表していたため、列挙所属を外延仕様へ直接結ぶ形へ統合した。
+
+これに伴い次を削除した。
+
+- `WinningPartition`
+- `mem_winningPartitions_iff`
+- `WinningPartition.iff_extensional`
+- `WinningPartition.of_perm`
+- `WinningPartition.tiles_perm`
+
 ### `waitDecompositionCodesWithWait`
 
 置き換え先: `waitDecompositionCodeEntries`
