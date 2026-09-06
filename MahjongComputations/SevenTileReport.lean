@@ -12,24 +12,6 @@ open MahjongComputations.SevenTile
 
 private def newline : String := "\n"
 
-private def formatNumberedGroup (tiles : List Tile) (suit : Suit) (suffix : String) : String :=
-  let digits := (List.ofFn fun rank : Rank => rank).flatMap fun rank =>
-    List.replicate (tiles.count (.numbered suit rank)) (toString (rank.val + 1))
-  if digits.isEmpty then "" else String.join digits ++ suffix
-
-private def formatHonorGroup (tiles : List Tile) : String :=
-  let digits := Honor.all.flatMap fun honor =>
-    List.replicate (tiles.count (.honor honor)) (toString (honor.orderKey + 1))
-  if digits.isEmpty then "" else String.join digits ++ "z"
-
-private def formatTiles (tiles : List Tile) : String :=
-  String.join <| [
-    formatNumberedGroup tiles .Manzu "m",
-    formatNumberedGroup tiles .Pinzu "p",
-    formatNumberedGroup tiles .Souzu "s",
-    formatHonorGroup tiles
-  ].filter fun group => !group.isEmpty
-
 private def waitDecompositionCodeGroupLine (group : WaitDecompositionCodeGroup) : String :=
   String.intercalate "\t" [
     toString group.codes,

@@ -62,15 +62,6 @@ private def addWaitDecompositionCodeGroup
       else
         group :: addWaitDecompositionCodeGroup codes tiles waits rest
 
-private def countLegalTileMultisetsOfLength : Nat → List Tile → Nat
-  | length, [] =>
-      if length == 0 then 1 else 0
-  | length, _ :: rest =>
-      (List.range (Nat.min copiesPerTile length + 1)).foldl
-        (fun total copies => total + countLegalTileMultisetsOfLength (length - copies) rest)
-        0
-termination_by _ tiles => tiles.length
-
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
 
@@ -98,5 +89,8 @@ def summary (_ : Unit) : SevenTileSummary :=
   { (sevenTileShapeReports ()).foldl (fun summary report => addShapeReport report summary) emptySummary with
     allSevenTileShapes := allSevenTileShapeCount ()
     enumeratedDerivations := (directWaitDerivations 2).length }
+
+example : countLegalTileMultisetsOfLength 7 Tile.all = 18623330 := by
+  native_decide
 
 end MahjongComputations.SevenTile

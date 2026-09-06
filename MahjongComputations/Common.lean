@@ -10,6 +10,32 @@ namespace MahjongComputations
 def tileMultisetKey (tiles : List Tile) : Nat :=
   Tile.all.foldl (fun key tile => key * (copiesPerTile + 1) + tiles.count tile) 0
 
+/-- 各牌種を0枚から物理上限まで選ぶ合法牌多重集合の共通畳み込み。 -/
+private def foldLegalTileMultisetsOfLength {α : Type}
+    (empty : α) (combine : α → α → α)
+    (onComplete : α) (prependCopies : Tile → Nat → α → α) :
+    Nat → List Tile → α
+  | length, [] =>
+      if length == 0 then onComplete else empty
+  | length, tile :: rest =>
+      (List.range (Nat.min copiesPerTile length + 1)).foldl
+        (fun result copies =>
+          combine result (prependCopies tile copies
+            (foldLegalTileMultisetsOfLength empty combine onComplete prependCopies
+              (length - copies) rest)))
+        empty
+termination_by _ tiles => tiles.length
+
+/-- 指定した牌種からなる、指定枚数の合法な牌多重集合。 -/
+def legalTileMultisetsOfLength (length : Nat) (tiles : List Tile) : List (List Tile) :=
+  foldLegalTileMultisetsOfLength [] List.append [[]]
+    (fun tile copies tails => tails.map fun tail => List.replicate copies tile ++ tail)
+    length tiles
+
+/-- 指定した牌種からなる、指定枚数の合法な牌多重集合の個数。 -/
+def countLegalTileMultisetsOfLength (length : Nat) (tiles : List Tile) : Nat :=
+  foldLegalTileMultisetsOfLength 0 Nat.add 1 (fun _ _ count => count) length tiles
+
 /-- 牌姿ごとに完成情報を集約する前の1件。 -/
 structure WaitCompletionEntry where
   tiles : List Tile
@@ -60,5 +86,25 @@ def groupWaitDerivations {mentsuCount : Nat}
 /-- 完成情報群に現れる待ち牌を、初出順で重複なく取り出す。 -/
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
+
+private def formatNumberedGroup
+    (tiles : List Tile) (suit : Suit) (suffix : String) : String :=
+  let digits := (List.ofFn fun rank : Rank => rank).flatMap fun rank =>
+    List.replicate (tiles.count (.numbered suit rank)) (toString (rank.val + 1))
+  if digits.isEmpty then "" else String.join digits ++ suffix
+
+private def formatHonorGroup (tiles : List Tile) : String :=
+  let digits := Honor.all.flatMap fun honor =>
+    List.replicate (tiles.count (.honor honor)) (toString (honor.orderKey + 1))
+  if digits.isEmpty then "" else String.join digits ++ "z"
+
+/-- 牌種列をスートごとにまとめた省略表記へ変換する。 -/
+def formatTiles (tiles : List Tile) : String :=
+  String.join <| [
+    formatNumberedGroup tiles .Manzu "m",
+    formatNumberedGroup tiles .Pinzu "p",
+    formatNumberedGroup tiles .Souzu "s",
+    formatHonorGroup tiles
+  ].filter fun group => !group.isEmpty
 
 end MahjongComputations

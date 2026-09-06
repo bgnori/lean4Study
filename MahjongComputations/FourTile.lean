@@ -23,15 +23,6 @@ structure FourTileShapeReport where
   waitDecompositionCodes : List Nat
 deriving BEq, DecidableEq, Repr
 
-private def legalTileMultisetsOfLength (length : Nat) : List Tile → List (List Tile)
-  | [] =>
-      if length == 0 then [[]] else []
-  | tile :: rest =>
-      (List.range (Nat.min copiesPerTile length + 1)).flatMap fun copies =>
-        (legalTileMultisetsOfLength (length - copies) rest).map fun tail =>
-          List.replicate copies tile ++ tail
-termination_by tiles => tiles.length
-
 /-- All legal four-tile shapes as sorted tile-type multisets. -/
 def allFourTileShapes : List (List Tile) :=
   legalTileMultisetsOfLength 4 Tile.all
