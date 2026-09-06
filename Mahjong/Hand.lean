@@ -13,16 +13,16 @@ import Mahjong.Pattern
 abbrev thirteenTileHandSize : Nat := standardTenpaiHandSize standardHandMentsuCount
 
 /-- 3面子を除去できる手牌サイズ。 -/
-abbrev tenTileHandSize : Nat := thirteenTileHandSize - mentsuTileCount
+abbrev tenTileHandSize : Nat := standardTenpaiHandSize 3
 
 /-- 2面子を除去できる手牌サイズ。 -/
-abbrev sevenTileHandSize : Nat := tenTileHandSize - mentsuTileCount
+abbrev sevenTileHandSize : Nat := standardTenpaiHandSize 2
 
 /-- 1面子を含む通常形聴牌の手牌枚数。 -/
 abbrev fourTileHandSize : Nat := standardTenpaiHandSize 1
 
 /-- 単騎だけの最小手牌サイズ。 -/
-abbrev oneTileHandSize : Nat := fourTileHandSize - mentsuTileCount
+abbrev oneTileHandSize : Nat := standardTenpaiHandSize 0
 
 /-- 解析対象にする手牌サイズ。各手牌は `deck` から重複なく取られた物理牌で表す。 -/
 inductive Hand where

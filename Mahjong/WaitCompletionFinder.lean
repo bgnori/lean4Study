@@ -319,9 +319,10 @@ theorem WinningPartitionSpec.of_perm {tiles other : List Tile}
 def isWinning (tiles : List Tile) : Bool :=
   !(winningPartitions tiles).isEmpty
 
-/-- 通常形聴牌として扱う手牌枚数。 -/
+/-- 0面子から通常手の最大面子数までの、通常形聴牌として扱う手牌枚数。 -/
 def IsTenpaiHandSize (size : Nat) : Prop :=
-  size = 1 ∨ size = 4 ∨ size = 7 ∨ size = 10 ∨ size = 13
+  ∃ mentsuCount ∈ List.range (standardHandMentsuCount + 1),
+    size = standardTenpaiHandSize mentsuCount
 
 /-- 各牌種が物理的な上限枚数を超えていないこと。 -/
 def HasLegalTileCounts (tiles : List Tile) : Prop :=

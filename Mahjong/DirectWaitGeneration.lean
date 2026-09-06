@@ -526,27 +526,14 @@ example :
     (derivation.1.wait :: hand derivation).Perm derivation.1.shape.tiles := by
   native_decide
 
-private theorem mentsuComponent_tiles_length (mentsu : MentsuCandidate) :
-  (WinningComponent.tiles (.inr mentsu)).length = mentsuTileCount := by
-  cases mentsu with
-  | shuntsu shuntsuPattern =>
-      cases shuntsuPattern
-      rfl
-  | koutsu tile => rfl
-
-private theorem mentsuComponents_tiles_length (mentsu : List MentsuCandidate) :
-    ((mentsu.map fun candidate => (Sum.inr candidate : WinningComponent)).flatMap
-      WinningComponent.tiles).length = mentsu.length * mentsuTileCount := by
-  induction mentsu with
-  | nil => rfl
-  | cons first rest inductionHypothesis =>
-      simp only [List.map_cons, List.flatMap_cons, List.length_append]
-      rw [mentsuComponent_tiles_length, inductionHypothesis]
-      simp [Nat.add_mul, Nat.add_comm]
-
 private theorem winningShape_tiles_length (shape : WinningShape n) :
     shape.tiles.length = n * mentsuTileCount + 2 := by
-  have restLength := mentsuComponents_tiles_length (List.ofFn shape.mentsu)
+  have restLength :
+      (((List.ofFn shape.mentsu).map fun candidate =>
+        (Sum.inr candidate : WinningComponent)).flatMap WinningComponent.tiles).length =
+        (List.ofFn shape.mentsu).length * mentsuTileCount := by
+    simpa only [List.flatMap_map, Function.comp_apply, WinningComponent.tiles] using
+      MentsuCandidate.flatMap_tiles_length (List.ofFn shape.mentsu)
   simp only [WinningShape.tiles, WinningShape.components, List.flatMap_cons,
     List.length_append]
   rw [restLength]
@@ -584,11 +571,10 @@ private theorem derivation_waitFor (derivation : WaitDerivation n) (standard : n
   have lengthEq := permutation.length_eq
   constructor
   · constructor
-    · unfold IsTenpaiHandSize
+    · refine ⟨n, List.mem_range.mpr (by omega), ?_⟩
       rw [winningShape_tiles_length derivation.1.shape] at lengthEq
       simp only [List.length_cons] at lengthEq
-      simp [mentsuTileCount] at lengthEq
-      simp [standardHandMentsuCount] at standard
+      simp [standardTenpaiHandSize] at lengthEq ⊢
       omega
     · intro tile
       have tileCountEq := permutation.count tile
@@ -716,12 +702,16 @@ theorem exists_derivation_of_mem_findWaitCompletions {tiles : List Tile}
           legalTileCounts_decide_eq_true_of_perm shapeTilesPerm
             (legal_cons_of_waitFor waitFor)
         have standard : sorted.length ≤ standardHandMentsuCount := by
-          have legalSize := waitFor.1.1
+          obtain ⟨mentsuCount, mentsuCountMem, legalSize⟩ := waitFor.1.1
+          have mentsuCountLe : mentsuCount ≤ standardHandMentsuCount := by
+            have := List.mem_range.mp mentsuCountMem
+            omega
           have lengthEq := shapeTilesPerm.length_eq
           rw [winningShape_tiles_length shape] at lengthEq
           simp only [List.length_cons] at lengthEq
-          simp [mentsuTileCount, standardHandMentsuCount] at lengthEq ⊢
-          rcases legalSize with one | four | seven | ten | thirteen <;> omega
+          simp [standardTenpaiHandSize, standardHandPairCount, mentsuTileCount,
+            standardHandMentsuCount] at legalSize lengthEq mentsuCountLe ⊢
+          omega
         have waitInRaw : wait ∈
             ((.inl pair : WinningComponent) :: rawMentsu.map fun candidate =>
               (Sum.inr candidate : WinningComponent)).flatMap WinningComponent.tiles :=

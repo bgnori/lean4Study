@@ -12,6 +12,22 @@
 
 ## 課題一覧
 
+### 通常形聴牌の手牌枚数規則を一元化する
+
+状態: 対応済み
+
+通常形聴牌の手牌枚数は `standardTenpaiHandSize mentsuCount` が表す `3n + 1` で決まるが、
+`IsTenpaiHandSize` は有効な5個の値を選言で再列挙し、`Hand.lean` の名前付き定数の一部は
+大きい手牌サイズから3を引く別の計算経路を持っていた。
+
+`IsTenpaiHandSize` は、面子数が `0` 以上 `standardHandMentsuCount` 以下であり、手牌枚数が
+`standardTenpaiHandSize` から得られるという有限存在条件へ変更した。`Hand.lean` の各サイズ定数も、
+対応する面子数を同じ関数へ渡して定義する。これにより、対象範囲と枚数計算をそれぞれ
+`standardHandMentsuCount` と `standardTenpaiHandSize` だけが決める。
+
+また、`DirectWaitGeneration.lean` に局所定義されていた面子列の牌数補題は、
+`Pattern.lean` の `MentsuCandidate.flatMap_tiles_length` と同じ内容だったため削除し、既存補題を直接使う。
+
 ### 分解の操作履歴と外延的な正しさを分離する
 
 状態: 対応済み
