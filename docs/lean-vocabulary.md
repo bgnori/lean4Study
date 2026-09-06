@@ -59,20 +59,20 @@
 
 ### 添字付きinductive family
 
-`MentsuPartition : Nat → List Tile → List WinningComponent → Prop` のように、引数によって異なる命題や型を返す
+`CompletionFor : List Tile → WaitCompletion → Prop` のように、引数によって異なる命題や型を返す
 `inductive` 定義を、添字付きinductive familyと呼ぶ。constructorごとに、どの引数の組について値を
-作れるかを制限できる。`MentsuPartition.done` は `0, [], []` の組だけを作り、`next` は面子数を1増やす。
+作れるかを制限できる。
 
 ### inductive型のconstructor
 
-inductive型のconstructorは、その型の値や証拠を作る方法である。`MentsuPartition.done`と
-`MentsuPartition.next`は、正しい面子分解の証拠を作る2つの方法を表す。
-証明タクティクの`constructor`とは同じ語を使うが、ここではinductive定義に並ぶ`done`や`next`を指す。
+inductive型のconstructorは、その型の値や証拠を作る方法である。`CompletionFor.intro` は、
+待ち牌、和了分割、双方の正しさからcompletionの証拠を作る。
+証明タクティクの`constructor`とは同じ語を使うが、ここではinductive定義に並ぶ`intro`を指す。
 
 ### 暗黙の引数 `{...}`
 
 定義やconstructorの引数を波括弧`{...}`で囲むと、多くの場合は他の引数や期待される型からLeanが値を補う。
-`MentsuPartition.next`の`fuel`、`tiles`、`remaining`、`rest`は、完成面子、除去結果、再帰的な分解証拠から推論される。
+`CompletionFor.intro` の `tiles` は、待ちの証拠や期待される結論から推論される。
 
 ### theorem
 
@@ -173,7 +173,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `List.Perm.append_left prefix proof` は、`xs.Perm ys` の証拠 `proof` から、両方の先頭へ同じ列
 `prefix` を連結した `(prefix ++ xs).Perm (prefix ++ ys)` の証拠を作る。
-`MentsuPartition.tiles_perm` では、残り牌について得た順列の両側へ、現在の完成面子の牌を加える。
+`mem_decomposeMentsu_iff_spec` では、残り牌について得た順列の両側へ、現在の完成面子の牌を加える。
 
 ### `List.Perm.cons`
 
@@ -191,8 +191,8 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `List.Perm.nil_eq`
 
 `List.Perm.nil_eq proof` は、空列とあるリストが順列関係にあるという証拠から、そのリストも空列であると示す。
-空列は要素を持たず、`List.Perm` は要素とその個数を保存するためである。`MentsuPartition.of_perm` の
-`done` の場合に、並べ替え後の入力も空であることを確認する。
+空列は要素を持たず、`List.Perm` は要素とその個数を保存するためである。
+`mem_decomposeMentsu_iff_spec` の基底ケースで、仕様が持つ入力牌列も空であることを確認する。
 
 ### `List.Perm.length_eq`
 
@@ -455,13 +455,13 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `List.length`
 
 `xs.length` または `List.length xs` は、リスト `xs` の要素数を返す。空列の長さは `0` で、
-`first :: rest` の長さは `rest.length + 1` である。`MentsuPartition.components_length` では、
-分解証拠へ完成面子を1つ追加するたび、結果列の長さと `fuel` がともに1増えることを使う。
+`first :: rest` の長さは `rest.length + 1` である。`MentsuPartitionSpec.components_length` は、
+結果列の長さと `fuel` が一致することを直接保持する。
 
 ### `induction ... generalizing`
 
 `induction fuel generalizing tiles components` は、`fuel`について帰納法を行うとき、`tiles`と`components`を
-特定の値に固定せず、任意の値について使える帰納法の仮定を作る。`mem_decomposeMentsu_iff`では、
+特定の値に固定せず、任意の値について使える帰納法の仮定を作る。`mem_decomposeMentsu_iff_spec`では、
 再帰呼び出しで残りの牌種列と完成面子列へ変わるため、この一般化が必要になる。
 
 ### constructor
@@ -478,7 +478,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 `have name : proposition := proof` は、証明の途中で補助的な事実を示し、`name` を付けて後から使えるようにする。
 型をLeanが推論できる場合は、`have name := proof` のように命題を省略できる。
-`mentsuPartition_flatMap` では、末尾の分解証拠と、先頭面子を除いた計算結果を順に保持する。
+`mem_decomposeMentsu_iff_spec` では、再帰結果の外延仕様と、先頭面子を除いた計算結果を保持する。
 
 ### apply
 
@@ -523,7 +523,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### rename_i
 
 `rename_i name ...` は、Leanが自動的に導入した無名または内部名の変数へ、証明中で使う名前を付ける。
-`mem_decomposeMentsu_iff`では、分解証拠を場合分けした後に現れる残り牌列と残り面子列を命名する。
+`exists_removeTiles_eq_some_iff_perm` の証明では、場合分けで現れる所属証拠を命名する。
 
 ### simp
 
@@ -552,7 +552,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `List.mem_flatten`
 
 `List.mem_flatten`は、値が`List.flatten xss`に含まれることを、その値を含む内側のリストが
-`xss`に存在することとして読み替える。`mem_decomposeMentsu_iff`では、全候補の分解結果をまとめた列から、
+`xss`に存在することとして読み替える。`mem_decomposeMentsu_iff_spec`では、全候補の分解結果をまとめた列から、
 実際に対象の分解を生成した候補の枝を取り出す。
 
 ### subst
@@ -563,7 +563,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### rw
 
 `rw [proof]`は、等式`proof`を使って現在の目標や仮定を書き換える。
-`mem_decomposeMentsu_iff`では、`removeTiles`の計算結果を成功時の`some remaining`へ書き換える。
+`mem_decomposeMentsu_iff_spec`では、`removeTiles`の計算結果を成功時の`some remaining`へ書き換える。
 
 `rw [← proof]` の矢印 `←` は、等式を右辺から左辺への向きで使う。`at hypothesis` を付けると、
 目標ではなく指定した仮定の型を書き換える。
@@ -571,7 +571,6 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 ### `▸`
 
 `equality ▸ proof`は、等式に沿って`proof`の型を書き換える項形式の記法である。
-`mem_decomposeMentsu_iff`では、`map`から得た完成面子列の等式に合わせて、構築した分解証拠の結論を書き換える。
 
 ### at
 
@@ -659,7 +658,7 @@ inductive型のconstructorは、その型の値や証拠を作る方法である
 
 実行器と仕様の一致を2方向で述べるとき、健全性は「実行器が返した結果は仕様を満たす」、
 完全性は「仕様を満たす結果を実行器が取りこぼさない」という保証を指す。
-`mem_decomposeMentsu_iff`では、左から右が健全性、右から左が完全性に対応する。
+`mem_decomposeMentsu_iff_spec`では、左から右が健全性、右から左が完全性に対応する。
 
 ### `¬`
 

@@ -108,6 +108,23 @@
 
 面子を `WinningComponent` へ包む処理は、雀頭と面子を一つの和了構成部品列へまとめる境界にだけ残る。
 
+### `MentsuPartition` と操作履歴用補題
+
+置き換え先: `MentsuPartitionSpec` と `mem_decomposeMentsu_iff_spec`
+
+`MentsuPartition` は、面子を一つずつ除いた結果を再帰的に保持する操作履歴だった。同じ面子分解を
+`MentsuPartitionSpec` が面子数と牌の順列だけで表せるため、列挙所属を外延仕様へ直接帰納する形へ統合した。
+
+これに伴い次を削除した。
+
+- `MentsuPartition`
+- `mem_decomposeMentsu_iff`
+- `MentsuPartition.of_perm`
+- `MentsuPartition.tiles_perm`
+- `MentsuPartition.components_length`
+- `mentsuPartition_flatMap`
+- `MentsuPartition.iff_extensional`
+
 ### `WinningPartition` と操作履歴用補題
 
 置き換え先: `WinningPartitionSpec` と `mem_winningPartitions_iff_spec`

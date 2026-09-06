@@ -162,57 +162,16 @@ def decomposeMentsu : Nat → List Tile → List (List MentsuCandidate)
     example : decomposeMentsu 0 [] = [[]] := rfl
     example : decomposeMentsu 0 [.numbered .Manzu 0] = [] := rfl
 
-/--
-`decomposeMentsu` が `tiles` をちょうど `fuel` 個の完成面子へ分解する操作履歴。
+/-- 面子分割の、除去順に依存しない公開仕様。 -/
+structure MentsuPartitionSpec (fuel : Nat) (tiles : List Tile)
+    (components : List MentsuCandidate) : Prop where
+  components_length : components.length = fuel
+  tiles_perm : (components.flatMap MentsuCandidate.tiles).Perm tiles
 
-3つの引数は順に、完成面子の個数、分解前の牌種列、分解後の完成面子列を表す。
-値を計算して返す関数ではなく、この3者が正しい分解関係にあることの証拠を作る `Prop` である。
-
-- `done`: 0個の完成面子で空の牌種列を空の完成面子列へ分解する。
-- `next`: 候補に含まれる完成面子を1つ選び、その牌を除いた残りに対する分解証拠の前へ追加する。
-
-各 `next` は、選んだ値が完成面子候補である証拠と、実際にその牌を除けた証拠を要求する。
-そのため、候補でない雀頭や、入力に存在しない牌から分解証拠を作ることはできない。
-
-外延的な正しさは `MentsuPartitionSpec` で表し、この型は列挙器との対応証明に使う。
-
-読むためのLean語彙: 添字付きinductive family, `Prop`, constructor, 暗黙の引数, `.done`, `.next`。
--/
-inductive MentsuPartition : Nat → List Tile → List MentsuCandidate → Prop
-| done : MentsuPartition 0 [] []
-| next {fuel tiles remaining rest} (mentsu : MentsuCandidate)
-    (remove : removeTiles tiles mentsu.tiles = some remaining)
-    (tail : MentsuPartition fuel remaining rest) :
-    MentsuPartition (fuel + 1) tiles (mentsu :: rest)
-
-example :
-    MentsuPartition 1
-      [.honor .Red, .honor .Red, .honor .Red]
-      [MentsuCandidate.koutsu (.honor .Red)] := by
-  apply MentsuPartition.next (MentsuCandidate.koutsu (.honor .Red))
-  · rfl
-  · exact .done
-
-/--
-完成面子列が `decomposeMentsu` の列挙結果に含まれることと、同じ分解を表す
-`MentsuPartition` の証拠を作れることは同値である。
-
-左から右は列挙器の健全性を示す。`fuel` に対する帰納法で、列挙結果を最初に選んだ完成面子と
-残りの分解へ分解し、牌の除去結果と帰納法で得た残りの証拠から `MentsuPartition.next` を作る。
-
-右から左は列挙器の完全性を示す。`MentsuPartition` の証拠から最初の完成面子、除去結果、
-残りの分解証拠を取り出し、帰納法の仮定で残りを列挙結果へ戻して、`map` と `flatten` 内の該当する枝を示す。
-
-`fuel = 0` では、実行器と操作履歴のどちらも、入力牌列と完成面子列がともに空の場合だけ成立する。
-この定理により、後続の証明は実行器のリスト操作を直接追わず、`MentsuPartition` の構築規則を使って
-列挙結果の意味を論じられる。
-
-読むためのLean語彙: `↔`, 健全性と完全性, `induction ... generalizing`, `constructor`, `split`,
-`List.mem_flatten`, `List.mem_map`, `.mp`, `.mpr`, `subst`, `rw`, `▸`, `rename_i`。
--/
-theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
-  (components : List MentsuCandidate) :
-    components ∈ decomposeMentsu fuel tiles ↔ MentsuPartition fuel tiles components := by
+/-- `decomposeMentsu` の列挙所属を、面子数と牌の多重集合からなる外延仕様で読む。 -/
+theorem mem_decomposeMentsu_iff_spec (fuel : Nat) (tiles : List Tile)
+    (components : List MentsuCandidate) :
+    components ∈ decomposeMentsu fuel tiles ↔ MentsuPartitionSpec fuel tiles components := by
   induction fuel generalizing tiles components with
   | zero =>
       constructor
@@ -223,218 +182,60 @@ theorem mem_decomposeMentsu_iff (fuel : Nat) (tiles : List Tile)
           subst tiles
           simp only [List.mem_singleton] at member
           subst components
-          exact .done
+          exact ⟨rfl, .refl []⟩
         · simp at member
-      · intro partition
-        cases partition
-        simp [decomposeMentsu]
+      · intro specification
+        cases components with
+        | nil =>
+            have tilesEmpty : tiles = [] :=
+              (List.Perm.nil_eq specification.tiles_perm).symm
+            subst tiles
+            simp [decomposeMentsu]
+        | cons first rest =>
+          have lengthEq := specification.components_length
+          simp at lengthEq
   | succ fuel inductionHypothesis =>
       constructor
       · intro member
         simp only [decomposeMentsu] at member
         obtain ⟨generated, generatedMember, member⟩ := List.mem_flatten.mp member
-        obtain ⟨mentsu, candidate, rfl⟩ := List.mem_map.mp generatedMember
+        obtain ⟨mentsu, _, rfl⟩ := List.mem_map.mp generatedMember
         cases removeEq : removeTiles tiles mentsu.tiles with
         | none => simp [removeEq] at member
         | some remaining =>
-          rw [removeEq] at member
-          obtain ⟨rest, restMember, componentsEq⟩ := List.mem_map.mp member
-          exact componentsEq ▸
-            MentsuPartition.next mentsu removeEq
-              ((inductionHypothesis remaining rest).mp restMember)
-      · intro partition
-        cases partition with
-        | next mentsu remove tail =>
-            rename_i remaining rest
+            rw [removeEq] at member
+            obtain ⟨rest, restMember, rfl⟩ := List.mem_map.mp member
+            have restSpec := (inductionHypothesis remaining rest).mp restMember
+            have removedPerm : (mentsu.tiles ++ remaining).Perm tiles :=
+              (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
+                ⟨remaining, removeEq, .refl remaining⟩
+            exact ⟨by simp [restSpec.components_length],
+              (List.Perm.append_left mentsu.tiles restSpec.tiles_perm).trans removedPerm⟩
+      · intro specification
+        cases components with
+        | nil =>
+          have lengthEq := specification.components_length
+          simp at lengthEq
+        | cons mentsu rest =>
+            have restLength : rest.length = fuel := by
+              simpa using specification.components_length
+            obtain ⟨remaining, removeEq, remainingPerm⟩ :=
+              (exists_removeTiles_eq_some_iff_perm
+                tiles mentsu.tiles (rest.flatMap MentsuCandidate.tiles)).mpr
+                specification.tiles_perm
+            have restMember : rest ∈ decomposeMentsu fuel remaining :=
+              (inductionHypothesis remaining rest).mpr ⟨restLength, remainingPerm.symm⟩
             apply List.mem_flatten.mpr
             refine ⟨(decomposeMentsu fuel remaining).map fun tail => mentsu :: tail, ?_, ?_⟩
             · apply List.mem_map.mpr
-              exact ⟨mentsu, MentsuCandidate.mem_candidates mentsu, by simp [remove]⟩
-            · exact List.mem_map.mpr
-                ⟨rest, (inductionHypothesis remaining rest).mpr tail, rfl⟩
+              exact ⟨mentsu, MentsuCandidate.mem_candidates mentsu, by simp [removeEq]⟩
+            · exact List.mem_map.mpr ⟨rest, restMember, rfl⟩
 
 example :
     [MentsuCandidate.koutsu (.honor .Red)] ∈
       decomposeMentsu 1 [.honor .Red, .honor .Red, .honor .Red] := by
-  apply (mem_decomposeMentsu_iff 1
-    [.honor .Red, .honor .Red, .honor .Red]
-    [MentsuCandidate.koutsu (.honor .Red)]).mpr
-  apply MentsuPartition.next (MentsuCandidate.koutsu (.honor .Red))
-  · rfl
-  · exact .done
-
-/--
-正しい面子分解の証拠は、同じ牌を同じ枚数だけ持つ任意の入力順へ移せる。
-
-`tiles.Perm other` は、`other` が `tiles` の順番だけを変えた牌列であることを表す。結論では
-完成面子列 `components` と面子数 `fuel` を変えず、入力牌列だけを `other` へ置き換える。
-したがって、`MentsuPartition` が表す分解可能性は入力リストの並び順に依存しない。
-
-証明は分解証拠に対する帰納法で行い、並べ替え後の入力 `other` は各段階で変わるため一般化する。
-`done` では空列の順列も空列なので、再び `done` を作れる。`next` では、元の除去結果と入力間の順列を
-`exists_removeTiles_eq_some_iff_perm` から取り出し、仮定の順列とつなぐ。同じ先頭面子を `other` から
-除去できることと、その新しい残りが元の残りの順列であることが得られるので、帰納法の仮定で末尾の
-分解証拠を移し、`next` を作り直す。
-
-読むためのLean語彙: `List.Perm`, `induction ... generalizing`, `List.Perm.nil_eq`, `obtain`,
-`.trans`, `.symm`, `subst`。
--/
-theorem MentsuPartition.of_perm {fuel : Nat} {tiles other : List Tile}
-  {components : List MentsuCandidate} (partition : MentsuPartition fuel tiles components)
-    (permutation : tiles.Perm other) : MentsuPartition fuel other components := by
-  induction partition generalizing other with
-  | done =>
-      have otherEmpty : other = [] := (List.Perm.nil_eq permutation).symm
-      subst other
-      exact .done
-  | next mentsu remove tail inductionHypothesis =>
-      rename_i fuel tiles remaining rest
-      have removedPerm : (mentsu.tiles ++ remaining).Perm tiles :=
-        (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
-          ⟨remaining, remove, .refl remaining⟩
-      obtain ⟨output, removeOther, outputPerm⟩ :=
-        (exists_removeTiles_eq_some_iff_perm other mentsu.tiles remaining).mpr
-          (removedPerm.trans permutation)
-      exact .next mentsu removeOther
-        (inductionHypothesis outputPerm.symm)
-
-example :
-    MentsuPartition 1
-      [.numbered .Manzu 2, .numbered .Manzu 0, .numbered .Manzu 1]
-      [MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)] := by
-  have ordered : MentsuPartition 1
-      [.numbered .Manzu 0, .numbered .Manzu 1, .numbered .Manzu 2]
-      [MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)] := by
-    apply MentsuPartition.next (MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩))
-    · rfl
-    · exact .done
-  apply ordered.of_perm
-  decide
-
-/--
-面子分割の全和了構成部品を牌列へ戻すと、入力牌列と同じ牌種を同じ枚数だけ含む。
-
-リストの順番は一致しなくてもよいため、結論は等号ではなく `List.Perm` で表す。これにより、
-分解が入力牌を失ったり、余分な牌を追加したり、同じ牌種の枚数を変えたりしないことが分かる。
-
-証明は分解証拠に対する帰納法で行う。`done` では空列同士の順列を返す。`next` では、
-`exists_removeTiles_eq_some_iff_perm` から「先頭面子の牌と除去後の残り」が入力牌列の順列であることを得る。
-帰納法の仮定が末尾の和了構成部品牌と残り牌の順列を保証するので、`List.Perm.append_left` で両側へ
-先頭面子の牌を加え、`.trans` で2つの順列関係をつなぐ。
-
-読むためのLean語彙: `List.flatMap`, `List.Perm`, `induction`, `List.Perm.append_left`, `.trans`。
--/
-theorem MentsuPartition.tiles_perm {fuel : Nat} {tiles : List Tile}
-  {components : List MentsuCandidate} (partition : MentsuPartition fuel tiles components) :
-  (components.flatMap MentsuCandidate.tiles).Perm tiles := by
-  induction partition with
-  | done => exact .refl []
-  | next mentsu remove tail inductionHypothesis =>
-      rename_i fuel tiles remaining rest
-      have removedPerm : (mentsu.tiles ++ remaining).Perm tiles :=
-        (exists_removeTiles_eq_some_iff_perm tiles mentsu.tiles remaining).mp
-          ⟨remaining, remove, .refl remaining⟩
-      exact (List.Perm.append_left mentsu.tiles inductionHypothesis).trans removedPerm
-
-example
-    (partition : MentsuPartition 2
-      [.honor .Red, .numbered .Manzu 0, .honor .Red,
-        .numbered .Manzu 1, .honor .Red, .numbered .Manzu 2]
-      [MentsuCandidate.koutsu (.honor .Red),
-        MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)]) :
-    ([MentsuCandidate.koutsu (.honor .Red),
-      MentsuCandidate.shuntsu (.shuntsu .Manzu ⟨0, by decide⟩)].flatMap
-      MentsuCandidate.tiles).Perm
-      [.honor .Red, .numbered .Manzu 0, .honor .Red,
-        .numbered .Manzu 1, .honor .Red, .numbered .Manzu 2] := by
-  exact partition.tiles_perm
-
-  /--
-  面子分割の `fuel` は、生成される完成面子列の長さに一致する。
-
-  したがって `fuel` は探索回数の上限ではなく、この分解が含む完成面子の個数として読める。
-  証明は分解証拠に対する帰納法で行う。`done` では両辺が `0` であり、`next` では
-  完成面子列の長さと `fuel` がともに1増えるので、残りの分解に対する帰納法の仮定から従う。
-
-  読むためのLean語彙: `List.length`, `induction`, `rfl`, `simp [inductionHypothesis]`。
-  -/
-  theorem MentsuPartition.components_length {fuel : Nat} {tiles : List Tile}
-      {components : List MentsuCandidate} (partition : MentsuPartition fuel tiles components) :
-      components.length = fuel := by
-    induction partition with
-    | done => rfl
-    | next mentsu remove tail inductionHypothesis =>
-        simp [inductionHypothesis]
-
-  example
-      (partition : MentsuPartition 1
-        [.honor .Red, .honor .Red, .honor .Red]
-        [MentsuCandidate.koutsu (.honor .Red)]) :
-      [MentsuCandidate.koutsu (.honor .Red)].length = 1 := by
-    exact partition.components_length
-
-/--
-完成面子候補だけからなる部品列を牌列へ平坦化すると、その部品列自身へ正しく分解できる。
-
-入力牌列 `components.flatMap WinningComponent.tiles` は、各部品を構成する牌を部品の順番どおりに連結した列である。
-この定理はその列について `MentsuPartition` の証拠を構築する。入力牌列の任意の並び替えまでを
-ここで扱うのではなく、その場合は `MentsuPartition.of_perm` と組み合わせる。
-
-証明は `components` に対する帰納法で行う。空列は `MentsuPartition.done` で分解できる。
-先頭 `first` がある場合は、帰納法で末尾の分解証拠を作る。連結した牌列から先頭部品の牌を
-除く計算は `removeTiles_append_left` が保証するため、これらを `MentsuPartition.next` へ渡せばよい。
-
-読むためのLean語彙: `List.flatMap`, `∀`, `induction`, `have`, `simp`, `.done`, `.next`。
--/
-theorem mentsuPartition_flatMap (components : List MentsuCandidate) :
-    MentsuPartition components.length
-      (components.flatMap MentsuCandidate.tiles) components := by
-  induction components with
-  | nil => exact .done
-  | cons first rest inductionHypothesis =>
-      have tail := inductionHypothesis
-      have removeFirst :
-          removeTiles (first.tiles ++ rest.flatMap MentsuCandidate.tiles) first.tiles =
-            some (rest.flatMap MentsuCandidate.tiles) := by
-        exact removeTiles_append_left _ _
-      exact .next first removeFirst tail
-
-/-- 面子分割の、除去順に依存しない公開仕様。 -/
-structure MentsuPartitionSpec (fuel : Nat) (tiles : List Tile)
-    (components : List MentsuCandidate) : Prop where
-  components_length : components.length = fuel
-  tiles_perm : (components.flatMap MentsuCandidate.tiles).Perm tiles
-
-/--
-`MentsuPartition` を、操作履歴に依存しない2つの条件で特徴づける。
-
-分解証拠が存在することは、部品数が `fuel` に一致し、面子を牌へ戻した列が入力牌列の
-順列であることと同値である。右から左では、まず面子を並べた
-順序の入力に対する分解証拠を `mentsuPartition_flatMap` で作り、`of_perm` で実際の入力順へ移す。
--/
-theorem MentsuPartition.iff_extensional {fuel : Nat} {tiles : List Tile}
-    {components : List MentsuCandidate} :
-    MentsuPartition fuel tiles components ↔ MentsuPartitionSpec fuel tiles components := by
-  constructor
-  · intro partition
-    exact ⟨partition.components_length, partition.tiles_perm⟩
-  · intro specification
-    have partition :=
-      (mentsuPartition_flatMap components).of_perm
-        specification.tiles_perm
-    exact specification.components_length ▸ partition
-
-/-- `decomposeMentsu` の列挙所属を、操作履歴を介さず外延仕様として読む。 -/
-theorem mem_decomposeMentsu_iff_spec (fuel : Nat) (tiles : List Tile)
-    (components : List MentsuCandidate) :
-    components ∈ decomposeMentsu fuel tiles ↔ MentsuPartitionSpec fuel tiles components :=
-  (mem_decomposeMentsu_iff fuel tiles components).trans MentsuPartition.iff_extensional
-
-example :
-    MentsuPartition 1
-      [.honor .Red, .honor .Red, .honor .Red]
-      [MentsuCandidate.koutsu (.honor .Red)] := by
-  exact mentsuPartition_flatMap [MentsuCandidate.koutsu (.honor .Red)]
+  apply (mem_decomposeMentsu_iff_spec 1 _ _).mpr
+  exact ⟨rfl, .refl _⟩
 
 private theorem flatMap_mentsuComponents_tiles (mentsu : List MentsuCandidate) :
     ((mentsu.map fun candidate => (Sum.inr candidate : WinningComponent)).flatMap

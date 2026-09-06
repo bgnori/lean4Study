@@ -16,10 +16,8 @@
 
 状態: 対応済み
 
-`MentsuPartition` は、実行器の再帰構造に近い帰納的な証拠を持つ。
-各段階で、選んだ完成面子、`removeTiles` の具体的な戻り値、残りの分解証拠を保存する。
-この形は `decomposeMentsu` と `winningPartitions` の健全性・完全性を直接証明しやすい一方、利用側が
-必要とする外延的な性質を得るたび、操作履歴を順列の意味へ変換し直す必要がある。
+`MentsuPartition` は、実行器の再帰構造に近い帰納的な証拠として、各段階の完成面子、
+`removeTiles` の戻り値、残りの分解証拠を保存していた。
 
 ドキュメント整備で、次の小定理と証明パターンが連続して現れた。
 
@@ -32,27 +30,23 @@
 証明の粒度が細かく見える主因は、必要な数学的性質が細かいというより、順序依存の操作履歴と
 順序非依存の仕様が同じ証拠表現に重なっていることかもしれない。
 
-`MentsuPartition` は次の外延的な条件と同値になる。
+面子分解の意味は次の外延的な条件だけで表せる。
 
 ```lean
 components.length = fuel ∧
 	(components.flatMap MentsuCandidate.tiles).Perm tiles
 ```
 
-左から右は `components_length`、`tiles_perm`、右から左は `mentsuPartition_flatMap` と
-`of_perm` の合成で示し、この同値を `MentsuPartition.iff_extensional` として実装した。
-
 外延仕様は `MentsuPartitionSpec` と `WinningPartitionSpec` に名前を与えた。前者は部品数と
 牌の順列が証明フィールドなので、各条件を射影できる `Prop` 構造体とした。後者は雀頭と面子列という
 データの witness を含む。Leanでは `Prop` 構造体からデータ射影を生成できず、`Type` にすると仕様証明が
 計算データを不必要に保持するため、名前付きの存在命題とした。
 
-帰納的な `MentsuPartition` は、再帰的な `decomposeMentsu` の証明に使う操作履歴として残した。
-一方、非再帰の `winningPartitions` に対応していた `WinningPartition` は、同じ引数の
-`WinningPartitionSpec` と概念的に重複していたため削除した。
+`MentsuPartition` と `WinningPartition` は、それぞれ同じ引数の外延仕様と概念的に重複していたため削除した。
+再帰的な `decomposeMentsu` の健全性・完全性は、`fuel` に対する帰納法で `MentsuPartitionSpec` へ直接示す。
 
 `mem_decomposeMentsu_iff_spec` と `mem_winningPartitions_iff_spec` により、どちらの列挙結果も
-外延仕様として読める。後者は上位の操作履歴を介さず、雀頭の除去と面子分解仕様から直接証明する。
+操作履歴を介さず外延仕様として読める。
 
 公開側の `CompletionFor` は `WinningPartitionSpec` を保持するよう変更した。`DirectWaitGeneration` も
 外延仕様を使い、完成形から分割を示す証明から `fuel` の算術、`removeTiles` の具体的結果、帰納的証拠の構築を
@@ -116,7 +110,7 @@ Bool等式のまま公開するか、存在命題を主仕様としてBool判定
 局所変数 `candidates` に置き、その後で `candidates.dedup` とした。
 
 面子候補を標準順にだけ選んで重複経路そのものを生成しない方法も考えられるが、探索器と
-`MentsuPartition` の双方へ順序制約を追加し、完全性を改めて証明する必要がある。現在扱う面子数では
+`MentsuPartitionSpec` の対応定理へ順序制約を追加し、完全性を改めて証明する必要がある。現在扱う面子数では
 後段の `dedup` で十分であり、複雑化に見合う性能上の必要も確認されていない。この最適化案は現時点では
 対応しないものとして検討を閉じる。`dedup` が除く対象は `findWaitCompletions` のコメントに記録した。
 
