@@ -12,17 +12,6 @@ open MahjongComputations.SevenTile
 
 private def newline : String := "\n"
 
-private def waitDecompositionCodeGroupLine (group : WaitDecompositionCodeGroup) : String :=
-  String.intercalate "\t" [
-    toString group.codes,
-    toString group.count,
-    formatTiles group.representativeTiles,
-    formatTiles group.representativeWaits
-  ]
-
-private def waitCountLine (distribution : List (Nat × Nat)) (count : Nat) : String :=
-  s!"{count} wait tile kinds: {((distribution.find? fun entry => entry.1 == count).map Prod.snd).getD 0}"
-
 private def reportBody (summary : SevenTileSummary) : String :=
   String.intercalate newline <|
     ["# Seven-tile direct derivation wait report",
@@ -41,10 +30,11 @@ private def reportBody (summary : SevenTileSummary) : String :=
      "",
     "#### Groups by waitDecompositionCodes",
     "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
-    summary.irreducibleGroups.map waitDecompositionCodeGroupLine ++
+    summary.irreducibleGroups.map formatWaitDecompositionCodeGroup ++
     ["",
      "## Wait tile count distribution"] ++
-    ((List.range Tile.count).map (fun index => waitCountLine summary.waitTileCountDistribution (index + 1))) ++
+    ((List.range Tile.count).map (fun index =>
+      formatWaitTileCount summary.waitTileCountDistribution (index + 1))) ++
     [""]
 
 private def reportText (elapsedMs : Nat) (body : String) : String :=

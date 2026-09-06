@@ -87,6 +87,47 @@ def groupWaitDerivations {mentsuCount : Nat}
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups
 
+/-- 同じ待ち分解コード列を持つ牌姿の件数と代表例。 -/
+structure WaitDecompositionCodeGroup where
+  codes : List Nat
+  count : Nat
+  representativeTiles : List Tile
+  representativeWaits : List Tile
+deriving BEq, DecidableEq, Repr
+
+/-- 待ち分解コード列が一致するグループへ牌姿を1件加える。 -/
+def addWaitDecompositionCodeGroup
+    (codes : List Nat) (tiles waits : List Tile) :
+    List WaitDecompositionCodeGroup → List WaitDecompositionCodeGroup
+  | [] => [{ codes, count := 1, representativeTiles := tiles, representativeWaits := waits }]
+  | group :: rest =>
+      if group.codes == codes then
+        { group with count := group.count + 1 } :: rest
+      else
+        group :: addWaitDecompositionCodeGroup codes tiles waits rest
+
+/-- 各値を待ち分解コード列でまとめ、件数と最初の代表例を保持する。 -/
+def groupByWaitDecompositionCodes {α : Type}
+    (codes : α → List Nat) (tiles waits : α → List Tile) (values : List α) :
+    List WaitDecompositionCodeGroup :=
+  values.foldl
+    (fun groups value => addWaitDecompositionCodeGroup
+      (codes value) (tiles value) (waits value) groups)
+    []
+
+/-- 自然数キーの度数表へ1件加える。 -/
+def incrementCount (key : Nat) : List (Nat × Nat) → List (Nat × Nat)
+  | [] => [(key, 1)]
+  | entry :: rest =>
+      if entry.1 == key then
+        (entry.1, entry.2 + 1) :: rest
+      else
+        entry :: incrementCount key rest
+
+/-- 自然数列を初出順の度数表へ変換する。 -/
+def countOccurrences (values : List Nat) : List (Nat × Nat) :=
+  values.foldl (fun counts value => incrementCount value counts) []
+
 private def formatNumberedGroup
     (tiles : List Tile) (suit : Suit) (suffix : String) : String :=
   let digits := (List.ofFn fun rank : Rank => rank).flatMap fun rank =>
@@ -106,5 +147,19 @@ def formatTiles (tiles : List Tile) : String :=
     formatNumberedGroup tiles .Souzu "s",
     formatHonorGroup tiles
   ].filter fun group => !group.isEmpty
+
+/-- 待ち分解コードグループをレポートのTSV行へ変換する。 -/
+def formatWaitDecompositionCodeGroup (group : WaitDecompositionCodeGroup) : String :=
+  String.intercalate "\t" [
+    toString group.codes,
+    toString group.count,
+    formatTiles group.representativeTiles,
+    formatTiles group.representativeWaits
+  ]
+
+/-- 待ち牌種類数の度数をレポート行へ変換する。 -/
+def formatWaitTileCount (counts : List (Nat × Nat)) (waitTileCount : Nat) : String :=
+  let count := (counts.find? fun entry => entry.1 == waitTileCount).map Prod.snd |>.getD 0
+  s!"{waitTileCount} wait tile kinds: {count}"
 
 end MahjongComputations

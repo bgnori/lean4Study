@@ -17,14 +17,6 @@ open DirectWaitGeneration
 open WaitCompletionFinder
 open WaitDecompositionCode
 
-/-- A summary group for irreducible seven-tile shapes sharing wait decomposition codes. -/
-structure WaitDecompositionCodeGroup where
-  codes : List Nat
-  count : Nat
-  representativeTiles : List Tile
-  representativeWaits : List Tile
-deriving BEq, DecidableEq, Repr
-
 /-- Aggregated exhaustive report data for seven-tile shapes. -/
 structure SevenTileSummary where
   allSevenTileShapes : Nat
@@ -45,23 +37,6 @@ private def emptySummary : SevenTileSummary :=
     irreducibleGroups := []
     waitTileCountDistribution := [] }
 
-private def incrementAssoc (key : Nat) : List (Nat × Nat) → List (Nat × Nat)
-  | [] => [(key, 1)]
-  | entry :: rest =>
-      if entry.1 == key then
-        (entry.1, entry.2 + 1) :: rest
-      else
-        entry :: incrementAssoc key rest
-
-private def addWaitDecompositionCodeGroup
-    (codes : List Nat) (tiles waits : List Tile) : List WaitDecompositionCodeGroup → List WaitDecompositionCodeGroup
-  | [] => [{ codes, count := 1, representativeTiles := tiles, representativeWaits := waits }]
-  | group :: rest =>
-      if group.codes == codes then
-        { group with count := group.count + 1 } :: rest
-      else
-        group :: addWaitDecompositionCodeGroup codes tiles waits rest
-
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
 
@@ -76,7 +51,7 @@ private def addShapeReport (report : WaitCompletionGroup) (summary : SevenTileSu
   let summary :=
     { summary with
       tenpaiReports := summary.tenpaiReports + 1
-      waitTileCountDistribution := incrementAssoc waits.length summary.waitTileCountDistribution }
+      waitTileCountDistribution := incrementCount waits.length summary.waitTileCountDistribution }
   if canReduceMentsuPreservingWaitCores report.tiles then
     { summary with reducibleReports := summary.reducibleReports + 1 }
   else

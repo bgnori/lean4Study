@@ -33,23 +33,11 @@ private def reducibilityCount (reports : List FourTileShapeReport)
 private def reportsByReducibility (reducibility : WaitReducibility) : List FourTileShapeReport :=
   directDerivationTenpaiReports.filter fun report => report.reducibility == some reducibility
 
-private def waitCountLine (count : Nat) : String :=
-  s!"{count} wait tile kinds: {(directDerivationTenpaiReports.filter fun report => report.waits.length == count).length}"
-
-private def waitDecompositionCodeGroupLine (source : List FourTileShapeReport) (codes : List Nat) : String :=
-  let group := source.filter fun report => report.waitDecompositionCodes == codes
-  match group with
-  | [] => ""
-  | representative :: _ =>
-      String.intercalate "\t" [
-        toString codes,
-        toString group.length,
-        formatTiles representative.tiles,
-        formatTiles representative.waits
-      ]
-
 private def reportText : String :=
   let irreducibleReports := reportsByReducibility .irreducible
+  let irreducibleGroups := groupByWaitDecompositionCodes
+    (·.waitDecompositionCodes) (·.tiles) (·.waits) irreducibleReports
+  let waitTileCounts := countOccurrences (directDerivationTenpaiReports.map (·.waits.length))
   String.intercalate newline <|
     ["# Four-tile direct derivation wait report",
      "",
@@ -67,11 +55,10 @@ private def reportText : String :=
      "",
     "#### Groups by waitDecompositionCodes",
     "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
-    (irreducibleReports.map (·.waitDecompositionCodes)).eraseDups.map
-      (waitDecompositionCodeGroupLine irreducibleReports) ++
+    irreducibleGroups.map formatWaitDecompositionCodeGroup ++
     ["",
      "## Wait tile count distribution"] ++
-    ([1, 2, 3, 4].map waitCountLine) ++
+    ([1, 2, 3, 4].map (formatWaitTileCount waitTileCounts)) ++
     ["",
      "## Tenpai reports",
     "tiles\twaits\treducibility\twaitDecompositionCodes"] ++
