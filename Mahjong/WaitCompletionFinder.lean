@@ -563,6 +563,32 @@ theorem mem_findWaitCompletions_iff (tiles : List Tile) (completion : WaitComple
         refine ⟨rawComponents, (mem_winningPartitions_iff_spec _ _).mpr partition, ?_⟩
         simp
 
+/-- 完成情報が1件以上見つかることと、待ち牌が1種類以上見つかることは同値。 -/
+theorem findWaitCompletions_ne_nil_iff (tiles : List Tile) :
+    findWaitCompletions tiles ≠ [] ↔ waitingTiles tiles ≠ [] := by
+  constructor
+  · intro completionsNonempty
+    obtain ⟨completion, completionMember⟩ :=
+      List.exists_mem_of_ne_nil _ completionsNonempty
+    cases (mem_findWaitCompletions_iff tiles completion).mp completionMember with
+    | intro wait rawComponents waitFor partition =>
+        exact List.ne_nil_of_mem ((mem_waitingTiles_iff tiles wait).mpr waitFor)
+  · intro waitsNonempty
+    obtain ⟨wait, waitMember⟩ := List.exists_mem_of_ne_nil _ waitsNonempty
+    have waitFor := (mem_waitingTiles_iff tiles wait).mp waitMember
+    have partitionsNonempty : winningPartitions (wait :: tiles) ≠ [] := by
+      unfold IsWaitFor IsStandardAgari isWinning at waitFor
+      simpa [List.isEmpty_iff] using waitFor.2.2
+    obtain ⟨rawComponents, partitionMember⟩ :=
+      List.exists_mem_of_ne_nil _ partitionsNonempty
+    let completion : WaitCompletion :=
+      { wait, winningComponents := CanonicalWinningComponents.ofList rawComponents }
+    have completionMember : completion ∈ findWaitCompletions tiles :=
+      (mem_findWaitCompletions_iff tiles completion).mpr
+        (.intro wait rawComponents waitFor
+          ((mem_winningPartitions_iff_spec _ _).mp partitionMember))
+    exact List.ne_nil_of_mem completionMember
+
 example : CompletionFor [.honor .Red]
     { wait := .honor .Red
       winningComponents := CanonicalWinningComponents.ofList [WinningComponent.pair (.honor .Red)] } := by

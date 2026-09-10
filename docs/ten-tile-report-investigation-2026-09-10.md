@@ -87,7 +87,7 @@
 - `lake build sevenTileReport` → `exit code 0`、実行時間は約4分59秒
 - `lake build diag-temp && ./.lake/build/bin/diag-temp` → `exit code 0`
   - `n=1 fold-only count=5100`、`elapsedMs=0`
-  - `n=1 grouped count=5100 groups=1`、`elapsedMs=0`
+  - `n=1 grouped count=5100 groups=3756`、`elapsedMs=0`
   - `n=2 grouped count=224502 groups=148809`、`elapsedMs=1`
   - `canReduceMentsuPreservingWaitCores` を148,809件に適用した測定値: `elapsedMs=332757`（約5分32秒）
   - ループ不変量の巻き上げ後の再測定: `elapsedMs=289130`（約4分49秒）
@@ -118,10 +118,46 @@
 
 ## 未解決・次の一手
 
-- ループ不変量の巻き上げ（実施済み）だけでは約13%しか改善しないため、真の本命は
-  「レポート層が既に持っている `report.completions` から `waitCores` を直接求め、
-  元の手牌ぶんの `winningPartitions` 探索を丸ごと省略するヘルパー」を追加すること。
-  縮小後の手牌については既知データがないため、引き続き `findWaitCores` で探索する。
-- 上記ヘルパーを実装したら、同じ診断ツールで7枚形の `canReduceMentsuPreservingWaitCores`
-  相当の所要時間を再測定し、どれだけ短縮できたか確認する。
-- 10枚形の再実行は、この対策を入れて7枚形で十分な改善を確認してから行う。
+既約性判定は、意味論を変えない小さい変更から次の順で改善する。
+
+1. **存在判定を `filter` と `isEmpty` の組み合わせから `List.any` へ変更する。**
+  成功候補を1件見つけた時点で評価を止める。削減候補一覧を返す
+  `waitCorePreservingMentsuReductions` は既存APIとして残し、Boolを返す判定だけを直接実装する。
+2. **縮小手牌に対する待ち探索の二重実行を除く。**
+  現在は `waitingTiles remaining` の後に `findWaitCores remaining` が内部でも待ちを探索する。
+  `findWaitCores remaining` の非空性で聴牌性を代用できることを、定理または全件比較で確認してから統合する。
+3. **縮小手牌の待ち核を牌多重集合キーでキャッシュする。**
+  異なる元牌姿から同じ縮小牌姿へ到達する場合の再探索を避ける。結果一致だけでなく、
+  キャッシュの件数・ピークメモリ・経過時間を測り、4GiB制限下で逆効果にならないことを確認する。
+
+各段階で7枚形148,809グループを全件評価し、既存実装の基準値
+`reducibleCount=144516` と一致することを確認する。意味論の一致を確認した後に所要時間を比較し、
+改善が認められた変更だけを残す。10枚形の再実行は、この段階的検証が完了してから行う。
+
+### 段階1の実施結果: `List.any` 化は不採用
+
+`waitCorePreservingMentsuReductions` は互換性のため残し、`canReduceMentsuPreservingWaitCores` と
+レポート用ヘルパーの存在判定だけを `List.any` で短絡化して全件測定した。結果はいずれも
+`reducibleCount=144516` であり、意味論は既存実装と一致した。一方、所要時間は次の通りだった。
+
+- 汎用判定: `296032ms` → `304093ms`（約2.7%増）
+- completion再利用版: `133254ms` → `137980ms`（約3.5%増）
+
+測定揺らぎの範囲も考えられるが、少なくとも改善は確認できなかった。成功候補が十分早い位置に
+偏っていないこと、またはLeanの評価・最適化により元の `filter` 非空判定との差が小さいことが考えられる。
+「改善が認められた変更だけを残す」という方針に従い、`List.any` 化はコードから戻した。
+次は段階2の二重探索除去について、まず非空性の同値条件を確認する。
+
+### 段階2の実施結果: 単純な二重探索除去は不採用
+
+`WaitCompletionFinder.findWaitCompletions_ne_nil_iff` を追加し、任意の牌姿について
+`findWaitCompletions tiles ≠ [] ↔ waitingTiles tiles ≠ []` を証明した。この定理を根拠として、
+各縮小手牌では `findWaitCompletions remaining` を1回だけ実行し、その結果の非空性と
+`waitCores remainingCompletions` を同時に利用する形を測定した。汎用判定は
+`reducibleCount=144516` を維持したが `308083ms` で、変更前の `296032ms` より遅かった。
+completion再利用版も3分を超え、変更前の `133254ms` を明確に上回った時点で測定を停止した。
+
+`findWaitCompletions` 自体が内部で `waitingTiles` と完成分割列挙を行うため、外側の呼び出しを単純に
+まとめても支配的な探索を減らせなかったと考えられる。実行経路の変更は戻したが、非空性同値定理は
+APIの意味を明示する有用な結果として残した。次は段階3として、縮小牌姿ごとの探索結果を
+`tileMultisetKey` で共有するキャッシュを検討する。
