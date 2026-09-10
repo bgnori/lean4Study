@@ -34,13 +34,30 @@
    （生の候補224,502件、グループ148,809件）は **1ms未満** で終わることを確認した。
 10. これにより、生成・グループ化のアルゴリズムはすでに高速であり、`fourTileReport`/`sevenTileReport`
     全体の実行時間（38秒・5分）を支配しているのは**別の処理**であると判明した。
-    有力な容疑者は次の2つ（この文書の時点では特定作業を継続中）:
+    有力な容疑者は次の2つだった:
     - `WaitDecompositionCode.canReduceMentsuPreservingWaitCores`
       （グループごとに面子除去候補を再列挙し、待ち核集合を再計算する処理）を
       牌姿グループ全件（7枚形で148,809件）に対して呼ぶコスト。
     - `FourTile.tenpaiReports`（`allFourTileShapes` から全4枚形66,045件を総当たりで
       `WaitCompletionFinder`/`determineReducibility`/`findWaitDecompositionCodes` に通す、
       direct derivationとは別の brute-force 経路）が4枚形レポートに残っている影響。
+11. 修正済みの診断ツールで実測した結果、犯人が確定した。
+    - `canReduceMentsuPreservingWaitCores` を7枚形の148,809グループ全件に適用:
+      `elapsedMs=332757`（**約5分32秒**）。これは `sevenTileReport` 全体の実測（約5分）と
+      ほぼ一致し、実行時間のほぼ全量がこの1関数に集中していることを裏付けた。
+    - `FourTile.tenpaiReports`（brute-force経路、66,045件総当たり）: `elapsedMs=0`。
+      こちらはボトルネックではないと判明した。4枚形の38秒も、グループ数が
+      3,756件と少ないだけで、同じ`canReduceMentsuPreservingWaitCores`が支配していると見てよい。
+
+## 結論
+
+生成・グループ化（正準生成＋ストリーミング化）の最適化は正しく機能しており、メモリ超過の
+原因は解消できた。しかし `fourTileReport`/`sevenTileReport`/`tenTileReport` の**実行時間**を
+支配しているのは生成側ではなく、`WaitDecompositionCode.canReduceMentsuPreservingWaitCores`
+（可約性判定）である。この関数は牌姿グループ1件ごとに `mentsuReductions` で面子除去候補を
+列挙し、`findWaitCores` を複数回呼び直して待ち核集合を比較しており、グループ数に比例して
+重くなる。10枚形はグループ数が7枚形よりさらに大きくなる見込みのため、生成側の最適化だけでは
+実行時間の問題を解決できず、次に着手すべきは可約性判定側の高速化である。
 
 ## 教訓・注意点
 
@@ -62,8 +79,6 @@
 
 ## 未解決・次の一手
 
-- `canReduceMentsuPreservingWaitCores` および `FourTile` の brute-force経路（`tenpaiReports`）が
-  実際のボトルネックかどうかを、計測を修正した診断ツールで確定する。
-- ボトルネックが確認できたら、そこを軽量化するか、10枚形・13枚形のレポートでは
+- `canReduceMentsuPreservingWaitCores`（可約性判定）を高速化するか、10枚形・13枚形のレポートでは
   その経路を回避する設計に変更するかを検討する。
-- 10枚形の再実行は、上記の切り分けが終わってから行う。
+- 10枚形の再実行は、可約性判定側の対策が決まってから行う。
