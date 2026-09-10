@@ -31,6 +31,12 @@ lean_exe «four-tile-report-gen» where
 lean_exe «seven-tile-report-gen» where
   root := `MahjongComputations.SevenTileReport
 
+lean_exe «ten-tile-report-gen» where
+  root := `MahjongComputations.TenTileReport
+
+lean_exe «thirteen-tile-report-gen» where
+  root := `MahjongComputations.ThirteenTileReport
+
 target fourTileReport pkg : FilePath := do
   let exeJob ← «four-tile-report-gen».fetch
   exeJob.mapM fun exeFile => do
@@ -46,6 +52,28 @@ target sevenTileReport pkg : FilePath := do
   let exeJob ← «seven-tile-report-gen».fetch
   exeJob.mapM fun exeFile => do
     let reportFile := pkg.dir / "reports" / "seven-tile-report.txt"
+    proc {
+      cmd := exeFile.toString
+      args := #[reportFile.toString]
+      cwd := some pkg.dir
+    }
+    return reportFile
+
+target tenTileReport pkg : FilePath := do
+  let exeJob ← «ten-tile-report-gen».fetch
+  exeJob.mapM fun exeFile => do
+    let reportFile := pkg.dir / "reports" / "ten-tile-report.txt"
+    proc {
+      cmd := exeFile.toString
+      args := #[reportFile.toString]
+      cwd := some pkg.dir
+    }
+    return reportFile
+
+target thirteenTileReport pkg : FilePath := do
+  let exeJob ← «thirteen-tile-report-gen».fetch
+  exeJob.mapM fun exeFile => do
+    let reportFile := pkg.dir / "reports" / "thirteen-tile-direct-report.txt"
     proc {
       cmd := exeFile.toString
       args := #[reportFile.toString]
