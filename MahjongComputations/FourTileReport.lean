@@ -54,6 +54,7 @@ private def reportText : String :=
      s!"count: {reducibilityCount tenpaiReports .irreducible}",
      "",
     "#### Groups by waitDecompositionCodes",
+    s!"groupCount: {irreducibleGroups.length}",
     "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
     irreducibleGroups.map formatWaitDecompositionCodeGroup ++
     ["",

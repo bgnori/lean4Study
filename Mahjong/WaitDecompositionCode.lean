@@ -349,14 +349,14 @@ example : waitDecompositionCodeEntries
 /--
 待ち牌を忘れ、発見済みの待ち分解に現れる部品種別コードだけを列挙する。
 
-異なる待ち牌が同じコードを持つ場合は、待ち牌を除いた時点で同じ値になるため、再度重複を除いて整列する。
-この結果の一致は部品種別の多重集合が同じことだけを表し、待ち牌や具体牌、元の牌姿の一致は表さない。
-現行実装は同じコードを持つ待ち分解の個数も失うため、コード多重集合を必要とする用途には使えない。
+待ち牌を忘れた後も、コードの出現回数を保ったままコード値の順に整列する。
+この結果の一致は部品種別の多重集合とその出現回数が同じことを表すが、
+待ち牌、具体牌、元の牌姿の一致は表さない。
 -/
 def waitDecompositionCodes (completions : List WaitCompletion) : List Nat :=
   waitDecompositionCodeEntries completions
     |>.map (fun entry => entry.code)
-    |> deduplicateAndSortBy id
+    |>.mergeSort fun first second => first ≤ second
 
 example : waitDecompositionCodes
     [{ wait := .numbered .Manzu 4
@@ -367,7 +367,7 @@ example : waitDecompositionCodes
        winningComponents :=
          CanonicalWinningComponents.ofList
            [WinningComponent.pair (.numbered .Manzu 5), WinningComponent.shuntsu .Pinzu ⟨0, by decide⟩] }] =
-    [26] := by
+    [26, 26] := by
   native_decide
 
 /-- 牌列から得られる待ち核集合。 -/

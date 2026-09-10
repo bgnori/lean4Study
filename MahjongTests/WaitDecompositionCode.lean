@@ -40,18 +40,18 @@ example :
       [{ wait := .numbered .Manzu 1, code := 338 },
        { wait := .numbered .Manzu 4, code := 338 },
        { wait := .numbered .Manzu 7, code := 338 }] ∧
-    findWaitDecompositionCodes testHand2345678 = [338] ∧
-    findWaitDecompositionCodes testHand1167888 = [117, 255] ∧
-    findWaitDecompositionCodes testHand1166678 = [117, 255] ∧
+    findWaitDecompositionCodes testHand2345678 = [338, 338, 338] ∧
+    findWaitDecompositionCodes testHand1167888 = [117, 117, 255, 255] ∧
+    findWaitDecompositionCodes testHand1166678 = [117, 117, 255, 255] ∧
     findWaitDecompositionCodes testHand1167888 =
       findWaitDecompositionCodes testHand1166678 ∧
     irreducibleSingleSuitSevenTileExamples.length = 53 ∧
     irreducibleSingleSuitSevenTileExamples.all
       (fun entry => isIrreducibleTenpai entry.2) = true ∧
-    irreducibleSevenTileWaitDecompositionCodeClasses.length = 26 ∧
+    irreducibleSevenTileWaitDecompositionCodeClasses.length = 29 ∧
     irreducibleSevenTileWaitDecompositionCodeClasses.find? (fun entry =>
-      entry.1 == [117, 255]) = some
-        ([117, 255],
+      entry.1 == [117, 117, 255, 255]) = some
+        ([117, 117, 255, 255],
          ["1178999m", "1167888m", "1166678m", "1156777m", "1155567m",
           "1145666m", "1144456m", "1134555m", "1133345m", "1122234m",
           "1112399m", "1112388m", "1112377m", "1112366m", "1112355m"]) := by
