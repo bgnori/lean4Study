@@ -38,8 +38,8 @@ def report (tiles : List Tile) : FourTileShapeReport :=
 def tenpaiReports : List FourTileShapeReport :=
   (allFourTileShapes.map report).filter fun report => !report.waits.isEmpty
 
-private def directFourTileShapeReports (_ : Unit) : List WaitCompletionGroup :=
-  groupWaitDerivations (directWaitDerivations 1)
+private def directFourTileGenerated : CanonicalGenerationResult :=
+  canonicalWaitCompletionGroups 1
 
 private def directReport (report : WaitCompletionGroup) : FourTileShapeReport :=
   let completions := report.completions
@@ -50,11 +50,11 @@ private def directReport (report : WaitCompletionGroup) : FourTileShapeReport :=
 
 /-- Number of normalized direct derivations enumerated for four-tile shapes. -/
 def directDerivationCount : Nat :=
-  (directWaitDerivations 1).length
+  directFourTileGenerated.enumeratedDerivations
 
 /-- Four-tile tenpai reports computed by projecting direct derivations and grouping equal hands. -/
 def directDerivationTenpaiReports : List FourTileShapeReport :=
-  (directFourTileShapeReports ()).map directReport
+  directFourTileGenerated.groups.map directReport
 
 /-- Irreducible four-tile tenpai shapes. -/
 def irreducibleReports : List FourTileShapeReport :=

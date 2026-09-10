@@ -424,7 +424,7 @@ theorem bijectiveBaseDecode_encode (base : Nat) (digits : List Nat)
 -/
 
 /-- 与えられた並び順（`alphabet`）から、順序を保ったまま重複を許して `length` 個選ぶ選び方をすべて列挙する。 -/
-private def combinationsWithRepetitionOver {α : Type} : List α → Nat → List (List α)
+def combinationsWithRepetitionOver {α : Type} : List α → Nat → List (List α)
   | _, 0 => [[]]
   | [], _ + 1 => []
   | a :: rest, n + 1 =>

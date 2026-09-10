@@ -40,10 +40,6 @@ private def emptySummary : TenTileSummary :=
 private def allTenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 10 Tile.all
 
-private def tenTileShapeReports
-    (derivations : List (DirectWaitGeneration.WaitDerivation 3)) : List WaitCompletionGroup :=
-  groupWaitDerivations derivations
-
 private def addShapeReport (report : WaitCompletionGroup) (summary : TenTileSummary) :
     TenTileSummary :=
   let completions := report.completions
@@ -62,12 +58,11 @@ private def addShapeReport (report : WaitCompletionGroup) (summary : TenTileSumm
 
 /-- Exhaustive ten-tile aggregate summary. -/
 def summary (_ : Unit) : TenTileSummary :=
-  let derivations := directWaitDerivations 3
-  let shapeReports := tenTileShapeReports derivations
+  let generated := canonicalWaitCompletionGroups 3
   let computedSummary :=
-    shapeReports.foldl (fun summary report => addShapeReport report summary) emptySummary
+    generated.groups.foldl (fun summary report => addShapeReport report summary) emptySummary
   { computedSummary with
     allTenTileShapes := allTenTileShapeCount ()
-    enumeratedDerivations := derivations.length }
+    enumeratedDerivations := generated.enumeratedDerivations }
 
 end MahjongComputations.TenTile

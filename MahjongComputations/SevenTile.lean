@@ -40,10 +40,6 @@ private def emptySummary : SevenTileSummary :=
 private def allSevenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 7 Tile.all
 
-private def sevenTileShapeReports
-    (derivations : List (DirectWaitGeneration.WaitDerivation 2)) : List WaitCompletionGroup :=
-  groupWaitDerivations derivations
-
 private def addShapeReport (report : WaitCompletionGroup) (summary : SevenTileSummary) :
     SevenTileSummary :=
   let completions := report.completions
@@ -62,13 +58,12 @@ private def addShapeReport (report : WaitCompletionGroup) (summary : SevenTileSu
 
 /-- Exhaustive seven-tile aggregate summary. -/
 def summary (_ : Unit) : SevenTileSummary :=
-  let derivations := directWaitDerivations 2
-  let shapeReports := sevenTileShapeReports derivations
+  let generated := canonicalWaitCompletionGroups 2
   let computedSummary :=
-    shapeReports.foldl (fun summary report => addShapeReport report summary) emptySummary
+    generated.groups.foldl (fun summary report => addShapeReport report summary) emptySummary
   { computedSummary with
     allSevenTileShapes := allSevenTileShapeCount ()
-    enumeratedDerivations := derivations.length }
+    enumeratedDerivations := generated.enumeratedDerivations }
 
 example : countLegalTileMultisetsOfLength 7 Tile.all = 18623330 := by
   native_decide

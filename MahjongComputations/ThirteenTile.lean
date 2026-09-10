@@ -40,10 +40,6 @@ private def emptySummary : ThirteenTileSummary :=
 private def allThirteenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 13 Tile.all
 
-private def thirteenTileShapeReports
-    (derivations : List (DirectWaitGeneration.WaitDerivation 4)) : List WaitCompletionGroup :=
-  groupWaitDerivations derivations
-
 private def addShapeReport (report : WaitCompletionGroup) (summary : ThirteenTileSummary) :
     ThirteenTileSummary :=
   let completions := report.completions
@@ -62,12 +58,11 @@ private def addShapeReport (report : WaitCompletionGroup) (summary : ThirteenTil
 
 /-- Exhaustive thirteen-tile aggregate summary. -/
 def summary (_ : Unit) : ThirteenTileSummary :=
-  let derivations := directWaitDerivations 4
-  let shapeReports := thirteenTileShapeReports derivations
+  let generated := canonicalWaitCompletionGroups 4
   let computedSummary :=
-    shapeReports.foldl (fun summary report => addShapeReport report summary) emptySummary
+    generated.groups.foldl (fun summary report => addShapeReport report summary) emptySummary
   { computedSummary with
     allThirteenTileShapes := allThirteenTileShapeCount ()
-    enumeratedDerivations := derivations.length }
+    enumeratedDerivations := generated.enumeratedDerivations }
 
 end MahjongComputations.ThirteenTile

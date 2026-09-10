@@ -1,4 +1,5 @@
 import Mahjong.DirectWaitGeneration
+import Std.Data.HashMap
 
 /-!
 # 麻雀計算モジュールの共通処理
@@ -82,6 +83,76 @@ def groupWaitDerivations {mentsuCount : Nat}
       { tiles := DirectWaitGeneration.hand derivation
         completion := DirectWaitGeneration.completion derivation })
     |> groupWaitCompletions
+
+/-!
+### 面子の並べ替えだけが違う直接生成の重複を避け、生成結果を一度に保持しない
+
+`DirectWaitGeneration.directWaitDerivations` は `n` 個の面子を `Fin n → MentsuCandidate` という
+順序付き関数として生成するため、同じ面子の多重集合でも並べ替えの数（最大 `n !`）だけ重複して
+生成し、その大半を `Seed.valid` の正規化条件（`mentsuCanonical`）で捨てている。
+さらに、生成した全件を `List` として一度に保持してから牌姿ごとにソート・グループ化する実装は、
+面子が増えるほど生成件数（10枚形で数百万件規模）に比例したピークメモリを必要とする。
+
+以下では、`mentsuCanonical` と同じ順序（`WinningComponent.orderKey` の昇順）で最初から
+非減少列だけを畳み込みで直接処理し、`Seed.valid` を満たした瞬間に牌姿キーのハッシュマップへ
+反映して捨てる。生成した `WaitDerivation` の全件を並べたリストはどこにも保持しないため、
+ピークメモリは生成件数ではなく、重複除去後の牌姿の種類数に比例する。
+-/
+
+private def canonicalMentsuAlphabet : List MentsuCandidate :=
+  MentsuCandidate.candidates.mergeSort fun first second =>
+    decide (WinningComponent.orderKey (.inr first) ≤ WinningComponent.orderKey (.inr second))
+
+private def defaultMentsuCandidate : MentsuCandidate := .koutsu (.honor .East)
+
+private def mentsuListToFunction (n : Nat) (mentsuList : List MentsuCandidate) :
+    Fin n → MentsuCandidate :=
+  fun i => mentsuList.getD i.val defaultMentsuCandidate
+
+open DirectWaitGeneration in
+/--
+面子の割り当てを `mentsuCanonical` と同じ順序で非減少列に限って直接畳み込み、正規化済みの
+`WaitDerivation` それぞれを `f` で処理する。並べ替え違いの重複や、生成結果全体を並べた
+中間 `List` をどこにも保持しない。
+-/
+def foldCanonicalDirectWaitDerivations {n : Nat} {α : Type}
+    (init : α) (f : α → WaitDerivation n → α) : α :=
+  Tile.all.foldl (init := init) fun acc tile =>
+    (WaitDecompositionCode.combinationsWithRepetitionOver canonicalMentsuAlphabet n).foldl
+      (init := acc) fun acc mentsuList =>
+        let shape : WinningShape n :=
+          { pair := .toitsu tile, mentsu := mentsuListToFunction n mentsuList }
+        (componentIndices n).foldl (init := acc) fun acc selected =>
+          ((shape.component selected).tiles.dedup).foldl (init := acc) fun acc wait =>
+            let seed : Seed n := { shape, selected, wait }
+            if h : seed.valid = true then f acc ⟨seed, h⟩ else acc
+
+/--
+面子の並べ替えだけが違う重複を生成しない、`directWaitDerivations` と同じ牌姿・待ちの集合を
+ストリーミングで集約する。中間の `List (WaitDerivation n)` を保持せず、牌姿キーのハッシュマップへ
+1件ずつ反映するため、ピークメモリは牌姿の重複除去後の件数に比例する。
+-/
+structure CanonicalGenerationResult where
+  groups : List WaitCompletionGroup
+  enumeratedDerivations : Nat
+deriving BEq, DecidableEq, Repr
+
+def canonicalWaitCompletionGroups (n : Nat) : CanonicalGenerationResult :=
+  let (groups, count) :=
+    foldCanonicalDirectWaitDerivations (n := n)
+      ((∅ : Std.HashMap Nat WaitCompletionGroup), 0)
+      fun (groups, count) derivation =>
+        let tiles := DirectWaitGeneration.hand derivation
+        let completion := DirectWaitGeneration.completion derivation
+        let key := tileMultisetKey tiles
+        let groups' :=
+          match groups.get? key with
+          | none => groups.insert key { tiles, completions := [completion] }
+          | some existing =>
+              groups.insert key
+                { existing with completions := insertCompletion completion existing.completions }
+        (groups', count + 1)
+  { groups := groups.values, enumeratedDerivations := count }
 
 /-- 完成情報群に現れる待ち牌を、初出順で重複なく取り出す。 -/
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
