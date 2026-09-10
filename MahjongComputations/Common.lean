@@ -152,6 +152,7 @@ def formatTiles (tiles : List Tile) : String :=
 def formatWaitDecompositionCodeGroup (group : WaitDecompositionCodeGroup) : String :=
   String.intercalate "\t" [
     toString group.codes,
+    toString (WaitDecompositionCode.waitDecompositionCodesKey group.codes),
     toString group.count,
     formatTiles group.representativeTiles,
     formatTiles group.representativeWaits

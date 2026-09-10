@@ -412,33 +412,88 @@ theorem bijectiveBaseDecode_encode (base : Nat) (digits : List Nat)
         Nat.add_mul_div_left _ _ (Nat.pos_of_ne_zero (by omega)),
         Nat.div_eq_of_lt digitBound, Nat.zero_add, ih restBound]
 
-/--
-1つの部品コードが取り得る値の上限（を含まない）。最大素数を最大部品数だけ掛けた値に余裕を1加える。
+/-!
+### 素数積は本質ではない: 実現可能なコードを直接数え上げて詰め直す
 
-`waitDecompositionCodeEntries` が実際に生成するコードがこの上限未満であることは、現状では未証明の前提である。
+`componentProduct` が素数の積を選んだのは、種別の多重集合を一意な自然数へ変える手段の1つに過ぎない。
+実際に道具として必要なのは「重複なく一意な値」であって、値が素数の積である必要はない。
+そこで、部品種別が `WaitComponentKind.count` 通りしかなく、1つの待ち分解の部品数が高々
+`maxWaitComponents` であることを使い、実現可能な積の値をすべて数え上げてから、その中での順位
+（0始まりの通し番号）に詰め直す。値の集合は高々 792 通りしかないため、素数の積そのもの
+（最大 `17 ^ maxWaitComponents = 1419857`）よりずっと狭い範囲に収まる。
 -/
-def waitDecompositionCodeBound : Nat :=
-  (WaitComponentKind.all.foldl (fun acc kind => max acc kind.prime) 1) ^ maxWaitComponents + 1
+
+/-- 与えられた並び順（`alphabet`）から、順序を保ったまま重複を許して `length` 個選ぶ選び方をすべて列挙する。 -/
+private def combinationsWithRepetitionOver {α : Type} : List α → Nat → List (List α)
+  | _, 0 => [[]]
+  | [], _ + 1 => []
+  | a :: rest, n + 1 =>
+      (combinationsWithRepetitionOver (a :: rest) n).map (a :: ·) ++
+        combinationsWithRepetitionOver rest (n + 1)
+
+/-- `componentProduct` が実際に取り得る値をすべて数え上げ、重複を除いて昇順に並べたもの。 -/
+private def waitDecompositionCodeSpace : List Nat :=
+  ((List.range (maxWaitComponents + 1)).flatMap fun length =>
+      combinationsWithRepetitionOver WaitComponentKind.all length)
+    |>.map componentProduct
+    |>.eraseDups
+    |>.mergeSort fun first second => first ≤ second
+
+example : waitDecompositionCodeSpace.length = 792 := by native_decide
+
+/-- `waitDecompositionCodeSpace` の中での `code` の順位。素数の積を、その値の代わりに通し番号へ詰め直す。 -/
+private def compactCodeRank (code : Nat) : Nat :=
+  waitDecompositionCodeSpace.idxOf code
+
+/-- `compactCodeRank` の逆関数。通し番号から元の素数積コードを復元する。 -/
+private def compactCodeOfRank (rank : Nat) : Nat :=
+  waitDecompositionCodeSpace.getD rank 0
+
+/-- `code` が `componentProduct` の実現可能値なら、通し番号への詰め直しから元のコードをちょうど復元できる。 -/
+private theorem compactCodeOfRank_rank {code : Nat} (h : code ∈ waitDecompositionCodeSpace) :
+    compactCodeOfRank (compactCodeRank code) = code := by
+  have hlt : waitDecompositionCodeSpace.idxOf code < waitDecompositionCodeSpace.length :=
+    List.idxOf_lt_length_of_mem h
+  have hp : (waitDecompositionCodeSpace[waitDecompositionCodeSpace.idxOf code]'hlt == code) = true :=
+    List.findIdx_getElem (w := hlt)
+  simp only [compactCodeOfRank, compactCodeRank, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_getElem hlt, Option.getD_some]
+  exact eq_of_beq hp
 
 /--
 `waitDecompositionCodes` が返す多重集合を、牌姿データベースのキーとして使える1つの自然数へ埋め込む。
 
-各部品コードは `waitDecompositionCodeBound` 未満であることを前提にした双方向基数記法を使う。
-キーの値は列の長さに応じて `waitDecompositionCodeBound` のべき乗で大きくなるため、長い列では典型的な
-64bit整数の範囲を超えうる。DBの列は多倍長整数型か文字列/BLOBでの保存を検討する。
+各部品コードをまず `waitDecompositionCodeSpace` 上の通し番号へ詰め直してから、双方向基数記法で結合する。
+桁の基数が `waitDecompositionCodeSpace.length`（792以下）になるため、同じ長さの列でも素数の積を
+そのまま桁に使うより狭い範囲に収まる。ただし、キーの値は列の長さに応じて基数のべき乗で大きくなる
+ことに変わりはなく、長い列では典型的な64bit整数の範囲を超えうる。DBの列は多倍長整数型か文字列/BLOB
+での保存を検討する。
 -/
 def waitDecompositionCodesKey (codes : List Nat) : Nat :=
-  bijectiveBaseEncode waitDecompositionCodeBound codes
+  bijectiveBaseEncode waitDecompositionCodeSpace.length (codes.map compactCodeRank)
 
 /-- `waitDecompositionCodesKey` の逆関数。キーから元の部品コード列を復元する。 -/
 def waitDecompositionCodesOfKey (key : Nat) : List Nat :=
-  bijectiveBaseDecode waitDecompositionCodeBound key
+  (bijectiveBaseDecode waitDecompositionCodeSpace.length key).map compactCodeOfRank
 
-/-- 各部品コードが `waitDecompositionCodeBound` 未満なら、キーから元の列をちょうど復元できる。 -/
+/-- 各部品コードが `componentProduct` の実現可能値なら、キーから元の列をちょうど復元できる。 -/
 theorem waitDecompositionCodesOfKey_key (codes : List Nat)
-    (bounded : ∀ code ∈ codes, code < waitDecompositionCodeBound) :
-    waitDecompositionCodesOfKey (waitDecompositionCodesKey codes) = codes :=
-  bijectiveBaseDecode_encode waitDecompositionCodeBound codes bounded
+    (realizable : ∀ code ∈ codes, code ∈ waitDecompositionCodeSpace) :
+    waitDecompositionCodesOfKey (waitDecompositionCodesKey codes) = codes := by
+  unfold waitDecompositionCodesOfKey waitDecompositionCodesKey
+  have hbound : ∀ rank ∈ codes.map compactCodeRank, rank < waitDecompositionCodeSpace.length :=
+    fun rank hrank => by
+      obtain ⟨code, hcode, hrank⟩ := List.mem_map.mp hrank
+      exact hrank ▸ List.idxOf_lt_length_of_mem (realizable code hcode)
+  rw [bijectiveBaseDecode_encode _ _ hbound]
+  clear hbound
+  induction codes with
+  | nil => rfl
+  | cons code rest ih =>
+      have hcode : code ∈ waitDecompositionCodeSpace := realizable code (List.mem_cons_self ..)
+      have hrest : ∀ c ∈ rest, c ∈ waitDecompositionCodeSpace :=
+        fun c hc => realizable c (List.mem_cons_of_mem _ hc)
+      simp [compactCodeOfRank_rank hcode, ih hrest]
 
 example : waitDecompositionCodesOfKey
     (waitDecompositionCodesKey [117, 117, 255, 255, 357, 578]) =

@@ -30,7 +30,7 @@ private def reportBody (summary : SevenTileSummary) : String :=
      "",
     "#### Groups by waitDecompositionCodes",
     s!"groupCount: {summary.irreducibleGroups.length}",
-    "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
+    "waitDecompositionCodes\twaitDecompositionCodesKey\tcount\trepresentativeTiles\trepresentativeWaits"] ++
     summary.irreducibleGroups.map formatWaitDecompositionCodeGroup ++
     ["",
      "## Wait tile count distribution"] ++

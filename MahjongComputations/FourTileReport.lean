@@ -23,7 +23,8 @@ private def reportLine (report : FourTileShapeReport) : String :=
     formatTiles report.tiles,
     formatTiles report.waits,
     reducibilityName report.reducibility,
-    toString report.waitDecompositionCodes
+    toString report.waitDecompositionCodes,
+    toString (waitDecompositionCodesKey report.waitDecompositionCodes)
   ]
 
 private def reducibilityCount (reports : List FourTileShapeReport)
@@ -55,14 +56,14 @@ private def reportText : String :=
      "",
     "#### Groups by waitDecompositionCodes",
     s!"groupCount: {irreducibleGroups.length}",
-    "waitDecompositionCodes\tcount\trepresentativeTiles\trepresentativeWaits"] ++
+    "waitDecompositionCodes\twaitDecompositionCodesKey\tcount\trepresentativeTiles\trepresentativeWaits"] ++
     irreducibleGroups.map formatWaitDecompositionCodeGroup ++
     ["",
      "## Wait tile count distribution"] ++
     ([1, 2, 3, 4].map (formatWaitTileCount waitTileCounts)) ++
     ["",
      "## Tenpai reports",
-    "tiles\twaits\treducibility\twaitDecompositionCodes"] ++
+    "tiles\twaits\treducibility\twaitDecompositionCodes\twaitDecompositionCodesKey"] ++
     directDerivationTenpaiReports.map reportLine ++
     [""]
 
