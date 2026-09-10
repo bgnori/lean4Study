@@ -36,3 +36,12 @@ Current modules:
   report data without retaining every shape.
 - `SevenTileReport.lean`: writes the exhaustive seven-tile aggregate report as a
   text file.
+
+## Reducibility
+
+A tenpai shape is reducible when a completed meld can be removed while the
+remaining shape stays tenpai and preserves the set of wait cores; otherwise it
+is irreducible.  For
+example, `1223m` has wait-decomposition codes `[21, 26]` and is irreducible,
+while `1233m` has codes `[26, 33]` and is also irreducible.  These cases are
+covered by the regression tests in `MahjongTests/WaitDecompositionCode.lean`.

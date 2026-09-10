@@ -7,6 +7,8 @@ open _root_.WaitCompletionFinder
 
 private def testHand2345678 : List Tile := manzu [1, 2, 3, 4, 5, 6, 7]
 private def testHand1234 : List Tile := manzu [0, 1, 2, 3]
+private def testHand1223 : List Tile := manzu [0, 1, 1, 2]
+private def testHand1233 : List Tile := manzu [0, 1, 2, 2]
 private def testHand1167888 : List Tile := manzu [0, 0, 5, 6, 7, 7, 7]
 private def testHand1166678 : List Tile := manzu [0, 0, 5, 5, 5, 6, 7]
 
@@ -29,6 +31,17 @@ example :
     findWaitCores testHand1234 != findWaitCores (manzu [0]) ∧
     findWaitCores testHand1234 != findWaitCores (manzu [3]) ∧
     canReduceMentsuPreservingWaitCores testHand1234 = false := by
+  native_decide
+
+example :
+  (findWaitCores testHand1223).length = 2 ∧
+    findWaitDecompositionCodes testHand1223 = [21, 26] ∧
+    canReduceMentsuPreservingWaitCores testHand1223 = false ∧
+    determineReducibility testHand1223 = some .irreducible ∧
+    (findWaitCores testHand1233).length = 2 ∧
+    findWaitDecompositionCodes testHand1233 = [26, 33] ∧
+    canReduceMentsuPreservingWaitCores testHand1233 = false ∧
+    determineReducibility testHand1233 = some .irreducible := by
   native_decide
 
 example :
