@@ -28,6 +28,9 @@ lean_lib «MahjongComputations» where
 lean_exe «four-tile-report-gen» where
   root := `MahjongComputations.FourTileReport
 
+lean_exe «diag-temp» where
+  root := `MahjongComputations.DiagTemp
+
 lean_exe «seven-tile-report-gen» where
   root := `MahjongComputations.SevenTileReport
 
