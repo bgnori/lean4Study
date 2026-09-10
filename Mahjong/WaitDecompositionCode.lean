@@ -370,6 +370,81 @@ example : waitDecompositionCodes
     [26, 26] := by
   native_decide
 
+/-!
+### 待ち分解コード列を1つの自然数へ埋め込む
+
+`waitDecompositionCodes` は昇順の `List Nat` であり、牌姿データベースのキーには使いにくい。
+そこで各桁を `[0, base)` に収めた「双方向基数」記法で1つの `Nat` へ埋め込み、逆関数で元の列を復元できるようにする。
+桁の値へ `1` を足してから位取りに使うため、埋め込んだ値が `0` であることが列の終わりの合図になり、
+長さを別に覚える必要がない。
+-/
+
+/-- 桁の値をすべて `[0, base)` に収めた `List Nat` を、`base` 進の双方向記数法で1つの自然数へ埋め込む。 -/
+private def bijectiveBaseEncode (base : Nat) : List Nat → Nat
+  | [] => 0
+  | digit :: rest => (digit + 1) + base * bijectiveBaseEncode base rest
+
+/-- `bijectiveBaseEncode` の逆関数。`code = 0` を列の終わりの合図として使う。 -/
+private def bijectiveBaseDecode (base : Nat) (code : Nat) : List Nat :=
+  if h : code = 0 then
+    []
+  else
+    have hle : (code - 1) / base ≤ code - 1 := Nat.div_le_self ..
+    (code - 1) % base :: bijectiveBaseDecode base ((code - 1) / base)
+termination_by code
+decreasing_by omega
+
+/-- 桁の値がすべて `base` 未満なら、`bijectiveBaseDecode` は `bijectiveBaseEncode` の逆になる。 -/
+theorem bijectiveBaseDecode_encode (base : Nat) (digits : List Nat)
+    (bounded : ∀ digit ∈ digits, digit < base) :
+    bijectiveBaseDecode base (bijectiveBaseEncode base digits) = digits := by
+  induction digits with
+  | nil => simp [bijectiveBaseEncode, bijectiveBaseDecode]
+  | cons digit rest ih =>
+      have digitBound : digit < base := bounded digit (List.mem_cons_self ..)
+      have restBound : ∀ d ∈ rest, d < base := fun d hd => bounded d (List.mem_cons_of_mem _ hd)
+      have hne : (digit + 1) + base * bijectiveBaseEncode base rest ≠ 0 := by omega
+      have hprev : (digit + 1) + base * bijectiveBaseEncode base rest - 1
+          = digit + base * bijectiveBaseEncode base rest := by omega
+      rw [bijectiveBaseEncode, bijectiveBaseDecode]
+      simp only [hne, dite_false, hprev]
+      rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt digitBound,
+        Nat.add_mul_div_left _ _ (Nat.pos_of_ne_zero (by omega)),
+        Nat.div_eq_of_lt digitBound, Nat.zero_add, ih restBound]
+
+/--
+1つの部品コードが取り得る値の上限（を含まない）。最大素数を最大部品数だけ掛けた値に余裕を1加える。
+
+`waitDecompositionCodeEntries` が実際に生成するコードがこの上限未満であることは、現状では未証明の前提である。
+-/
+def waitDecompositionCodeBound : Nat :=
+  (WaitComponentKind.all.foldl (fun acc kind => max acc kind.prime) 1) ^ maxWaitComponents + 1
+
+/--
+`waitDecompositionCodes` が返す多重集合を、牌姿データベースのキーとして使える1つの自然数へ埋め込む。
+
+各部品コードは `waitDecompositionCodeBound` 未満であることを前提にした双方向基数記法を使う。
+キーの値は列の長さに応じて `waitDecompositionCodeBound` のべき乗で大きくなるため、長い列では典型的な
+64bit整数の範囲を超えうる。DBの列は多倍長整数型か文字列/BLOBでの保存を検討する。
+-/
+def waitDecompositionCodesKey (codes : List Nat) : Nat :=
+  bijectiveBaseEncode waitDecompositionCodeBound codes
+
+/-- `waitDecompositionCodesKey` の逆関数。キーから元の部品コード列を復元する。 -/
+def waitDecompositionCodesOfKey (key : Nat) : List Nat :=
+  bijectiveBaseDecode waitDecompositionCodeBound key
+
+/-- 各部品コードが `waitDecompositionCodeBound` 未満なら、キーから元の列をちょうど復元できる。 -/
+theorem waitDecompositionCodesOfKey_key (codes : List Nat)
+    (bounded : ∀ code ∈ codes, code < waitDecompositionCodeBound) :
+    waitDecompositionCodesOfKey (waitDecompositionCodesKey codes) = codes :=
+  bijectiveBaseDecode_encode waitDecompositionCodeBound codes bounded
+
+example : waitDecompositionCodesOfKey
+    (waitDecompositionCodesKey [117, 117, 255, 255, 357, 578]) =
+    [117, 117, 255, 255, 357, 578] := by
+  native_decide
+
 /-- 牌列から得られる待ち核集合。 -/
 def findWaitCores (tiles : List Tile) : List WaitCore :=
   waitCores (WaitCompletionFinder.findWaitCompletions tiles)
