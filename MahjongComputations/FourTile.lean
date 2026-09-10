@@ -45,7 +45,8 @@ private def directReport (report : WaitCompletionGroup) : FourTileShapeReport :=
   let completions := report.completions
   { tiles := report.tiles
     waits := waitsFromCompletions completions
-    reducibility := determineReducibility report.tiles
+    reducibility := some (if canReduceMentsuPreservingWaitCoresGivenCompletions report.tiles completions
+      then .reducible else .irreducible)
     waitDecompositionCodes := waitDecompositionCodes completions }
 
 /-- Number of normalized direct derivations enumerated for four-tile shapes. -/

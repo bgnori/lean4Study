@@ -49,7 +49,7 @@ private def addShapeReport (report : WaitCompletionGroup) (summary : SevenTileSu
     { summary with
       tenpaiReports := summary.tenpaiReports + 1
       waitTileCountDistribution := incrementCount waits.length summary.waitTileCountDistribution }
-  if canReduceMentsuPreservingWaitCores report.tiles then
+  if canReduceMentsuPreservingWaitCoresGivenCompletions report.tiles completions then
     { summary with reducibleReports := summary.reducibleReports + 1 }
   else
     { summary with

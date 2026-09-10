@@ -154,6 +154,24 @@ def canonicalWaitCompletionGroups (n : Nat) : CanonicalGenerationResult :=
         (groups', count + 1)
   { groups := groups.values, enumeratedDerivations := count }
 
+/--
+`WaitDecompositionCode.canReduceMentsuPreservingWaitCores` と同じ判定を、元の手牌ぶんの
+待ち核だけレポート側がすでに持っている `completions` から求め直し、探索を省略する版。
+
+`canReduceMentsuPreservingWaitCores` は元の手牌の待ち核を `WaitCompletionFinder.findWaitCompletions`
+で毎回ゼロから探索し直すが、直接生成のレポートは同じ内容を `WaitCompletionGroup.completions` として
+すでに持っている。そこから `WaitDecompositionCode.waitCores` で直接求めれば、元の手牌ぶんの
+組合せ探索（`winningPartitions`）を省略できる。面子除去後の手牌は既知データがないため、
+そちらは引き続き `WaitDecompositionCode.findWaitCores` で探索する。
+-/
+def canReduceMentsuPreservingWaitCoresGivenCompletions
+    (tiles : List Tile) (completions : List WaitCompletion) : Bool :=
+  let originalCores := WaitDecompositionCode.waitCores completions
+  1 < tiles.length &&
+    !(WaitCompletionFinder.mentsuReductions tiles |>.filter fun remaining =>
+        !(WaitCompletionFinder.waitingTiles remaining).isEmpty &&
+          WaitDecompositionCode.findWaitCores remaining == originalCores).isEmpty
+
 /-- 完成情報群に現れる待ち牌を、初出順で重複なく取り出す。 -/
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups

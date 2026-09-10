@@ -36,9 +36,15 @@ def main : IO Unit := do
   let t9 ← IO.monoMsNow
   IO.println s!"elapsedMs={t9 - t8}"
 
+  let t8b ← IO.monoMsNow
+  let reducibleCountFast := (generated2.groups.filter fun g =>
+    canReduceMentsuPreservingWaitCoresGivenCompletions g.tiles g.completions).length
+  IO.println s!"n=2 canReduceMentsuPreservingWaitCoresGivenCompletions reducibleCount={reducibleCountFast}"
+  let t9b ← IO.monoMsNow
+  IO.println s!"elapsedMs={t9b - t8b}"
+
   let t10 ← IO.monoMsNow
   let fourBruteForceCount := FourTile.tenpaiReports.length
   IO.println s!"four-tile brute-force tenpaiReports={fourBruteForceCount}"
   let t11 ← IO.monoMsNow
   IO.println s!"elapsedMs={t11 - t10}"
-

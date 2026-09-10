@@ -48,6 +48,18 @@
     - `FourTile.tenpaiReports`（brute-force経路、66,045件総当たり）: `elapsedMs=0`。
       こちらはボトルネックではないと判明した。4枚形の38秒も、グループ数が
       3,756件と少ないだけで、同じ`canReduceMentsuPreservingWaitCores`が支配していると見てよい。
+12. 可約性判定側の高速化の第1歩として、`WaitDecompositionCode.waitCorePreservingMentsuReductions`を
+    修正した。元の実装は `do` 記法で `findWaitCores tiles`（除去前の元の手牌の待ち核）を
+    `mentsuReductions tiles` が返す候補の数だけ毎回再計算していた（`tiles`にしか依存しないのに候補ループの中で
+    毎回呼ばれていた）。`findWaitCores tiles` をループの外で1回だけ計算するように巻き上げて
+    `List.filter` に書き直した（出力は数学的に完全に同一なので、既存の証明（`reducibility_eq_reducible_iff`など）は
+    影響を受けない）。
+13. 修正後の診断ツールで再測定: `canReduceMentsuPreservingWaitCores` を7枚形の148,809グループ全件に
+    適用して `elapsedMs=289130`（**約4分49秒**）。修正前の`332757`（約5分33秒）から約13%の短縮に
+    とどまった。改善幅が小さいことから、`mentsuReductions tiles` が返す除去候補の平均件数は
+    そもそも少なく（1件前後）、支配的なコストは重複呼び出しではなく、
+    `winningPartitions`（`WaitCompletionFinder.findWaitCompletions` 内部の組合せ探索）を
+    **グループ1件ごとに少なくとも1回は必ず呼ぶこと自体**が支配的であると判明した。
 
 ## 結論
 
@@ -58,6 +70,33 @@
 列挙し、`findWaitCores` を複数回呼び直して待ち核集合を比較しており、グループ数に比例して
 重くなる。10枚形はグループ数が7枚形よりさらに大きくなる見込みのため、生成側の最適化だけでは
 実行時間の問題を解決できず、次に着手すべきは可約性判定側の高速化である。
+
+ループ不変量の巻き上げ（第1歩）だけでは改善は約13%に留まった。本当のボトルネックは
+「元の手牌の待ち核を求めるために、すでに`report.completions`として知っている情報を使わず、
+`WaitCompletionFinder.findWaitCompletions`でゼロから探索し直していること」にあると見ている。次の手は、
+レポート層専用の関数で `waitCores report.completions`（既知の完成情報から直接待ち核を求める）を
+使い、元の手牌分の探索を丸ごと省略することである（縮小後の手牌は既知データがないため引き続き探索が必要）。
+検証済みの `canReduceMentsuPreservingWaitCores` 自体の定義は変えず、レポート層専用の新しいヘルパーとして
+追加する方針で進める。
+
+## 実行結果（最新の確認値）
+
+以下は、このセッションで実際に確認できた代表的な実行結果である。
+
+- `lake build fourTileReport` → `exit code 0`、実行時間は約38.85秒
+- `lake build sevenTileReport` → `exit code 0`、実行時間は約4分59秒
+- `lake build diag-temp && ./.lake/build/bin/diag-temp` → `exit code 0`
+  - `n=1 fold-only count=5100`、`elapsedMs=0`
+  - `n=1 grouped count=5100 groups=1`、`elapsedMs=0`
+  - `n=2 grouped count=224502 groups=148809`、`elapsedMs=1`
+  - `canReduceMentsuPreservingWaitCores` を148,809件に適用した測定値: `elapsedMs=332757`（約5分32秒）
+  - ループ不変量の巻き上げ後の再測定: `elapsedMs=289130`（約4分49秒）
+  - `FourTile.tenpaiReports` のbrute-force経路: `elapsedMs=0`
+
+これらの値から、生成・グループ化自体はすでに高速であり、レポート全体の時間は
+`WaitDecompositionCode.canReduceMentsuPreservingWaitCores` の判定コストが支配している。
+最適化前後の差は約13%であり、再計算が減ったものの真のボトルネックは
+「元の手牌の待ち核を再探索している」ことにある。
 
 ## 教訓・注意点
 
@@ -79,6 +118,10 @@
 
 ## 未解決・次の一手
 
-- `canReduceMentsuPreservingWaitCores`（可約性判定）を高速化するか、10枚形・13枚形のレポートでは
-  その経路を回避する設計に変更するかを検討する。
-- 10枚形の再実行は、可約性判定側の対策が決まってから行う。
+- ループ不変量の巻き上げ（実施済み）だけでは約13%しか改善しないため、真の本命は
+  「レポート層が既に持っている `report.completions` から `waitCores` を直接求め、
+  元の手牌ぶんの `winningPartitions` 探索を丸ごと省略するヘルパー」を追加すること。
+  縮小後の手牌については既知データがないため、引き続き `findWaitCores` で探索する。
+- 上記ヘルパーを実装したら、同じ診断ツールで7枚形の `canReduceMentsuPreservingWaitCores`
+  相当の所要時間を再測定し、どれだけ短縮できたか確認する。
+- 10枚形の再実行は、この対策を入れて7枚形で十分な改善を確認してから行う。

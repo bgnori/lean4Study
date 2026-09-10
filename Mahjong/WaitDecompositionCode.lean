@@ -507,13 +507,13 @@ def findWaitCores (tiles : List Tile) : List WaitCore :=
 /--
 完成面子を1つ除いても、同じ待ち核集合を持つ聴牌形が残る削減候補を列挙する。
 
-読むためのLean語彙: `do`記法, `←`, `guard`, `<|`, `pure`。
+`findWaitCores tiles` は除去候補に依存しないため、ループの外で1回だけ計算して使い回す。
+読むためのLean語彙: `let`, `List.filter`。
 -/
-def waitCorePreservingMentsuReductions (tiles : List Tile) : List (List Tile) := do
-  let remaining ← mentsuReductions tiles
-  guard <| !(waitingTiles remaining).isEmpty
-  guard <| findWaitCores remaining == findWaitCores tiles
-  pure remaining
+def waitCorePreservingMentsuReductions (tiles : List Tile) : List (List Tile) :=
+  let originalCores := findWaitCores tiles
+  mentsuReductions tiles |>.filter fun remaining =>
+    !(waitingTiles remaining).isEmpty && findWaitCores remaining == originalCores
 
 /--
 完成面子を1つ除いても、同じ待ち核集合を持つ聴牌形が残るかを判定する。
