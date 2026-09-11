@@ -177,9 +177,35 @@ structure WaitCoreCache where
   values : Std.HashMap Nat (Option (List WaitDecompositionCode.WaitCore))
   hits : Nat
   misses : Nat
+  maxEntries : Nat
+  evictionPercent : Nat
+  evictions : Nat
 
 def emptyWaitCoreCache : WaitCoreCache :=
-  { values := ∅, hits := 0, misses := 0 }
+  { values := ∅, hits := 0, misses := 0
+    maxEntries := 0, evictionPercent := 0, evictions := 0 }
+
+def configuredWaitCoreCache (maxEntries evictionPercent : Nat) : WaitCoreCache :=
+  { emptyWaitCoreCache with maxEntries, evictionPercent }
+
+private def evictCacheEntries (values : Std.HashMap Nat (Option (List WaitDecompositionCode.WaitCore)))
+    (count : Nat) : Std.HashMap Nat (Option (List WaitDecompositionCode.WaitCore)) :=
+  match count, values.toList with
+  | 0, _ => values
+  | _, [] => values
+  | count + 1, (key, _) :: _ =>
+      evictCacheEntries (values.erase key) count
+
+private def insertCachedWaitCores
+    (key : Nat) (cores : Option (List WaitDecompositionCode.WaitCore))
+    (cache : WaitCoreCache) : WaitCoreCache :=
+  let values := cache.values.insert key cores
+  if cache.maxEntries == 0 || values.size ≤ cache.maxEntries then
+    { cache with values }
+  else
+    let batch := Nat.max 1 (cache.maxEntries * cache.evictionPercent / 100)
+    let values := evictCacheEntries values batch
+    { cache with values, evictions := cache.evictions + batch }
 
 private def cachedWaitCores
     (tiles : List Tile) (cache : WaitCoreCache) :
@@ -193,8 +219,7 @@ private def cachedWaitCores
       let cores := if completions.isEmpty then none
         else some (WaitDecompositionCode.waitCores completions)
       (cores, { cache with
-        values := cache.values.insert key cores
-        misses := cache.misses + 1 })
+        misses := cache.misses + 1 } |> insertCachedWaitCores key cores)
 
 /-- 既知の元手牌の完成情報を使い、除去後の待ち核探索だけをキャッシュする判定。 -/
 def canReduceMentsuPreservingWaitCoresCached

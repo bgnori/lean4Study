@@ -27,6 +27,7 @@ private def reportBody (summary : TenTileSummary) : String :=
     s!"waitCoreCacheHits: {summary.waitCoreCacheHits}",
     s!"waitCoreCacheMisses: {summary.waitCoreCacheMisses}",
     s!"waitCoreCacheEntries: {summary.waitCoreCacheEntries}",
+    s!"waitCoreCacheEvictions: {summary.waitCoreCacheEvictions}",
      "",
      "### Irreducible",
      s!"count: {summary.irreducibleReports}",
@@ -49,12 +50,17 @@ private def reportText (elapsedMs : Nat) (body : String) : String :=
   ]
 
 def run (args : List String) : IO UInt32 := do
-  let outputPath := args.head?.getD "reports/ten-tile-report.txt"
+  let maxEntries := args.find? (·.startsWith "--max-entries=")
+    |>.bind (fun arg => (arg.drop 14).toNat?) |>.getD 0
+  let evictionPercent := args.find? (·.startsWith "--eviction-percent=")
+    |>.bind (fun arg => (arg.drop 19).toNat?) |>.getD 0
+  let outputPath := args.find? (fun arg => !arg.startsWith "--")
+    |>.getD "reports/ten-tile-report.txt"
   let path : System.FilePath := outputPath
   if let some parent := path.parent then
     IO.FS.createDirAll parent
   let started ← IO.monoMsNow
-  let computedSummary := summary ()
+  let computedSummary := summaryWithCache 0 1 maxEntries evictionPercent
   let body := reportBody computedSummary
   let bodySize := body.utf8ByteSize
   if bodySize == 0 then
