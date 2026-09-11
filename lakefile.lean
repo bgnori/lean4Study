@@ -37,6 +37,9 @@ lean_exe «seven-tile-report-gen» where
 lean_exe «ten-tile-report-gen» where
   root := `MahjongComputations.TenTileReport
 
+lean_exe «ten-tile-shard-report-gen» where
+  root := `MahjongComputations.TenTileShardReport
+
 lean_exe «thirteen-tile-report-gen» where
   root := `MahjongComputations.ThirteenTileReport
 

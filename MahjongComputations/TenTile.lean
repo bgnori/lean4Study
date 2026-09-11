@@ -16,6 +16,7 @@ namespace MahjongComputations.TenTile
 open DirectWaitGeneration
 open WaitCompletionFinder
 open WaitDecompositionCode
+open MahjongComputations
 
 /-- Aggregated exhaustive report data for ten-tile shapes. -/
 structure TenTileSummary where
@@ -70,11 +71,13 @@ private def addShapeReport (report : WaitCompletionGroup) (state : ComputationSt
       irreducibleGroups := addWaitDecompositionCodeGroup codes report.tiles waits summary.irreducibleGroups }
   { summary, waitCoreCache }
 
-/-- Exhaustive ten-tile aggregate summary. -/
-def summary (_ : Unit) : TenTileSummary :=
+/-- Exhaustive ten-tile aggregate summary with optional sharding. -/
+def summaryWithShard (shardIndex : Nat := 0) (numShards : Nat := 1) : TenTileSummary :=
   let generated := canonicalWaitCompletionGroups 3
+  let filtered := generated.groups.filter fun group =>
+    (tileMultisetKey group.tiles) % numShards == shardIndex
   let computed :=
-    generated.groups.foldl (fun state report => addShapeReport report state)
+    filtered.foldl (fun state report => addShapeReport report state)
       { summary := emptySummary, waitCoreCache := emptyWaitCoreCache }
   { computed.summary with
     allTenTileShapes := allTenTileShapeCount ()
@@ -82,5 +85,9 @@ def summary (_ : Unit) : TenTileSummary :=
     waitCoreCacheHits := computed.waitCoreCache.hits
     waitCoreCacheMisses := computed.waitCoreCache.misses
     waitCoreCacheEntries := computed.waitCoreCache.values.size }
+
+/-- Exhaustive ten-tile aggregate summary. -/
+def summary (_ : Unit) : TenTileSummary :=
+  summaryWithShard 0 1
 
 end MahjongComputations.TenTile
