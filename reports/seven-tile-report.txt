@@ -8,6 +8,9 @@ tenpaiReports: 148809
 
 ### Reducible
 count: 144516
+waitCoreCacheHits: 155229
+waitCoreCacheMisses: 6363
+waitCoreCacheEntries: 6363
 
 ### Irreducible
 count: 4293

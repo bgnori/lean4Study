@@ -178,7 +178,7 @@ private def canonicalizeWaitDecomposition
   components.mergeSort fun first second =>
     concreteComponentKey first ≤ concreteComponentKey second
 
-private def waitDecompositionKey (decomposition : WaitDecomposition) : Nat :=
+def waitDecompositionKey (decomposition : WaitDecomposition) : Nat :=
   decomposition.wait.orderKey * decompositionWaitKeyStride +
     decomposition.components.foldl
       (fun key component => key * decompositionComponentKeyStride + concreteComponentKey component) 0
@@ -295,6 +295,14 @@ def waitCores (completions : List WaitCompletion) : List WaitCore :=
   waitCoreExtractions completions
     |>.map (fun extraction => { wait := extraction.wait, components := extraction.core })
     |> deduplicateAndSortBy waitDecompositionKey
+
+/-- Exact compact key for one concrete wait core. -/
+def waitCoreKey (core : WaitCore) : Nat :=
+  waitDecompositionKey core
+
+/-- Exact compact keys for a normalized wait-core list. -/
+def waitCoreKeys (cores : List WaitCore) : List Nat :=
+  cores.map waitCoreKey
 
 /--
 発見済みの具体牌付き待ち分解から各部品の牌種列を忘れ、部品種別だけの待ち分解へ変換する。

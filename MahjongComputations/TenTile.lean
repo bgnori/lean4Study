@@ -28,7 +28,6 @@ structure TenTileSummary where
   waitCoreCacheHits : Nat
   waitCoreCacheMisses : Nat
   waitCoreCacheEntries : Nat
-  waitCoreCacheEvictions : Nat
   irreducibleGroups : List WaitDecompositionCodeGroup
   waitTileCountDistribution : List (Nat × Nat)
 deriving BEq, DecidableEq, Repr
@@ -42,7 +41,6 @@ private def emptySummary : TenTileSummary :=
     waitCoreCacheHits := 0
     waitCoreCacheMisses := 0
     waitCoreCacheEntries := 0
-    waitCoreCacheEvictions := 0
     irreducibleGroups := []
     waitTileCountDistribution := [] }
 
@@ -74,25 +72,25 @@ private def addShapeReport (report : WaitCompletionGroup) (state : ComputationSt
   { summary, waitCoreCache }
 
 /-- Ten-tile summary with an optional bounded, batch-evicting cache. -/
-def summaryWithCache (shardIndex numShards maxEntries evictionPercent : Nat) : TenTileSummary :=
+/-- Ten-tile summary using the compact-key cache. -/
+def summaryWithCache (shardIndex numShards : Nat) : TenTileSummary :=
   let generated := canonicalWaitCompletionGroups 3
   let filtered := generated.groups.filter fun group =>
     (tileMultisetKey group.tiles) % numShards == shardIndex
   let computed :=
     filtered.foldl (fun state report => addShapeReport report state)
       { summary := emptySummary
-        waitCoreCache := configuredWaitCoreCache maxEntries evictionPercent }
+        waitCoreCache := emptyWaitCoreCache }
   { computed.summary with
     allTenTileShapes := allTenTileShapeCount ()
     enumeratedDerivations := generated.enumeratedDerivations
     waitCoreCacheHits := computed.waitCoreCache.hits
     waitCoreCacheMisses := computed.waitCoreCache.misses
-    waitCoreCacheEntries := computed.waitCoreCache.values.size
-    waitCoreCacheEvictions := computed.waitCoreCache.evictions }
+    waitCoreCacheEntries := computed.waitCoreCache.values.size }
 
 /-- Exhaustive ten-tile aggregate summary with optional sharding. -/
 def summaryWithShard (shardIndex : Nat := 0) (numShards : Nat := 1) : TenTileSummary :=
-  summaryWithCache shardIndex numShards 0 0
+  summaryWithCache shardIndex numShards
 
 /-- Exhaustive ten-tile aggregate summary. -/
 def summary (_ : Unit) : TenTileSummary :=
