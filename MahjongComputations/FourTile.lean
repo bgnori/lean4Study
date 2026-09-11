@@ -14,6 +14,7 @@ namespace MahjongComputations.FourTile
 open DirectWaitGeneration
 open WaitDecompositionCode
 open WaitCompletionFinder
+open MahjongComputations
 
 /-- A computed summary for one four-tile shape. -/
 structure FourTileShapeReport where
@@ -48,6 +49,24 @@ private def directReport (report : WaitCompletionGroup) : FourTileShapeReport :=
     reducibility := some (if canReduceMentsuPreservingWaitCoresGivenCompletions report.tiles completions
       then .reducible else .irreducible)
     waitDecompositionCodes := waitDecompositionCodes completions }
+
+/-- Four-tile direct reports computed with one cache shared by all shapes. -/
+def directDerivationReportsWithCache :
+  List FourTileShapeReport × MahjongComputations.WaitCoreCache :=
+  let (reports, cache) := directFourTileGenerated.groups.foldl
+    (fun (reports, cache) report =>
+      let completions := report.completions
+      let (reducible, cache) :=
+        MahjongComputations.canReduceMentsuPreservingWaitCoresCached
+          report.tiles completions cache
+      let result : FourTileShapeReport :=
+        { tiles := report.tiles
+          waits := waitsFromCompletions completions
+          reducibility := some (if reducible then .reducible else .irreducible)
+          waitDecompositionCodes := waitDecompositionCodes completions }
+      (result :: reports, cache))
+    ([], MahjongComputations.emptyWaitCoreCache)
+  (reports.reverse, cache)
 
 /-- Number of normalized direct derivations enumerated for four-tile shapes. -/
 def directDerivationCount : Nat :=

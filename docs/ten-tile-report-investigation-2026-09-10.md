@@ -34,9 +34,6 @@
    （生の候補224,502件、グループ148,809件）は **1ms未満** で終わることを確認した。
 10. これにより、生成・グループ化のアルゴリズムはすでに高速であり、`fourTileReport`/`sevenTileReport`
     全体の実行時間（38秒・5分）を支配しているのは**別の処理**であると判明した。
-    有力な容疑者は次の2つだった:
-    - `WaitDecompositionCode.canReduceMentsuPreservingWaitCores`
-      （グループごとに面子除去候補を再列挙し、待ち核集合を再計算する処理）を
       牌姿グループ全件（7枚形で148,809件）に対して呼ぶコスト。
     - `FourTile.tenpaiReports`（`allFourTileShapes` から全4枚形66,045件を総当たりで
       `WaitCompletionFinder`/`determineReducibility`/`findWaitDecompositionCodes` に通す、
@@ -51,17 +48,13 @@
 12. 可約性判定側の高速化の第1歩として、`WaitDecompositionCode.waitCorePreservingMentsuReductions`を
     修正した。元の実装は `do` 記法で `findWaitCores tiles`（除去前の元の手牌の待ち核）を
     `mentsuReductions tiles` が返す候補の数だけ毎回再計算していた（`tiles`にしか依存しないのに候補ループの中で
-    毎回呼ばれていた）。`findWaitCores tiles` をループの外で1回だけ計算するように巻き上げて
     `List.filter` に書き直した（出力は数学的に完全に同一なので、既存の証明（`reducibility_eq_reducible_iff`など）は
     影響を受けない）。
 13. 修正後の診断ツールで再測定: `canReduceMentsuPreservingWaitCores` を7枚形の148,809グループ全件に
-    適用して `elapsedMs=289130`（**約4分49秒**）。修正前の`332757`（約5分33秒）から約13%の短縮に
     とどまった。改善幅が小さいことから、`mentsuReductions tiles` が返す除去候補の平均件数は
     そもそも少なく（1件前後）、支配的なコストは重複呼び出しではなく、
     `winningPartitions`（`WaitCompletionFinder.findWaitCompletions` 内部の組合せ探索）を
-    **グループ1件ごとに少なくとも1回は必ず呼ぶこと自体**が支配的であると判明した。
 
-## 結論
 
 生成・グループ化（正準生成＋ストリーミング化）の最適化は正しく機能しており、メモリ超過の
 原因は解消できた。しかし `fourTileReport`/`sevenTileReport`/`tenTileReport` の**実行時間**を
@@ -91,8 +84,6 @@
   - `n=2 grouped count=224502 groups=148809`、`elapsedMs=1`
   - `canReduceMentsuPreservingWaitCores` を148,809件に適用した測定値: `elapsedMs=332757`（約5分32秒）
   - ループ不変量の巻き上げ後の再測定: `elapsedMs=289130`（約4分49秒）
-  - `FourTile.tenpaiReports` のbrute-force経路: `elapsedMs=0`
-
 これらの値から、生成・グループ化自体はすでに高速であり、レポート全体の時間は
 `WaitDecompositionCode.canReduceMentsuPreservingWaitCores` の判定コストが支配している。
 最適化前後の差は約13%であり、再計算が減ったものの真のボトルネックは
@@ -161,3 +152,19 @@ completion再利用版も3分を超え、変更前の `133254ms` を明確に上
 まとめても支配的な探索を減らせなかったと考えられる。実行経路の変更は戻したが、非空性同値定理は
 APIの意味を明示する有用な結果として残した。次は段階3として、縮小牌姿ごとの探索結果を
 `tileMultisetKey` で共有するキャッシュを検討する。
+
+### 段階3の実施結果: 4枚形・7枚形へキャッシュを導入
+
+縮小牌姿の待ち核集合を `tileMultisetKey` で report-wide に共有する
+`WaitCoreCache` を導入した。4枚形と7枚形をコンパイル済みジェネレータで実行し、
+シェル組み込み `time -p` の `real` を測定した。10枚形・13枚形は実行していない。
+
+- 4枚形: `36.68s`、`3756` tenpai reports、`1647` reducible、`2109` irreducible
+  - `1802` hits / `34` misses / `34` entries
+- 7枚形: `12.66s`、`148809` tenpai reports、`144516` reducible、`4293` irreducible
+  - `155229` hits / `6363` misses / `6363` entries
+
+比較対象の既存測定は、4枚形が約`38.85s`、7枚形が約`4分59秒`だった。
+今回の測定では、4枚形は約`5.6%`短縮、7枚形は約`95.8%`短縮となる。
+ただし、7枚形の比較対象はキャッシュ導入前の別経路を含む測定であり、キャッシュ単独の効果とは
+断定しない。件数が一致していることと、キャッシュによる再利用量を確認した結果として記録する。

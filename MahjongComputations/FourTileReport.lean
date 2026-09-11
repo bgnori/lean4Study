@@ -31,25 +31,30 @@ private def reducibilityCount (reports : List FourTileShapeReport)
     (reducibility : WaitReducibility) : Nat :=
   (reports.filter fun report => report.reducibility == some reducibility).length
 
-private def reportsByReducibility (reducibility : WaitReducibility) : List FourTileShapeReport :=
-  directDerivationTenpaiReports.filter fun report => report.reducibility == some reducibility
+private def reportsByReducibility (reports : List FourTileShapeReport)
+    (reducibility : WaitReducibility) : List FourTileShapeReport :=
+  reports.filter fun report => report.reducibility == some reducibility
 
 private def reportText : String :=
-  let irreducibleReports := reportsByReducibility .irreducible
+  let (directReports, cache) := directDerivationReportsWithCache
+  let irreducibleReports := reportsByReducibility directReports .irreducible
   let irreducibleGroups := groupByWaitDecompositionCodes
     (·.waitDecompositionCodes) (·.tiles) (·.waits) irreducibleReports
-  let waitTileCounts := countOccurrences (directDerivationTenpaiReports.map (·.waits.length))
+  let waitTileCounts := countOccurrences (directReports.map (·.waits.length))
   String.intercalate newline <|
     ["# Four-tile direct derivation wait report",
      "",
      s!"allFourTileShapes: {allFourTileShapes.length}",
     s!"enumeratedDerivations: {directDerivationCount}",
-    s!"tenpaiReports: {directDerivationTenpaiReports.length}",
+    s!"tenpaiReports: {directReports.length}",
       "",
      "## Reducibility",
      "",
      "### Reducible",
-     s!"count: {reducibilityCount tenpaiReports .reducible}",
+    s!"count: {reducibilityCount directReports .reducible}",
+    s!"waitCoreCacheHits: {cache.hits}",
+    s!"waitCoreCacheMisses: {cache.misses}",
+    s!"waitCoreCacheEntries: {cache.values.size}",
      "",
      "### Irreducible",
      s!"count: {reducibilityCount tenpaiReports .irreducible}",
@@ -64,7 +69,7 @@ private def reportText : String :=
     ["",
      "## Tenpai reports",
     "tiles\twaits\treducibility\twaitDecompositionCodes\twaitDecompositionCodesKey"] ++
-    directDerivationTenpaiReports.map reportLine ++
+    directReports.map reportLine ++
     [""]
 
 def run (args : List String) : IO UInt32 := do

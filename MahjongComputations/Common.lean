@@ -172,6 +172,46 @@ def canReduceMentsuPreservingWaitCoresGivenCompletions
         !(WaitCompletionFinder.waitingTiles remaining).isEmpty &&
           WaitDecompositionCode.findWaitCores remaining == originalCores).isEmpty
 
+/-- 除去後の牌姿から得た待ち核集合を、牌姿キーで再利用するキャッシュ。 -/
+structure WaitCoreCache where
+  values : Std.HashMap Nat (Option (List WaitDecompositionCode.WaitCore))
+  hits : Nat
+  misses : Nat
+
+def emptyWaitCoreCache : WaitCoreCache :=
+  { values := ∅, hits := 0, misses := 0 }
+
+private def cachedWaitCores
+    (tiles : List Tile) (cache : WaitCoreCache) :
+    Option (List WaitDecompositionCode.WaitCore) × WaitCoreCache :=
+  let key := tileMultisetKey tiles
+  match cache.values.get? key with
+  | some cores =>
+      (cores, { cache with hits := cache.hits + 1 })
+  | none =>
+      let completions := WaitCompletionFinder.findWaitCompletions tiles
+      let cores := if completions.isEmpty then none
+        else some (WaitDecompositionCode.waitCores completions)
+      (cores, { cache with
+        values := cache.values.insert key cores
+        misses := cache.misses + 1 })
+
+/-- 既知の元手牌の完成情報を使い、除去後の待ち核探索だけをキャッシュする判定。 -/
+def canReduceMentsuPreservingWaitCoresCached
+    (tiles : List Tile) (completions : List WaitCompletion)
+    (cache : WaitCoreCache) : Bool × WaitCoreCache :=
+  let originalCores := WaitDecompositionCode.waitCores completions
+  let rec loop : List (List Tile) → WaitCoreCache → Bool × WaitCoreCache
+    | [], cache => (false, cache)
+    | remaining :: rest, cache =>
+        let (cores, cache) := cachedWaitCores remaining cache
+        match cores with
+        | some cores =>
+            if cores == originalCores then (true, cache) else loop rest cache
+        | none => loop rest cache
+  if 1 < tiles.length then loop (WaitCompletionFinder.mentsuReductions tiles) cache
+  else (false, cache)
+
 /-- 完成情報群に現れる待ち牌を、初出順で重複なく取り出す。 -/
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=
   (completions.map fun completion => completion.wait).eraseDups

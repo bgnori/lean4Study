@@ -24,6 +24,9 @@ structure TenTileSummary where
   tenpaiReports : Nat
   reducibleReports : Nat
   irreducibleReports : Nat
+  waitCoreCacheHits : Nat
+  waitCoreCacheMisses : Nat
+  waitCoreCacheEntries : Nat
   irreducibleGroups : List WaitDecompositionCodeGroup
   waitTileCountDistribution : List (Nat × Nat)
 deriving BEq, DecidableEq, Repr
@@ -34,35 +37,50 @@ private def emptySummary : TenTileSummary :=
     tenpaiReports := 0
     reducibleReports := 0
     irreducibleReports := 0
+    waitCoreCacheHits := 0
+    waitCoreCacheMisses := 0
+    waitCoreCacheEntries := 0
     irreducibleGroups := []
     waitTileCountDistribution := [] }
 
 private def allTenTileShapeCount (_ : Unit) : Nat :=
   countLegalTileMultisetsOfLength 10 Tile.all
 
-private def addShapeReport (report : WaitCompletionGroup) (summary : TenTileSummary) :
-    TenTileSummary :=
+private structure ComputationState where
+  summary : TenTileSummary
+  waitCoreCache : WaitCoreCache
+
+private def addShapeReport (report : WaitCompletionGroup) (state : ComputationState) :
+    ComputationState :=
   let completions := report.completions
   let waits := waitsFromCompletions completions
   let codes := waitDecompositionCodes completions
+  let (reducible, waitCoreCache) :=
+    canReduceMentsuPreservingWaitCoresCached report.tiles completions state.waitCoreCache
   let summary :=
-    { summary with
-      tenpaiReports := summary.tenpaiReports + 1
-      waitTileCountDistribution := incrementCount waits.length summary.waitTileCountDistribution }
-  if canReduceMentsuPreservingWaitCoresGivenCompletions report.tiles completions then
+    { state.summary with
+      tenpaiReports := state.summary.tenpaiReports + 1
+      waitTileCountDistribution :=
+        incrementCount waits.length state.summary.waitTileCountDistribution }
+  let summary := if reducible then
     { summary with reducibleReports := summary.reducibleReports + 1 }
   else
     { summary with
       irreducibleReports := summary.irreducibleReports + 1
       irreducibleGroups := addWaitDecompositionCodeGroup codes report.tiles waits summary.irreducibleGroups }
+  { summary, waitCoreCache }
 
 /-- Exhaustive ten-tile aggregate summary. -/
 def summary (_ : Unit) : TenTileSummary :=
   let generated := canonicalWaitCompletionGroups 3
-  let computedSummary :=
-    generated.groups.foldl (fun summary report => addShapeReport report summary) emptySummary
-  { computedSummary with
+  let computed :=
+    generated.groups.foldl (fun state report => addShapeReport report state)
+      { summary := emptySummary, waitCoreCache := emptyWaitCoreCache }
+  { computed.summary with
     allTenTileShapes := allTenTileShapeCount ()
-    enumeratedDerivations := generated.enumeratedDerivations }
+    enumeratedDerivations := generated.enumeratedDerivations
+    waitCoreCacheHits := computed.waitCoreCache.hits
+    waitCoreCacheMisses := computed.waitCoreCache.misses
+    waitCoreCacheEntries := computed.waitCoreCache.values.size }
 
 end MahjongComputations.TenTile
