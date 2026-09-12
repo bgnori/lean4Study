@@ -53,7 +53,8 @@ private def waitCompletionEntryKeyLE
     (first second : WaitCompletionEntry) : Bool :=
   decide (tileMultisetKey first.tiles ≤ tileMultisetKey second.tiles)
 
-private def insertCompletion
+/-- Insert a completion unless the same normalized completion is already present. -/
+def insertCompletion
     (completion : WaitCompletion) (completions : List WaitCompletion) : List WaitCompletion :=
   if completions.contains completion then completions else completion :: completions
 
@@ -111,13 +112,12 @@ private def mentsuListToFunction (n : Nat) (mentsuList : List MentsuCandidate) :
 
 open DirectWaitGeneration in
 /--
-面子の割り当てを `mentsuCanonical` と同じ順序で非減少列に限って直接畳み込み、正規化済みの
-`WaitDerivation` それぞれを `f` で処理する。並べ替え違いの重複や、生成結果全体を並べた
-中間 `List` をどこにも保持しない。
+指定した雀頭牌について、面子の割り当てを `mentsuCanonical` と同じ順序で非減少列に限って
+直接畳み込み、正規化済みの `WaitDerivation` それぞれを `f` で処理する。
 -/
-def foldCanonicalDirectWaitDerivations {n : Nat} {α : Type}
-    (init : α) (f : α → WaitDerivation n → α) : α :=
-  Tile.all.foldl (init := init) fun acc tile =>
+def foldCanonicalDirectWaitDerivationsForPairTiles {n : Nat} {α : Type}
+    (pairTiles : List Tile) (init : α) (f : α → WaitDerivation n → α) : α :=
+  pairTiles.foldl (init := init) fun acc tile =>
     (WaitDecompositionCode.combinationsWithRepetitionOver canonicalMentsuAlphabet n).foldl
       (init := acc) fun acc mentsuList =>
         let shape : WinningShape n :=
@@ -126,6 +126,29 @@ def foldCanonicalDirectWaitDerivations {n : Nat} {α : Type}
           ((shape.component selected).tiles.dedup).foldl (init := acc) fun acc wait =>
             let seed : Seed n := { shape, selected, wait }
             if h : seed.valid = true then f acc ⟨seed, h⟩ else acc
+
+open DirectWaitGeneration in
+/-- Monadic variant used to stream canonical derivations without retaining them in memory. -/
+def foldCanonicalDirectWaitDerivationsForPairTilesM {n : Nat} {α : Type} {m : Type → Type}
+    [Monad m] (pairTiles : List Tile) (init : α) (f : α → WaitDerivation n → m α) : m α :=
+  pairTiles.foldlM (init := init) fun acc tile =>
+    (WaitDecompositionCode.combinationsWithRepetitionOver canonicalMentsuAlphabet n).foldlM
+      (init := acc) fun acc mentsuList =>
+        let shape : WinningShape n :=
+          { pair := .toitsu tile, mentsu := mentsuListToFunction n mentsuList }
+        (componentIndices n).foldlM (init := acc) fun acc selected =>
+          ((shape.component selected).tiles.dedup).foldlM (init := acc) fun acc wait =>
+            let seed : Seed n := { shape, selected, wait }
+            if h : seed.valid = true then f acc ⟨seed, h⟩ else pure acc
+
+open DirectWaitGeneration in
+/--
+面子の並べ替えだけが違う重複や、生成結果全体を並べた中間 `List` を保持せず、すべての雀頭牌の
+正規化済み `WaitDerivation` を畳み込む。
+-/
+def foldCanonicalDirectWaitDerivations {n : Nat} {α : Type}
+    (init : α) (f : α → WaitDerivation n → α) : α :=
+  foldCanonicalDirectWaitDerivationsForPairTiles Tile.all init f
 
 /--
 面子の並べ替えだけが違う重複を生成しない、`directWaitDerivations` と同じ牌姿・待ちの集合を

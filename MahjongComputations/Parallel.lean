@@ -18,6 +18,16 @@ def parallelMapChunks {α β : Type} (workers : Nat) (items : List α)
     BaseIO.asTask (f chunk) Task.Priority.dedicated
   tasks.mapM IO.wait
 
+/-- IO-error-preserving variant of `parallelMapChunks`. -/
+def parallelMapChunksIO {α β : Type} (workers : Nat) (items : List α)
+    (f : List α → IO β) : IO (List β) := do
+  let workerCount := Nat.max 1 workers
+  let chunkSize := Nat.max 1 ((items.length + workerCount - 1) / workerCount)
+  let tasks ← (items.toChunks chunkSize).mapM fun chunk =>
+    IO.asTask (f chunk) Task.Priority.dedicated
+  tasks.mapM fun task => do
+    IO.ofExcept (← IO.wait task)
+
 /-- Parse `--workers=N` and an optional output path, defaulting to available processors. -/
 def parseWorkerArgs (args : List String) (defaultOutputPath : String) : IO (Nat × String) := do
   let defaultWorkers ←

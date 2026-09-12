@@ -1,4 +1,5 @@
 import MahjongComputations.TenTile
+import MahjongComputations.Parallel
 
 /-!
 # Ten-tile report generator
@@ -49,13 +50,14 @@ private def reportText (elapsedMs : Nat) (body : String) : String :=
   ]
 
 def run (args : List String) : IO UInt32 := do
-  let outputPath := args.find? (fun arg => !arg.startsWith "--")
-    |>.getD "reports/ten-tile-report.txt"
+  let (workers, outputPath) ←
+    MahjongComputations.parseWorkerArgs args "reports/ten-tile-report.txt"
   let path : System.FilePath := outputPath
   if let some parent := path.parent then
     IO.FS.createDirAll parent
   let started ← IO.monoMsNow
-  let computedSummary := summaryWithCache 0 1
+  let workDirectory : System.FilePath := ".lake/build/ten-tile-buckets"
+  let computedSummary ← summaryParallel workers workDirectory
   let body := reportBody computedSummary
   let bodySize := body.utf8ByteSize
   if bodySize == 0 then

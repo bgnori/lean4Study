@@ -1,4 +1,5 @@
 import MahjongComputations.Parallel
+import MahjongComputations.ExternalWaitCompletion
 
 namespace MahjongTests.ParallelComputation
 
@@ -11,7 +12,102 @@ private def otherHand : List Tile := manzu [3]
 private def ensure (condition : Bool) (message : String) : IO Unit :=
   unless condition do throw (IO.userError message)
 
+private def testPartitionedCanonicalGeneration : IO Unit := do
+  let midpoint := Tile.all.length / 2
+  let first := foldCanonicalDirectWaitDerivationsForPairTiles (n := 1)
+    (Tile.all.take midpoint) [] fun derivations derivation => derivation :: derivations
+  let second := foldCanonicalDirectWaitDerivationsForPairTiles (n := 1)
+    (Tile.all.drop midpoint) [] fun derivations derivation => derivation :: derivations
+  let full := foldCanonicalDirectWaitDerivations (n := 1) []
+    fun derivations derivation => derivation :: derivations
+  ensure (second ++ first == full)
+    "partitioned canonical generation differs from full generation"
+  let monadic ← foldCanonicalDirectWaitDerivationsForPairTilesM (n := 1) Tile.all []
+    fun derivations derivation => pure (derivation :: derivations)
+  ensure (monadic == full) "monadic canonical generation differs from pure generation"
+
+private def testExternalRecordCodec : IO Unit := do
+  let records := foldCanonicalDirectWaitDerivations (n := 1) []
+    fun records derivation =>
+      { tiles := DirectWaitGeneration.hand derivation
+        completion := DirectWaitGeneration.completion derivation } :: records
+  for record in records do
+    let encoded := ExternalWaitCompletion.encode 1 record
+    ensure encoded.isSome "failed to encode a valid four-tile derivation"
+    ensure (encoded.bind (ExternalWaitCompletion.decode 1) == some record)
+      "external wait-completion record failed to round trip"
+  ensure (ExternalWaitCompletion.decode 1 ByteArray.empty).isNone
+    "external codec accepted a truncated record"
+
+private def testExternalBucketFile : IO Unit := do
+  let path : System.FilePath := ".lake/build/parallel-computation-external-test.bin"
+  let records := (foldCanonicalDirectWaitDerivations (n := 1) []
+    fun records derivation =>
+      { tiles := DirectWaitGeneration.hand derivation
+        completion := DirectWaitGeneration.completion derivation } :: records).take 20
+  try
+    ExternalWaitCompletion.withWriter path 1 7 fun writer =>
+      records.forM writer.append
+    let decoded ← ExternalWaitCompletion.foldFile path 1 [] fun decoded record =>
+      pure (record :: decoded)
+    ensure (decoded.reverse == records) "external bucket changed record order or contents"
+    IO.FS.withFile path .append fun handle =>
+      handle.write (ByteArray.empty.push 0)
+    let rejected ← try
+      discard <| ExternalWaitCompletion.foldFile path 1 () fun _ _ => pure ()
+      pure false
+    catch _ => pure true
+    ensure rejected "external bucket reader accepted a truncated final record"
+  finally
+    IO.FS.removeFile path
+
+private def externalRecordKey (record : ExternalWaitCompletion.Record) : Nat :=
+  (ExternalWaitCompletion.encode 1 record).get!.data.foldl
+    (fun key byte => key * 128 + byte.toNat + 1) 0
+
+private def testParallelBucketGeneration : IO Unit := do
+  let directory : System.FilePath := ".lake/build/parallel-computation-buckets"
+  let bucketCount := 4
+  let paths := (List.range bucketCount).map (ExternalWaitCompletion.bucketPath directory)
+  let expected := foldCanonicalDirectWaitDerivations (n := 1) [] fun records derivation =>
+    { tiles := DirectWaitGeneration.hand derivation
+      completion := DirectWaitGeneration.completion derivation } :: records
+  try
+    let generatedCount ← ExternalWaitCompletion.withBucketSet directory 1 bucketCount 14
+      fun buckets => do
+        let counts ← parallelMapChunksIO 4 Tile.all fun pairTiles =>
+          foldCanonicalDirectWaitDerivationsForPairTilesM (n := 1) pairTiles 0
+            fun count derivation => do
+              buckets.append {
+                tiles := DirectWaitGeneration.hand derivation
+                completion := DirectWaitGeneration.completion derivation }
+              pure (count + 1)
+        pure counts.sum
+    ensure (generatedCount == expected.length)
+      "parallel external generation changed the derivation count"
+    let decoded ← paths.foldlM (init := []) fun decoded path =>
+      ExternalWaitCompletion.foldFile path 1 decoded fun records record =>
+        pure (record :: records)
+    let sortKeys := fun records =>
+      (records.map externalRecordKey).mergeSort fun first second => decide (first ≤ second)
+    ensure (sortKeys decoded == sortKeys expected)
+      "parallel external buckets changed the derivation multiset"
+    let grouped ← paths.flatMapM fun path => ExternalWaitCompletion.readGroups path 1
+    let expectedGroups := (canonicalWaitCompletionGroups 1).groups.map
+      (ExternalWaitCompletion.normalizeGroup 1)
+    let sortGroups := fun groups => groups.mergeSort fun first second =>
+      decide (tileMultisetKey first.tiles ≤ tileMultisetKey second.tiles)
+    ensure (sortGroups grouped == sortGroups expectedGroups)
+      "external bucket grouping differs from in-memory canonical grouping"
+  finally
+    paths.forM IO.FS.removeFile
+    IO.FS.removeDir directory
+
 def run : IO UInt32 := do
+  testPartitionedCanonicalGeneration
+  testExternalRecordCodec
+  testExternalBucketFile
+  testParallelBucketGeneration
   let cache ← SharedWaitCoreCache.new
   let tasks ← (List.range 8).mapM fun _ =>
     BaseIO.asTask (do
