@@ -48,6 +48,8 @@ def parseWorkerArgs (args : List String) (defaultOutputPath : String) : IO (Nat 
           if count == 0 then throw (IO.userError "--workers must be greater than zero")
           workers := count
       | none => throw (IO.userError s!"invalid worker count: {arg}")
+    else if arg.startsWith "workers=" then
+      throw (IO.userError s!"invalid worker option: {arg}; use --{arg}")
     else if arg.startsWith "--" then
       throw (IO.userError s!"unknown option: {arg}")
     else

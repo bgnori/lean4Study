@@ -127,6 +127,38 @@
 レポート内の`calculationElapsedMs: 0`は、7枚形と同様に遅延評価のため測定値として採用しない。
 上記の`time`による実時間を正式な実測値とする。13枚形レポートはこの時点では実行していない。
 
+### 外部bucket・4 worker版の完走結果（2026-09-12）
+
+`lake exe ten-tile-report-gen --workers=4`を実行し、外部bucketへ導出を書き出してから
+bucket単位で集約・分類する並列版が終了コード`0`で完走した。レポートに記録された計算時間は
+`calculationElapsedMs: 410130`、すなわち**6分50.130秒**だった。
+
+主要値は次の通りで、2026-09-11の単一プロセス版とすべて一致した。
+
+- `allTenTileShapes: 1900269316`
+- `enumeratedDerivations: 5536779`
+- `tenpaiReports: 3431439`
+- reducible: `3416313`
+- irreducible: `15126`
+- wait-core cache: `3701891 hits / 295762 misses / 295762 entries`
+- irreducible code groups: `199`
+
+旧実測の17分23.521秒から6分50.130秒へ短縮され、実時間は約**2.54倍高速化**、
+短縮率は約**60.7%**となった。実行中は4 worker threadが動作し、`htop`上のプロセス全体の
+CPU使用率は約180%前後だった。4 coreを常時使い切る状態ではないが、従来の約100%前後から
+複数coreを利用する状態へ移行したことを確認した。
+
+実装は64個の固定幅binary bucketを使う。生成段階では雀頭牌をworkerへ分配し、同一牌姿を
+`tileMultisetKey % 64`で必ず同じbucketへ書く。分類段階ではbucketごとに牌姿を集約し、
+全workerで共有するsingle-flight wait-core cacheを利用する。このため、全導出または全牌姿を
+一つの巨大な中間リストとして保持せずに済む。
+
+並列版の初回試行では、旧`summary (_ : Unit)`と合法10枚形数の全列挙がnative module initializerへ
+持ち上げられ、`main`到達前に旧monolithic計算が走ってOOM killされた。旧経路を
+`MahjongComputations.TenTileLegacy`へ隔離し、検証済みの合法牌姿数を定数化して解消した。
+重い純粋計算を実質引数なしの定義としてruntime moduleへ置くと、native compilerが起動時評価へ
+移す場合があるため、今後の13枚形実装でも避ける。
+
 ### 13枚形レポートの実行時間見積もり（2026-09-11時点）
 
 13枚形は `canonicalWaitCompletionGroups 4`、10枚形は

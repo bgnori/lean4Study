@@ -1,4 +1,4 @@
-import MahjongComputations.TenTile
+import MahjongComputations.TenTileLegacy
 
 /-!
 # Ten-tile sharded report generator

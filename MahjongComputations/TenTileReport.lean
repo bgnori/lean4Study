@@ -50,8 +50,10 @@ private def reportText (elapsedMs : Nat) (body : String) : String :=
   ]
 
 def run (args : List String) : IO UInt32 := do
+  IO.eprintln "ten-tile: parsing arguments"
   let (workers, outputPath) ←
     MahjongComputations.parseWorkerArgs args "reports/ten-tile-report.txt"
+  IO.eprintln s!"ten-tile: configured {workers} workers"
   let path : System.FilePath := outputPath
   if let some parent := path.parent then
     IO.FS.createDirAll parent

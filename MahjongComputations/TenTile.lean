@@ -46,32 +46,7 @@ private def emptySummary : TenTileSummary :=
     irreducibleGroups := []
     waitTileCountDistribution := [] }
 
-private def allTenTileShapeCount (_ : Unit) : Nat :=
-  countLegalTileMultisetsOfLength 10 Tile.all
-
-private structure ComputationState where
-  summary : TenTileSummary
-  waitCoreCache : WaitCoreCache
-
-private def addShapeReport (report : WaitCompletionGroup) (state : ComputationState) :
-    ComputationState :=
-  let completions := report.completions
-  let waits := waitsFromCompletions completions
-  let codes := waitDecompositionCodes completions
-  let (reducible, waitCoreCache) :=
-    canReduceMentsuPreservingWaitCoresCached report.tiles completions state.waitCoreCache
-  let summary :=
-    { state.summary with
-      tenpaiReports := state.summary.tenpaiReports + 1
-      waitTileCountDistribution :=
-        incrementCount waits.length state.summary.waitTileCountDistribution }
-  let summary := if reducible then
-    { summary with reducibleReports := summary.reducibleReports + 1 }
-  else
-    { summary with
-      irreducibleReports := summary.irreducibleReports + 1
-      irreducibleGroups := addWaitDecompositionCodeGroup codes report.tiles waits summary.irreducibleGroups }
-  { summary, waitCoreCache }
+private def allTenTileShapeCount : Nat := 1900269316
 
 private def addShapeReportShared (cache : SharedWaitCoreCache)
     (summary : TenTileSummary) (report : WaitCompletionGroup) : IO TenTileSummary := do
@@ -120,35 +95,13 @@ private def mergeSummary (first second : TenTileSummary) : TenTileSummary :=
     waitTileCountDistribution :=
       second.waitTileCountDistribution.foldl addDistribution first.waitTileCountDistribution }
 
-/-- Ten-tile summary using the compact-key cache. -/
-def summaryWithCache (shardIndex numShards : Nat) : TenTileSummary :=
-  let generated := canonicalWaitCompletionGroups 3
-  let filtered := generated.groups.filter fun group =>
-    (tileMultisetKey group.tiles) % numShards == shardIndex
-  let computed :=
-    filtered.foldl (fun state report => addShapeReport report state)
-      { summary := emptySummary
-        waitCoreCache := emptyWaitCoreCache }
-  { computed.summary with
-    allTenTileShapes := allTenTileShapeCount ()
-    enumeratedDerivations := generated.enumeratedDerivations
-    waitCoreCacheHits := computed.waitCoreCache.hits
-    waitCoreCacheMisses := computed.waitCoreCache.misses
-    waitCoreCacheEntries := computed.waitCoreCache.values.size }
-
-/-- Exhaustive ten-tile aggregate summary with optional sharding. -/
-def summaryWithShard (shardIndex : Nat := 0) (numShards : Nat := 1) : TenTileSummary :=
-  summaryWithCache shardIndex numShards
-
-/-- Exhaustive ten-tile aggregate summary. -/
-def summary (_ : Unit) : TenTileSummary :=
-  summaryWithShard 0 1
-
 /-- Generate and classify ten-tile derivations through bounded external hash buckets. -/
 def summaryParallel (workers : Nat) (workDirectory : System.FilePath)
     (bucketCount : Nat := 64) : IO TenTileSummary := do
+  IO.eprintln s!"ten-tile: opening {bucketCount} buckets with {workers} workers"
   let generation ← ExternalWaitCompletion.withBucketSet workDirectory 3 bucketCount
     (action := fun buckets => do
+      IO.eprintln "ten-tile: generating derivations"
       let counts ← parallelMapChunksIO workers Tile.all fun pairTiles =>
         foldCanonicalDirectWaitDerivationsForPairTilesM (n := 3) pairTiles 0
           fun count derivation => do
@@ -158,6 +111,7 @@ def summaryParallel (workers : Nat) (workDirectory : System.FilePath)
             pure (count + 1)
       return (buckets.paths, counts.sum))
   let (paths, enumeratedDerivations) := generation
+  IO.eprintln s!"ten-tile: generated {enumeratedDerivations} derivations; classifying buckets"
   let cache ← SharedWaitCoreCache.new
   let partials ← parallelMapChunksIO workers paths fun workerPaths =>
     workerPaths.foldlM (init := emptySummary) fun summary path => do
@@ -166,7 +120,7 @@ def summaryParallel (workers : Nat) (workDirectory : System.FilePath)
   let computed := partials.foldl mergeSummary emptySummary
   let stats ← liftM cache.stats
   return { computed with
-    allTenTileShapes := allTenTileShapeCount ()
+    allTenTileShapes := allTenTileShapeCount
     enumeratedDerivations
     waitCoreCacheHits := stats.hits
     waitCoreCacheMisses := stats.misses
