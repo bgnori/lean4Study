@@ -147,11 +147,10 @@ generation.done
 分割数はコア数ではなく、各 shard のメモリ上限とディスク帯域で決める。2コア環境なら同時実行は
 通常1〜2プロセスにし、32コア環境でもI/Oが飽和するなら同時実行数を下げる。
 
-### 32-core Codespacesでの初期設定
+### Codespacesでの初期設定
 
-`.devcontainer/devcontainer.json`では最低要件を32 CPU、64 GB RAM、64 GB storageとし、
-Docker側の`--cpus`・`--memory`制限は設定しない。Codespacesで32-core machineを選択した後、
-次の値が期待通りか確認する。
+`.devcontainer/devcontainer.json`では最低要件を16 CPU、64 GB RAM、64 GB storageとし、
+Docker側の`--cpus`・`--memory`制限は設定しない。Codespace作成後、次の値が期待通りか確認する。
 
 ```bash
 nproc
@@ -159,11 +158,11 @@ cat /sys/fs/cgroup/memory.max
 df -h /workspaces
 ```
 
-32 CPUを一律に全段階へ割り当てない。生成段階は雀頭牌単位で32 workerまで並列化できる一方、
+利用可能なCPUを一律に全段階へ割り当てない。生成段階は雀頭牌単位で並列化できる一方、
 分類段階はworkerごとにbucketの`HashMap`を保持するため、worker数に応じてピークメモリが増える。
 初回構成は次を候補とする。
 
-- 生成worker数: 32
+- 生成worker数: 16（32-core machineを選択できる場合は32）
 - 分類worker数: 4〜8
 - bucket数: 128〜256
 - 最低空きdisk: 16 GB。生成recordsの予測値約1.9〜2.7 GBに加え、build成果物と中間生成物の余裕を持つ
@@ -172,7 +171,7 @@ df -h /workspaces
 cache entries、処理時間を測り、RAMに余裕がある場合だけ分類worker数を増やす。
 
 ```bash
-lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+lake exe thirteen-tile-report-gen --generation-workers=16 --classification-workers=8 --buckets=256
 ```
 
 生成完了時だけ`generation.done`をatomic renameで確定する。同じ面子数・bucket数のmarkerと全bucketが

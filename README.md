@@ -71,9 +71,9 @@ The reports are written to `reports/four-tile-direct-report.txt` and
 
 ### Codespaces for large computations
 
-The dev container declares minimum host requirements of 32 CPUs, 64 GB RAM, and 64 GB storage.
+The dev container declares minimum host requirements of 16 CPUs, 64 GB RAM, and 64 GB storage.
 It deliberately applies no Docker CPU or memory limits, allowing the container to use the selected
-Codespaces machine. After selecting a 32-core machine or rebuilding the container, verify it with:
+Codespaces machine. After creating or rebuilding the container, verify it with:
 
 ```bash
 nproc
@@ -87,8 +87,10 @@ periodic progress. Do not automatically use all CPUs for bucket classification: 
 worker retains a bucket-sized hash map. A suitable initial command is:
 
 ```bash
-lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+lake exe thirteen-tile-report-gen --generation-workers=16 --classification-workers=8 --buckets=256
 ```
+
+If organization policy offers a 32-core machine, generation workers can be raised to 32.
 
 After generation completes, `.lake/build/thirteen-tile-buckets/generation.done` records the phase
 boundary. Re-running with the same settings reuses those buckets if classification was interrupted.

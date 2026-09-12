@@ -67,9 +67,9 @@ lake build sevenTileReport
 
 ### 大規模計算用Codespaces
 
-`.devcontainer/devcontainer.json`は32 CPU、64 GB RAM、64 GB storageを最低要件として宣言している。
+`.devcontainer/devcontainer.json`は16 CPU、64 GB RAM、64 GB storageを最低要件として宣言している。
 Dockerの`--cpus`・`--memory`制限は設定せず、選択したCodespaces machineの資源をコンテナから
-利用できるようにしている。Codespace作成時に32-core machineを選び、作成後は次を確認する。
+利用できるようにしている。Codespace作成後は次を確認する。
 
 ```bash
 nproc
@@ -83,11 +83,13 @@ terminal出力もidle timeoutをリセットするため、数時間無出力に
 
 CPU数をそのまま分類worker数にしない。外部bucket生成は多くのcoreを使えるが、分類はworkerごとに
 bucket内HashMapを保持するためメモリ使用量も増える。13枚形は生成worker、分類worker、bucket数を
-分けて指定できる。32-core Codespaceでの初回候補は次の通り。
+分けて指定できる。16-core Codespaceでの初回候補は次の通り。
 
 ```bash
-lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+lake exe thirteen-tile-report-gen --generation-workers=16 --classification-workers=8 --buckets=256
 ```
+
+組織ポリシー上32-core machineを選択できる場合は、生成worker数を32へ増やせる。
 
 生成完了後は`.lake/build/thirteen-tile-buckets/generation.done`が作られる。分類中に停止した場合、
 同じ設定で再実行すると既存bucketを再利用して分類から再開する。cacheの永続化やbucketごとの
