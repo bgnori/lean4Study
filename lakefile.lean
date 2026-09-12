@@ -31,6 +31,9 @@ lean_exe «four-tile-report-gen» where
 lean_exe «diag-temp» where
   root := `MahjongComputations.DiagTemp
 
+lean_exe «parallel-computation-test» where
+  root := `MahjongTests.ParallelComputation
+
 lean_exe «seven-tile-report-gen» where
   root := `MahjongComputations.SevenTileReport
 

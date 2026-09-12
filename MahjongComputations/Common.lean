@@ -199,21 +199,30 @@ private def cachedWaitCores
       (cores, { cache with
         misses := cache.misses + 1 } |> insertCachedWaitCoreKeys key cores)
 
+def canReduceMentsuPreservingWaitCoreKeysWith {m : Type → Type} [Monad m]
+    (tiles : List Tile) (completions : List WaitCompletion)
+    (lookup : List Tile → m (Option (List Nat))) : m Bool := do
+  let originalCores := WaitDecompositionCode.waitCoreKeys (WaitDecompositionCode.waitCores completions)
+  let rec loop : List (List Tile) → m Bool
+    | [] => pure false
+    | remaining :: rest => do
+        match ← lookup remaining with
+        | some cores =>
+            if cores == originalCores then pure true else loop rest
+        | none => loop rest
+  if 1 < tiles.length then loop (WaitCompletionFinder.mentsuReductions tiles)
+  else pure false
+
 /-- 既知の元手牌の完成情報を使い、除去後の待ち核探索だけをキャッシュする判定。 -/
 def canReduceMentsuPreservingWaitCoresCached
     (tiles : List Tile) (completions : List WaitCompletion)
     (cache : WaitCoreCache) : Bool × WaitCoreCache :=
-  let originalCores := WaitDecompositionCode.waitCoreKeys (WaitDecompositionCode.waitCores completions)
-  let rec loop : List (List Tile) → WaitCoreCache → Bool × WaitCoreCache
-    | [], cache => (false, cache)
-    | remaining :: rest, cache =>
-        let (cores, cache) := cachedWaitCores remaining cache
-        match cores with
-        | some cores =>
-            if cores == originalCores then (true, cache) else loop rest cache
-        | none => loop rest cache
-  if 1 < tiles.length then loop (WaitCompletionFinder.mentsuReductions tiles) cache
-  else (false, cache)
+  let computation : StateM WaitCoreCache Bool :=
+    canReduceMentsuPreservingWaitCoreKeysWith tiles completions fun remaining =>
+      get >>= fun cache =>
+      let (cores, cache) := cachedWaitCores remaining cache
+      set cache *> pure cores
+  computation.run cache
 
 /-- 完成情報群に現れる待ち牌を、初出順で重複なく取り出す。 -/
 def waitsFromCompletions (completions : List WaitCompletion) : List Tile :=

@@ -1,5 +1,6 @@
 import Mahjong.DirectWaitGeneration
 import MahjongComputations.Common
+import MahjongComputations.Parallel
 
 /-!
 # Exhaustive four-tile wait computation
@@ -67,6 +68,24 @@ def directDerivationReportsWithCache :
       (result :: reports, cache))
     ([], MahjongComputations.emptyWaitCoreCache)
   (reports.reverse, cache)
+
+/-- Four-tile direct reports classified concurrently with one shared wait-core cache. -/
+def directDerivationReportsParallel (workers : Nat) :
+    BaseIO (List FourTileShapeReport × SharedWaitCoreCacheStats) := do
+  let cache ← SharedWaitCoreCache.new
+  let partials ← parallelMapChunks workers directFourTileGenerated.groups fun reports => do
+    let reversed ← reports.foldlM (init := []) fun results report => do
+      let completions := report.completions
+      let reducible ← canReduceMentsuPreservingWaitCoresShared report.tiles completions cache
+      let result : FourTileShapeReport :=
+        { tiles := report.tiles
+          waits := waitsFromCompletions completions
+          reducibility := some (if reducible then .reducible else .irreducible)
+          waitDecompositionCodes := waitDecompositionCodes completions }
+      return result :: results
+    return reversed.reverse
+  let stats ← cache.stats
+  return (partials.flatten, stats)
 
 /-- Number of normalized direct derivations enumerated for four-tile shapes. -/
 def directDerivationCount : Nat :=

@@ -1,4 +1,5 @@
 import MahjongComputations.FourTile
+import MahjongComputations.Parallel
 
 /-!
 # Four-tile report generator
@@ -35,8 +36,8 @@ private def reportsByReducibility (reports : List FourTileShapeReport)
     (reducibility : WaitReducibility) : List FourTileShapeReport :=
   reports.filter fun report => report.reducibility == some reducibility
 
-private def reportText : String :=
-  let (directReports, cache) := directDerivationReportsWithCache
+private def reportText
+    (directReports : List FourTileShapeReport) (cache : SharedWaitCoreCacheStats) : String :=
   let irreducibleReports := reportsByReducibility directReports .irreducible
   let irreducibleGroups := groupByWaitDecompositionCodes
     (·.waitDecompositionCodes) (·.tiles) (·.waits) irreducibleReports
@@ -54,10 +55,10 @@ private def reportText : String :=
     s!"count: {reducibilityCount directReports .reducible}",
     s!"waitCoreCacheHits: {cache.hits}",
     s!"waitCoreCacheMisses: {cache.misses}",
-    s!"waitCoreCacheEntries: {cache.values.size}",
+    s!"waitCoreCacheEntries: {cache.entries}",
      "",
      "### Irreducible",
-     s!"count: {reducibilityCount tenpaiReports .irreducible}",
+    s!"count: {reducibilityCount directReports .irreducible}",
      "",
     "#### Groups by waitDecompositionCodes",
     s!"groupCount: {irreducibleGroups.length}",
@@ -73,11 +74,13 @@ private def reportText : String :=
     [""]
 
 def run (args : List String) : IO UInt32 := do
-  let outputPath := args.head?.getD "reports/four-tile-direct-report.txt"
+  let (workers, outputPath) ←
+    MahjongComputations.parseWorkerArgs args "reports/four-tile-direct-report.txt"
   let path : System.FilePath := outputPath
   if let some parent := path.parent then
     IO.FS.createDirAll parent
-  IO.FS.writeFile path reportText
+  let (directReports, cache) ← directDerivationReportsParallel workers
+  IO.FS.writeFile path (reportText directReports cache)
   IO.println s!"wrote {path}"
   return 0
 
