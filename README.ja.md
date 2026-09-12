@@ -65,6 +65,34 @@ lake build sevenTileReport
 
 出力先はそれぞれ `reports/four-tile-direct-report.txt` と `reports/seven-tile-report.txt` です。
 
+### 大規模計算用Codespaces
+
+`.devcontainer/devcontainer.json`は32 CPU、64 GB RAM、64 GB storageを最低要件として宣言している。
+Dockerの`--cpus`・`--memory`制限は設定せず、選択したCodespaces machineの資源をコンテナから
+利用できるようにしている。Codespace作成時に32-core machineを選び、作成後は次を確認する。
+
+```bash
+nproc
+cat /sys/fs/cgroup/memory.max
+df -h /workspaces
+```
+
+devcontainer設定を変更した既存Codespaceでは、**Codespaces: Rebuild Container**を実行する。
+長時間計算は`tmux`内で起動し、GitHubのCodespaces設定でidle timeoutを最大の240分へ変更する。
+terminal出力もidle timeoutをリセットするため、数時間無出力になる計算には定期的な進捗表示を持たせる。
+
+CPU数をそのまま分類worker数にしない。外部bucket生成は多くのcoreを使えるが、分類はworkerごとに
+bucket内HashMapを保持するためメモリ使用量も増える。13枚形は生成worker、分類worker、bucket数を
+分けて指定できる。32-core Codespaceでの初回候補は次の通り。
+
+```bash
+lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+```
+
+生成完了後は`.lake/build/thirteen-tile-buckets/generation.done`が作られる。分類中に停止した場合、
+同じ設定で再実行すると既存bucketを再利用して分類から再開する。cacheの永続化やbucketごとの
+checkpointは行わない。生成からやり直す場合は`.lake/build/thirteen-tile-buckets`を削除する。
+
 単一ファイルを直接確認する場合:
 
 ```bash

@@ -69,6 +69,32 @@ lake build sevenTileReport
 The reports are written to `reports/four-tile-direct-report.txt` and
 `reports/seven-tile-report.txt`.
 
+### Codespaces for large computations
+
+The dev container declares minimum host requirements of 32 CPUs, 64 GB RAM, and 64 GB storage.
+It deliberately applies no Docker CPU or memory limits, allowing the container to use the selected
+Codespaces machine. After selecting a 32-core machine or rebuilding the container, verify it with:
+
+```bash
+nproc
+cat /sys/fs/cgroup/memory.max
+df -h /workspaces
+```
+
+Run long computations inside `tmux` and set the Codespaces idle timeout to 240 minutes. Terminal
+output resets the idle timeout, so computations that may otherwise be silent for hours should emit
+periodic progress. Do not automatically use all CPUs for bucket classification: each classification
+worker retains a bucket-sized hash map. A suitable initial command is:
+
+```bash
+lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+```
+
+After generation completes, `.lake/build/thirteen-tile-buckets/generation.done` records the phase
+boundary. Re-running with the same settings reuses those buckets if classification was interrupted.
+The wait-core cache and individual bucket results are not checkpointed. Remove the bucket directory
+to force regeneration.
+
 To check a single file directly:
 
 ```bash

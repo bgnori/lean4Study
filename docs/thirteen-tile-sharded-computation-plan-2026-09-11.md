@@ -47,30 +47,29 @@ tileMultisetKey\tencodedCompletion
 復元可能な正規化表現も保存する。Lean の構造体をそのまま `repr` で保存するのではなく、
 整数列などの明示的なバイナリまたはタブ区切り形式を定義する。形式にはバージョン番号を持たせる。
 
-ワーカーごとに直接共有ファイルへ書き込まず、次のような一時ファイルを使う。
+現在の実装では、bucketごとにmutexで保護したbuffered writerを一つ持ち、全生成workerが
+`tileMultisetKey`に対応するwriterへ追記する。
 
 ```text
-work/13tile/generation/worker-00/shard-000.part
-work/13tile/generation/worker-00/shard-001.part
+.lake/build/thirteen-tile-buckets/bucket-0.bin
+.lake/build/thirteen-tile-buckets/bucket-1.bin
 ...
 ```
 
-ファイルを閉じて正常終了した後に一時ファイルを `.data` へ rename する。`.data` が存在し、
-ヘッダーとレコード数の検査に成功した場合だけ、その入力範囲を完了済みとみなす。
+各ファイルはmagic、形式version、面子数、固定record幅を含むheaderを持つ。全writerのflushが
+成功した後にだけ、生成全体の`generation.done`をatomic renameで確定する。
 
 ### 生成段階の再開
 
-生成範囲は正準面子組合せの通し番号で分割する。各範囲に次の状態を持たせる。
+細かい生成範囲ごとのcheckpointは作らない。生成段階全体について次のmarkerだけを持つ。
 
 ```text
-range-0000.json
-range-0000.data.manifest
-range-0000.done
+.lake/build/thirteen-tile-buckets/generation.done
 ```
 
-`done` は最後に作る。途中終了時に `done` がない範囲は再実行し、既存の `.part` は新しい実行IDへ
-書き出すか削除する。生成範囲を再実行しても、最終的な shard 集計は冪等になるよう、manifest の
-入力範囲とレコード件数を照合する。
+markerには形式version、面子数、bucket数、導出数を保存する。markerと全bucketが存在し、設定が
+一致する場合だけ生成を省略する。生成中断時にはmarkerがないため、次回はbucketをtruncateして
+生成全体をやり直す。この粒度なら追加I/Oをほぼ増やさず、より重い分類だけを再試行できる。
 
 ## 第2段階: shard の集約と分類
 
@@ -81,7 +80,6 @@ range-0000.done
 3. `waitsFromCompletions` と wait decomposition code を計算する。
 4. 可約性を判定する。
 5. 件数、待ち種類数分布、既約コードグループを shard 集計へ加える。
-6. 集計ファイルを確定してから `shard-000.done` を作る。
 
 shard 集約中も全牌姿をリストに保持しない。HashMap のメモリ上限を設け、上限を超える場合は、
 レコードをソート済み runs に分割して外部マージする方式へ切り替える。最初から大規模な単一
@@ -95,45 +93,18 @@ HashMap を前提にしない。
 remaining tileMultisetKey -> Option (List WaitCore)
 ```
 
-この値は元牌姿ではなく除去後の牌姿だけに依存するため、shard 集約中に再利用できる。ただし、
-shard ごとに独立キャッシュを持つと同じキーが複数 shard に重複する可能性がある。初期実装では
-正しさと再開性を優先し、各 shard のローカルキャッシュにする。重複が大きいと分かった場合に、
-後から共有キャッシュへ拡張する。
+この値は元牌姿ではなく除去後の牌姿だけに依存するため、bucket集約中に再利用できる。現在は
+全分類workerで64 stripeのsingle-flight cacheを共有し、同じキーの同時計算も一度にまとめる。
 
-### ディスク退避
-
-キャッシュ全体を常時メモリに持たず、次の write-through 方式にする。
-
-```text
-メモリ HashMap -> append-only cache log -> 定期的な compact
-```
-
-各エントリには次を保存する。
-
-```text
-cache-format-version\tremaining-key\tstatus\tencoded-wait-cores
-```
-
-`status` は待ち核あり・待ち核なしを区別する。空結果も保存しないと、非聴牌の再探索を防げない。
-
-処理手順は次の通り。
-
-- cache log へ追記して flush する。
-- flush 成功後にメモリ HashMap へ登録する。
-- メモリ使用量またはエントリ数が上限を超えたら、古いエントリを破棄する。
-- 再利用時はメモリにない場合だけ cache log または compact 済みファイルを検索する。
-- shard 完了時に log を compact し、ヘッダー、件数、checksum を保存する。
-
-ランダムな巨大ファイルを毎回線形検索するとディスクI/Oが支配的になるため、初期実装では
-cache log を一定サイズの sorted run にし、キー範囲インデックスを付ける。より簡単な実装を
-先に行う場合でも、1 shard の処理中に同じ log を何度も全走査しない。
+cacheのdisk退避は採用しない。32-core Codespacesではまずmemory-only共有cacheで実測し、
+メモリ不足が確認された場合だけentry上限や分類worker数の削減を検討する。append-only cache logは
+ランダム参照とcompactのI/Oが計算時間を支配するおそれがあるため、先回りして導入しない。
 
 ## 集計結果の統合
 
-各 shard は完全なレポート本文ではなく、次の集計データを保存する。
+各bucketはworker-local summaryへ畳み込み、最後にmemory上で統合する。
 
 ```text
-shardId
 handCount
 reducibleCount
 irreducibleCount
@@ -144,28 +115,26 @@ cacheMisses
 cacheEntries
 ```
 
-最終統合では、hand count、可約・既約件数、待ち種類数分布、cache 統計を加算する。既約コード
-グループはコード列をキーに再集約し、代表牌姿は `tileMultisetKey` の最小値など決定的な規則で
-選ぶ。各 shard の集計を一度にメモリへ読み込む必要はない。
+最終統合では、hand count、可約・既約件数、待ち種類数分布を加算する。既約コードグループは
+コード列をキーに再集約し、cache統計は共有cacheから一度だけ取得する。bucket別summaryはdiskへ
+保存しない。
 
 ## チェックポイントと再開
 
-完了状態はデータファイルと別に管理する。
+永続化する完了状態は生成段階だけである。
 
 ```text
 shard-000.data
 shard-000.manifest
-shard-000.done
-```
-
+bucket-0.bin
+bucket-1.bin
+...
+generation.done
 `.done` は `.data` と manifest の checksum、レコード件数、プログラムバージョンを検証した後に
 作成する。再開時は `.done` があり、検証に成功した shard をスキップする。壊れた、または形式が
-異なるファイルは未完了として別名へ退避し、同じ名前へ上書きしない。
-
-処理途中の cache log も再読込できるようにする。最後の完全なレコードまでを読み、末尾の不完全な
-レコードは切り捨てる。これにより、強制終了後も最後の flush 位置から再開できる。
-
-## 分割数
+`generation.done`は全bucketをflushした後に作る。再開時はmarkerの設定と全bucketの存在を確認し、
+一致すれば生成を省略する。分類時には各bucketのheaderと固定record幅を検証する。分類途中で停止した
+場合は分類を先頭からやり直すが、導出生成は繰り返さない。
 
 最初から32分割で本番を開始しない。次の順序で検証する。
 
@@ -177,6 +146,42 @@ shard-000.done
 
 分割数はコア数ではなく、各 shard のメモリ上限とディスク帯域で決める。2コア環境なら同時実行は
 通常1〜2プロセスにし、32コア環境でもI/Oが飽和するなら同時実行数を下げる。
+
+### 32-core Codespacesでの初期設定
+
+`.devcontainer/devcontainer.json`では最低要件を32 CPU、64 GB RAM、64 GB storageとし、
+Docker側の`--cpus`・`--memory`制限は設定しない。Codespacesで32-core machineを選択した後、
+次の値が期待通りか確認する。
+
+```bash
+nproc
+cat /sys/fs/cgroup/memory.max
+df -h /workspaces
+```
+
+32 CPUを一律に全段階へ割り当てない。生成段階は雀頭牌単位で32 workerまで並列化できる一方、
+分類段階はworkerごとにbucketの`HashMap`を保持するため、worker数に応じてピークメモリが増える。
+初回構成は次を候補とする。
+
+- 生成worker数: 32
+- 分類worker数: 4〜8
+- bucket数: 128〜256
+- 最低空きdisk: 16 GB。生成recordsの予測値約1.9〜2.7 GBに加え、build成果物と中間生成物の余裕を持つ
+
+生成worker数と分類worker数は別optionとして実装済みである。短時間sampleでbucket最大サイズ、分類時RSS、
+cache entries、処理時間を測り、RAMに余裕がある場合だけ分類worker数を増やす。
+
+```bash
+lake exe thirteen-tile-report-gen --generation-workers=32 --classification-workers=8 --buckets=256
+```
+
+生成完了時だけ`generation.done`をatomic renameで確定する。同じ面子数・bucket数のmarkerと全bucketが
+存在すれば、再実行時は生成を省略して分類から始める。markerは形式version、面子数、bucket数、
+導出数だけを持つため、追加I/Oは無視できる大きさである。分類途中のcacheやbucket別集計は保存しない。
+
+Codespacesのidle timeoutは既定30分、設定可能な最大値は240分である。terminal入出力はidle timeoutを
+リセットするため、分類開始時にbucketごとの進捗を出力する。`tmux`は接続切断への備えにはなるが、
+Codespace自体の停止を防ぐものではない。
 
 ## 検証項目
 
@@ -194,11 +199,11 @@ shard-000.done
 ## 実装上の優先順位
 
 1. まず外部化された導出レコードと shard 集約を実装する。
-2. 次に manifest と `.done` による再開機構を実装する。
-3. 10枚形で正しさと再開性を検証する。
-4. キャッシュの永続化とメモリ上限を追加する。
-5. 13枚形の短いサンプルで実測する。
-6. 実測値に基づいて分割数と同時実行数を決める。
+2. 生成完了時だけの軽量な`.done` markerによる再開機構を実装する。（完了）
+3. 10枚形で外部bucket方式の正しさを検証する。（完了）
+4. 13枚形で生成worker数と分類worker数を分離する。（完了）
+5. 13枚形の短いサンプルでbucketサイズ、RSS、処理時間を測る。
+6. 実測値に基づいてbucket数と分類worker数を調整する。
 
 ## 未決定事項
 

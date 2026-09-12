@@ -1,5 +1,6 @@
 import MahjongComputations.Parallel
 import MahjongComputations.ExternalWaitCompletion
+import MahjongComputations.ThirteenTile
 
 namespace MahjongTests.ParallelComputation
 
@@ -99,7 +100,32 @@ private def testParallelBucketGeneration : IO Unit := do
       decide (tileMultisetKey first.tiles ≤ tileMultisetKey second.tiles)
     ensure (sortGroups grouped == sortGroups expectedGroups)
       "external bucket grouping differs from in-memory canonical grouping"
+    ExternalWaitCompletion.writeGenerationCheckpoint directory 1 bucketCount generatedCount
+    let checkpoint ← ExternalWaitCompletion.readGenerationCheckpoint directory 1 bucketCount
+    ensure (checkpoint == some generatedCount) "external generation checkpoint did not round trip"
+    let wrongCheckpoint ← ExternalWaitCompletion.readGenerationCheckpoint directory 1 (bucketCount + 1)
+    ensure wrongCheckpoint.isNone "external generation checkpoint accepted different settings"
   finally
+    ExternalWaitCompletion.clearGenerationCheckpoint directory
+    paths.forM IO.FS.removeFile
+    IO.FS.removeDir directory
+
+private def testThirteenTileGenerationReuse : IO Unit := do
+  let directory : System.FilePath := ".lake/build/thirteen-tile-checkpoint-test"
+  let paths := ExternalWaitCompletion.bucketPaths directory 1
+  try
+    ExternalWaitCompletion.withBucketSet directory 4 1 (action := fun _ => pure ())
+    ExternalWaitCompletion.writeGenerationCheckpoint directory 4 1 0
+    let result ← ThirteenTile.summaryParallel 2 2 directory 1
+    ensure result.generationReused "thirteen-tile pipeline did not reuse completed generation"
+    ensure (result.summary.enumeratedDerivations == 0)
+      "thirteen-tile pipeline changed the checkpoint derivation count"
+    ensure (result.summary.tenpaiReports == 0)
+      "empty thirteen-tile checkpoint produced reports"
+    ensure (result.summary.allThirteenTileShapes == 98521596000)
+      "unexpected thirteen-tile legal shape count"
+  finally
+    ExternalWaitCompletion.clearGenerationCheckpoint directory
     paths.forM IO.FS.removeFile
     IO.FS.removeDir directory
 
@@ -108,6 +134,7 @@ def run : IO UInt32 := do
   testExternalRecordCodec
   testExternalBucketFile
   testParallelBucketGeneration
+  testThirteenTileGenerationReuse
   let cache ← SharedWaitCoreCache.new
   let tasks ← (List.range 8).mapM fun _ =>
     BaseIO.asTask (do

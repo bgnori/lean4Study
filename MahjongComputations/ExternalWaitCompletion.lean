@@ -131,9 +131,13 @@ structure BucketSet where
 def bucketPath (directory : System.FilePath) (bucketIndex : Nat) : System.FilePath :=
   directory / s!"bucket-{bucketIndex}.bin"
 
+/-- Bucket paths in deterministic index order. -/
+def bucketPaths (directory : System.FilePath) (bucketCount : Nat) : List System.FilePath :=
+  (List.range (max 1 bucketCount)).map (bucketPath directory)
+
 /-- Paths in deterministic bucket-index order. -/
 def BucketSet.paths (buckets : BucketSet) : List System.FilePath :=
-  (List.range buckets.bucketCount).map (bucketPath buckets.directory)
+  bucketPaths buckets.directory buckets.bucketCount
 
 /-- Create and truncate all files in a shared bucket set. -/
 def BucketSet.open (directory : System.FilePath) (mentsuCount bucketCount : Nat)
@@ -172,6 +176,58 @@ def withBucketSet {α : Type} (directory : System.FilePath) (mentsuCount bucketC
     action buckets
   finally
     buckets.close
+
+private def generationCheckpointPath (directory : System.FilePath) : System.FilePath :=
+  directory / "generation.done"
+
+private def generationCheckpointPartPath (directory : System.FilePath) : System.FilePath :=
+  directory / "generation.done.part"
+
+private def generationCheckpointText
+    (mentsuCount bucketCount derivationCount : Nat) : String :=
+  String.intercalate "\n" [
+    "MJWC-GENERATION-1",
+    s!"mentsuCount={mentsuCount}",
+    s!"bucketCount={max 1 bucketCount}",
+    s!"derivationCount={derivationCount}",
+    ""
+  ]
+
+private def parseCheckpointField (fieldPrefix value : String) : Option Nat := do
+  guard (value.startsWith fieldPrefix)
+  (value.drop fieldPrefix.length).toNat?
+
+/-- Remove completion markers before regenerating bucket files. -/
+def clearGenerationCheckpoint (directory : System.FilePath) : IO Unit := do
+  for path in [generationCheckpointPath directory, generationCheckpointPartPath directory] do
+    if ← path.pathExists then
+      IO.FS.removeFile path
+
+/-- Atomically record that all bucket writers closed successfully. -/
+def writeGenerationCheckpoint (directory : System.FilePath)
+    (mentsuCount bucketCount derivationCount : Nat) : IO Unit := do
+  let partPath := generationCheckpointPartPath directory
+  IO.FS.writeFile partPath (generationCheckpointText mentsuCount bucketCount derivationCount)
+  IO.FS.rename partPath (generationCheckpointPath directory)
+
+/-- Return the saved derivation count when the marker and all configured buckets are present. -/
+def readGenerationCheckpoint (directory : System.FilePath)
+    (mentsuCount bucketCount : Nat) : IO (Option Nat) := do
+  let path := generationCheckpointPath directory
+  unless ← path.pathExists do return none
+  let lines := (← IO.FS.readFile path).splitOn "\n"
+  let some savedMentsuCount := lines[1]?.bind (parseCheckpointField "mentsuCount=")
+    | return none
+  let some savedBucketCount := lines[2]?.bind (parseCheckpointField "bucketCount=")
+    | return none
+  let some derivationCount := lines[3]?.bind (parseCheckpointField "derivationCount=")
+    | return none
+  unless lines[0]? == some "MJWC-GENERATION-1" &&
+      savedMentsuCount == mentsuCount && savedBucketCount == max 1 bucketCount do
+    return none
+  for bucketPath in bucketPaths directory bucketCount do
+    unless ← bucketPath.pathExists do return none
+  return some derivationCount
 
 private partial def readRecords {α : Type} (handle : IO.FS.Handle) (mentsuCount : Nat)
     (state : α) (f : α → Record → IO α) : IO α := do

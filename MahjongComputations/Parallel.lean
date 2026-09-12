@@ -28,17 +28,20 @@ def parallelMapChunksIO {α β : Type} (workers : Nat) (items : List α)
   tasks.mapM fun task => do
     IO.ofExcept (← IO.wait task)
 
+/-- Number of processors available to this container, with a safe fallback. -/
+def availableWorkerCount : IO Nat :=
+  try
+    let output ← IO.Process.run { cmd := "nproc" }
+    match output.trimAscii.toString.toNat? with
+    | some workers => pure (Nat.max 1 workers)
+    | none => throw (IO.userError "nproc returned a non-numeric value")
+  catch _ =>
+    IO.eprintln "warning: could not detect processor count; using one worker"
+    pure 1
+
 /-- Parse `--workers=N` and an optional output path, defaulting to available processors. -/
 def parseWorkerArgs (args : List String) (defaultOutputPath : String) : IO (Nat × String) := do
-  let defaultWorkers ←
-    try
-      let output ← IO.Process.run { cmd := "nproc" }
-      match output.trimAscii.toString.toNat? with
-      | some workers => pure (Nat.max 1 workers)
-      | none => throw (IO.userError "nproc returned a non-numeric value")
-    catch _ =>
-      IO.eprintln "warning: could not detect processor count; using one worker"
-      pure 1
+  let defaultWorkers ← availableWorkerCount
   let mut workers := defaultWorkers
   let mut outputPath := defaultOutputPath
   for arg in args do

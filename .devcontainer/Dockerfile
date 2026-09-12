@@ -3,9 +3,8 @@
 # Base: debian:bookworm-slim (~70MB)
 # Final Size: ~300MB (without Mathlib cache)
 #
-# Memory Requirements:
-#   - Without Mathlib: 4GB RAM minimum
-#   - With Mathlib:    8GB RAM minimum (16GB recommended)
+# Host resources are selected by Codespaces from devcontainer.json.
+# Do not impose Docker CPU or memory limits inside this image.
 # ============================================
 
 FROM debian:bookworm-slim
@@ -16,7 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git \
     build-essential \
+    procps \
     sudo \
+    time \
+    tmux \
     python3 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
