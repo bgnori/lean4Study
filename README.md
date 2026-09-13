@@ -117,4 +117,5 @@ Writer and maintenance notes:
 - [docs/documentation-policy.md](docs/documentation-policy.md): division between reader-facing guides, vocabulary pages, and maintenance notes.
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): division of responsibility between source comments and guides.
 - [docs/review-backlog.md](docs/review-backlog.md): design and naming questions discovered during documentation.
+- [docs/wait-decomposition-classification-key-2026-09-13.md](docs/wait-decomposition-classification-key-2026-09-13.md): Japanese design note for fitting wait-decomposition classifications into 64-bit keys.
 - [Mahjong/README.md](Mahjong/README.md): module-level overview.

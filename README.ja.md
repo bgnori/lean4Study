@@ -115,5 +115,6 @@ lake env lean Mahjong/WaitCompletionFinder.lean
 - [docs/documentation-policy.md](docs/documentation-policy.md): 読者向け文書、語彙ページ、保守用文書の役割分担。
 - [docs/proof-comment-policy.md](docs/proof-comment-policy.md): 定義・定理コメントに書くことと、語彙ページへ逃がすことの切り分け。
 - [docs/review-backlog.md](docs/review-backlog.md): ドキュメント整備後に検討する設計・命名課題。
+- [docs/wait-decomposition-classification-key-2026-09-13.md](docs/wait-decomposition-classification-key-2026-09-13.md): 待ち分解分類を64 bitキーへ収める設計。
 
 麻雀モジュール単位の概要は [Mahjong/README.md](Mahjong/README.md) を参照してください。

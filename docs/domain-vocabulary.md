@@ -91,8 +91,8 @@ WinningShape + selected WinningComponent + wait
 `WaitDecompositionCodeEntry` は、このコードと待ち牌を組にして保持する。
 `waitDecompositionCodes` でコード単体へ変換すると待ち牌も忘れるため、両者を区別して読む。
 コード単体の一致が表すのは部品種別の多重集合の一致だけであり、待ち牌、具体牌、元の牌姿の一致ではない。
-さらに現行の `waitDecompositionCodes` は同じコードの重複を除くため、そのコードを持つ待ち分解の個数も保持しない。
-重複を保持するコード多重集合を基礎表現にする仕様変更は [review-backlog.md](review-backlog.md) で追跡する。
+同じ待ち牌とコードの組は重複除去されるが、異なる待ち牌から同じコードが得られた場合は、
+その重複が `waitDecompositionCodes` のコード列に残る。したがって、このコード列は集合ではなく多重集合である。
 
 ## 待ち核
 
