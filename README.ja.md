@@ -101,6 +101,27 @@ checkpointは行わない。生成からやり直す場合は`.lake/build/thirte
 lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
+## Python分類サンプル
+
+外部利用向けに、Python標準ライブラリだけで動く
+`examples/irreducible_wait_classifier.py`を用意している。4・7・10・13枚の牌姿を重複のない
+Tenhou 136 ID列で受け取り、`waitDecompositionCodes`を計算する。さらに、待ち核集合を保つ完成面子を
+再帰的に除去し、既約分類の固定グローバル整数IDを返す。各IDを`id // 4`で牌種へ正規化するため、
+赤5と通常の5は区別しない。
+
+```python
+from irreducible_wait_classifier import classify_irreducible_wait
+
+classification_id = classify_irreducible_wait([0, 4, 5, 8])  # 1223m -> 5
+```
+
+実行時は`examples`をモジュール検索パスへ加える。非聴牌や不正入力は
+`WaitClassificationError`の派生例外になる。
+
+```bash
+PYTHONPATH=examples python3 -m unittest discover -s examples -p 'test_*.py'
+```
+
 ## ドキュメント
 
 読者向け:

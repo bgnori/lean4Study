@@ -103,6 +103,27 @@ To check a single file directly:
 lake env lean Mahjong/WaitCompletionFinder.lean
 ```
 
+## Python Classification Example
+
+`examples/irreducible_wait_classifier.py` is a standard-library-only sample for
+external consumers. It accepts a 4-, 7-, 10-, or 13-tile hand as distinct Tenhou
+136 IDs, computes `waitDecompositionCodes`, removes complete melds while preserving
+the exact wait-core set, and returns a stable global integer classification ID.
+Red-five identity is ignored because every physical ID is normalized with `id // 4`.
+
+```python
+from irreducible_wait_classifier import classify_irreducible_wait
+
+classification_id = classify_irreducible_wait([0, 4, 5, 8])  # 1223m -> 5
+```
+
+Run it with `examples` on the module search path. Non-tenpai and invalid hands raise
+subclasses of `WaitClassificationError`.
+
+```bash
+PYTHONPATH=examples python3 -m unittest discover -s examples -p 'test_*.py'
+```
+
 ## Documentation
 
 Reader-facing guides:
