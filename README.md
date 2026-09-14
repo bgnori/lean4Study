@@ -1,12 +1,13 @@
-# lean4Study
+# Mahjong Formalization
 
-Lean 4 and mathlib study repository. The main worked example formalizes Mahjong tiles, tile patterns, standard-form wait semantics, wait cores, and executable computations that Lean checks during builds.
+A Lean 4 formalization and computational study of Mahjong mathematics. The project models tiles, tile patterns, standard-form wait semantics, wait cores, and exhaustive classifications, with machine-checked specifications and executable reports.
 
 [日本語版はこちら](README.ja.md)
 
 ## Goals
 
-- Learn Lean 4 by modeling concrete domains with types.
+- Formalize Mahjong structures and wait semantics with precise types and proofs.
+- Use exhaustive computation to investigate and classify Mahjong waits.
 - Keep examples executable with `example ... := by native_decide` where possible.
 - Grow proofs alongside computation instead of treating documentation, tests, and implementation as separate artifacts.
 
@@ -159,3 +160,10 @@ Writer and maintenance notes:
 - [docs/review-backlog.md](docs/review-backlog.md): design and naming questions discovered during documentation.
 - [docs/wait-decomposition-classification-key-2026-09-13.md](docs/wait-decomposition-classification-key-2026-09-13.md): Japanese design note for fitting wait-decomposition classifications into 64-bit keys.
 - [Mahjong/README.md](Mahjong/README.md): module-level overview.
+
+## Origin
+
+This repository began as a fork of
+[chantakan/lean4-devcontainer-template](https://github.com/chantakan/lean4-devcontainer-template)
+for learning Lean 4. Its commit history preserves that origin; the repository has since become an
+independent Mahjong formalization and computational research project.

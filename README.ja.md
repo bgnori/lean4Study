@@ -1,12 +1,13 @@
-# lean4Study
+# Mahjong Formalization
 
-Lean 4 と mathlib の学習用リポジトリです。中心的な題材として、麻雀の牌、ターツ、面子、通常形の待ちの意味論、待ち核を Lean で形式化し、計算例や theorem によって確認します。
+麻雀の数理を Lean 4 で形式化し、計算によって研究するリポジトリです。牌、牌姿、通常形の待ちの意味論、待ち核、既約分類などを、機械検証された仕様と全列挙レポートとして扱います。
 
 [English version](README.md)
 
 ## 目的
 
-- 具体的な題材を Lean の型としてモデル化しながら Lean 4 を学ぶ。
+- 麻雀の構造と待ちの意味論を、型と証明によって厳密に形式化する。
+- 全列挙計算により、麻雀の待ちを調査・分類する。
 - `example ... := by native_decide` などを使い、例を実行可能な仕様として残す。
 - 実装、仕様、証明、ドキュメントをできるだけ同じ場所で育てる。
 
@@ -157,3 +158,10 @@ PYTHONPATH=examples python3 -m unittest discover -s examples -p 'test_*.py'
 - [docs/wait-decomposition-classification-key-2026-09-13.md](docs/wait-decomposition-classification-key-2026-09-13.md): 待ち分解分類を64 bitキーへ収める設計。
 
 麻雀モジュール単位の概要は [Mahjong/README.md](Mahjong/README.md) を参照してください。
+
+## 来歴
+
+このリポジトリは、Lean 4 の学習環境として
+[chantakan/lean4-devcontainer-template](https://github.com/chantakan/lean4-devcontainer-template)
+を fork したことから始まりました。その来歴は commit 履歴に保存したまま、現在は独立した麻雀の
+形式化・計算研究プロジェクトとして開発しています。

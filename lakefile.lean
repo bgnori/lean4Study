@@ -1,7 +1,7 @@
 import Lake
 open Lake DSL System
 
-package «lean4-project» where
+package «mahjong-formalization» where
   leanOptions := #[
     -- Enable well-founded recursion default (useful for dependent types)
     ⟨`autoImplicit, false⟩
@@ -91,5 +91,5 @@ target thirteenTileReport pkg : FilePath := do
     return reportFile
 
 @[default_target]
-lean_exe «lean4-project» where
+lean_exe «mahjong-formalization» where
   root := `Main
