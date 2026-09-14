@@ -15,11 +15,7 @@ A Lean 4 formalization and computational study of Mahjong mathematics. The proje
 
 ```text
 .
-├── Main.lean              # Small Lean/mathlib practice examples
-├── Haskell.lean           # Basic list/function practice notes
-├── NaturalLimited.lean    # Finite-type/cardinality study notes
-├── Lean4Project.lean      # Library entry point
-├── Mahjong.lean           # Mahjong module entry point
+├── Mahjong.lean           # Library entry point
 ├── Mahjong/               # Mahjong study modules
 │   ├── Basic.lean
 │   ├── Pattern.lean
@@ -42,7 +38,7 @@ A Lean 4 formalization and computational study of Mahjong mathematics. The proje
 lake build
 ```
 
-To check only the Mahjong modules:
+To check the Mahjong modules explicitly:
 
 ```bash
 lake build Mahjong

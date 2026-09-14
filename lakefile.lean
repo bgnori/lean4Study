@@ -7,15 +7,10 @@ package «mahjong-formalization» where
     ⟨`autoImplicit, false⟩
   ]
 
-require Hammer from git
-  "https://github.com/JOSHCLUNE/LeanHammer" @ "v4.28.0"
-
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git" @ "v4.28.0"
 
-lean_lib «Lean4Project» where
-  -- add library configuration options here
-
+@[default_target]
 lean_lib «Mahjong» where
   -- Mahjong study modules.
 
@@ -90,6 +85,3 @@ target thirteenTileReport pkg : FilePath := do
     }
     return reportFile
 
-@[default_target]
-lean_exe «mahjong-formalization» where
-  root := `Main

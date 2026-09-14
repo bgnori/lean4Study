@@ -15,11 +15,7 @@
 
 ```text
 .
-├── Main.lean              # Lean/mathlib の小さな練習
-├── Haskell.lean           # List や関数定義の練習メモ
-├── NaturalLimited.lean    # 有限型、Finset、濃度の学習メモ
-├── Lean4Project.lean      # ライブラリ全体の入口
-├── Mahjong.lean           # Mahjong モジュールの入口
+├── Mahjong.lean           # ライブラリ全体の入口
 ├── Mahjong/               # 麻雀の形式化
 │   ├── Basic.lean
 │   ├── Pattern.lean
@@ -44,7 +40,7 @@
 lake build
 ```
 
-麻雀部分だけを確認する場合:
+麻雀モジュールを明示的に確認する場合:
 
 ```bash
 lake build Mahjong
