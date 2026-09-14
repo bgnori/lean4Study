@@ -3,7 +3,7 @@
 # Base: debian:bookworm-slim (~70MB)
 # Final Size: ~300MB (without Mathlib cache)
 #
-# Host resources are selected by Codespaces from devcontainer.json.
+# Host resources are selected by Codespaces from the chosen devcontainer profile.
 # Do not impose Docker CPU or memory limits inside this image.
 # ============================================
 

@@ -1,12 +1,7 @@
 {
-  "name": "Lean 4",
+  "name": "Lean 4 (development)",
   "build": {
-    "dockerfile": "Dockerfile"
-  },
-  "hostRequirements": {
-    "cpus": 16,
-    "memory": "64gb",
-    "storage": "64gb"
+    "dockerfile": "../Dockerfile"
   },
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {

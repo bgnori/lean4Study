@@ -1,0 +1,36 @@
+{
+  "name": "Lean 4 (ten-tile report)",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "4gb",
+    "storage": "32gb"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "installOhMyZsh": false,
+      "upgradePackages": false,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "leanprover.lean4"
+      ],
+      "settings": {
+        "lean4.serverEnv": {
+          "PATH": "${containerEnv:PATH}"
+        },
+        "editor.unicodeHighlight.ambiguousCharacters": false
+      }
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "vscode"
+}

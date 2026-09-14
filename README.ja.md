@@ -65,11 +65,23 @@ lake build sevenTileReport
 
 出力先はそれぞれ `reports/four-tile-direct-report.txt` と `reports/seven-tile-report.txt` です。
 
-### 大規模計算用Codespaces
+### 用途別devcontainer
 
-`.devcontainer/devcontainer.json`は16 CPU、64 GB RAM、64 GB storageを最低要件として宣言している。
-Dockerの`--cpus`・`--memory`制限は設定せず、選択したCodespaces machineの資源をコンテナから
-利用できるようにしている。Codespace作成後は次を確認する。
+devcontainerは、生成する内容に応じて次の3構成から選択する。
+
+| 構成 | 用途 | ホスト最低要件 |
+| --- | --- | --- |
+| `development` | 通常の編集・証明・テスト、4枚形・7枚形レポート | 指定なし |
+| `ten-tile` | 10枚形レポート | 4 CPU、4 GB RAM、32 GB storage |
+| `thirteen-tile` | 13枚形レポート | 16 CPU、64 GB RAM、64 GB storage |
+
+VS Codeでコンテナを開くとき、またはCodespaceの作成オプションで、使用するdevcontainer構成を
+選択する。通常のローカル作業では`development`を使い、重いレポートを生成するときだけ対応する
+構成を使う。
+
+`hostRequirements`はCodespacesなどが適切なホストを選ぶための最低要件であり、Dockerの資源上限
+ではない。どの構成もDockerの`--cpus`・`--memory`制限を設定していない。Codespace作成後は次を
+確認する。
 
 ```bash
 nproc
@@ -77,9 +89,15 @@ cat /sys/fs/cgroup/memory.max
 df -h /workspaces
 ```
 
-devcontainer設定を変更した既存Codespaceでは、**Codespaces: Rebuild Container**を実行する。
+devcontainer設定を変更した既存Codespaceでは、使用する構成を選び直してコンテナを再作成する。
 長時間計算は`tmux`内で起動し、GitHubのCodespaces設定でidle timeoutを最大の240分へ変更する。
 terminal出力もidle timeoutをリセットするため、数時間無出力になる計算には定期的な進捗表示を持たせる。
+
+10枚形レポートの実測済み構成は4 workerである。
+
+```bash
+lake exe ten-tile-report-gen --workers=4
+```
 
 CPU数をそのまま分類worker数にしない。外部bucket生成は多くのcoreを使えるが、分類はworkerごとに
 bucket内HashMapを保持するためメモリ使用量も増える。13枚形は生成worker、分類worker、bucket数を

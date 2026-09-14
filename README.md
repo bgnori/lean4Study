@@ -69,11 +69,23 @@ lake build sevenTileReport
 The reports are written to `reports/four-tile-direct-report.txt` and
 `reports/seven-tile-report.txt`.
 
-### Codespaces for large computations
+### Dev containers by workload
 
-The dev container declares minimum host requirements of 16 CPUs, 64 GB RAM, and 64 GB storage.
-It deliberately applies no Docker CPU or memory limits, allowing the container to use the selected
-Codespaces machine. After creating or rebuilding the container, verify it with:
+Choose a dev container configuration based on the output being generated:
+
+| Configuration | Workload | Minimum host requirements |
+| --- | --- | --- |
+| `development` | Normal editing, proofs, tests, and four-/seven-tile reports | None declared |
+| `ten-tile` | Ten-tile report | 4 CPUs, 4 GB RAM, 32 GB storage |
+| `thirteen-tile` | Thirteen-tile report | 16 CPUs, 64 GB RAM, 64 GB storage |
+
+Select the configuration when opening the repository in a VS Code dev container or in the
+Codespace creation options. Use `development` for normal local work and select a report-specific
+configuration only when generating that report.
+
+`hostRequirements` helps services such as Codespaces choose a suitable host; it does not impose
+Docker resource limits. None of the configurations sets Docker CPU or memory limits. After creating
+or rebuilding the container, verify the available resources with:
 
 ```bash
 nproc
@@ -81,9 +93,16 @@ cat /sys/fs/cgroup/memory.max
 df -h /workspaces
 ```
 
-Run long computations inside `tmux` and set the Codespaces idle timeout to 240 minutes. Terminal
+When changing configuration in an existing Codespace, select the new configuration and recreate the
+container. Run long computations inside `tmux` and set the Codespaces idle timeout to 240 minutes. Terminal
 output resets the idle timeout, so computations that may otherwise be silent for hours should emit
-periodic progress. Do not automatically use all CPUs for bucket classification: each classification
+periodic progress. The measured ten-tile setup uses four workers:
+
+```bash
+lake exe ten-tile-report-gen --workers=4
+```
+
+Do not automatically use all CPUs for bucket classification: each classification
 worker retains a bucket-sized hash map. A suitable initial command is:
 
 ```bash
